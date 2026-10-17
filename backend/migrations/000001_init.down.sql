@@ -1,0 +1,10 @@
+-- 000001_init.down.sql
+BEGIN;
+DROP TABLE IF EXISTS solves;
+DROP TABLE IF EXISTS submissions;
+DROP TABLE IF EXISTS attachments;
+DROP TABLE IF EXISTS flags;
+DROP TABLE IF EXISTS challenges;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS users;
+COMMIT;
