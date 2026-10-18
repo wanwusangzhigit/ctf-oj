@@ -13,10 +13,14 @@ import { ChallengeDetailPage } from '@/pages/challenges/ChallengeDetailPage';
 import { ScoreboardPage } from '@/pages/ScoreboardPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
 import { MyInstancesPage } from '@/pages/MyInstancesPage';
+import { AnnouncementsPage } from '@/pages/AnnouncementsPage';
+import { AnnouncementDetailPage } from '@/pages/AnnouncementDetailPage';
+import { NotificationsPage } from '@/pages/NotificationsPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { AdminLayout } from '@/pages/admin/AdminLayout';
 import { AdminCategoriesPage } from '@/pages/admin/AdminCategoriesPage';
 import { AdminChallengesPage } from '@/pages/admin/AdminChallengesPage';
+import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +57,16 @@ function AppRoutes() {
             </RequireAuth>
           }
         />
+        <Route path="/announcements" element={<AnnouncementsPage />} />
+        <Route path="/announcements/:id" element={<AnnouncementDetailPage />} />
+        <Route
+          path="/notifications"
+          element={
+            <RequireAuth>
+              <NotificationsPage />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/users/:id"
           element={
@@ -72,6 +86,7 @@ function AppRoutes() {
           <Route index element={<Navigate to="/admin/categories" replace />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
           <Route path="challenges" element={<AdminChallengesPage />} />
+          <Route path="announcements" element={<AdminAnnouncementsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>

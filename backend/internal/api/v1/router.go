@@ -10,15 +10,18 @@ import (
 )
 
 type Deps struct {
-	Logger    *zap.Logger
-	RDB       *redis.Client
-	JWT       *service.JWTService
-	Auth      *service.AuthService
-	User      *service.UserService
-	Cat       *service.CategoryService
-	Chal      *service.ChallengeService
-	Att       *service.AttachmentService
-	Instance  *service.InstanceService
+	Logger        *zap.Logger
+	RDB           *redis.Client
+	JWT           *service.JWTService
+	Auth          *service.AuthService
+	User          *service.UserService
+	Cat           *service.CategoryService
+	Chal          *service.ChallengeService
+	Att           *service.AttachmentService
+	Instance      *service.InstanceService
+	Announcement  *service.AnnouncementService
+	Discussion    *service.DiscussionService
+	Notification  *service.NotificationService
 }
 
 func Register(r *gin.Engine, d *Deps) {
@@ -41,6 +44,9 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 	chalH := NewChallengeHandler(d.Chal)
 	attH := NewAttachmentHandler(d.Att)
 	instH := NewInstanceHandler(d.Instance)
+	annH := NewAnnouncementHandler(d.Announcement)
+	discH := NewDiscussionHandler(d.Discussion)
+	notifH := NewNotificationHandler(d.Notification)
 
 	auth := g.Group("/auth")
 	{
@@ -79,6 +85,10 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 			instanceGroup.DELETE("/:instanceId", instH.Stop)
 		}
 
+		discussionsGroup := challenges.Group("/:id/discussions")
+		discussionsGroup.GET("", middleware.OptionalAuth(d.JWT), discH.List)
+		discussionsGroup.POST("", middleware.Auth(d.JWT), discH.Create)
+
 		adminCh := challenges.Group("")
 		adminCh.Use(middleware.Auth(d.JWT), middleware.RequireAdmin())
 		adminCh.POST("", chalH.Create)
@@ -92,6 +102,35 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 	instances.Use(middleware.Auth(d.JWT))
 	{
 		instances.GET("/me", instH.ListMine)
+	}
+
+	announcements := g.Group("/announcements")
+	{
+		announcements.GET("", annH.List)
+		announcements.GET("/", annH.List)
+		announcements.GET("/:id", middleware.OptionalAuth(d.JWT), annH.Get)
+
+		adminAnn := announcements.Group("")
+		adminAnn.Use(middleware.Auth(d.JWT), middleware.RequireAdmin())
+		adminAnn.POST("", annH.Create)
+		adminAnn.PUT("/:id", annH.Update)
+		adminAnn.DELETE("/:id", annH.Delete)
+	}
+
+	discussions := g.Group("/discussions")
+	discussions.Use(middleware.Auth(d.JWT))
+	{
+		discussions.POST("/:id/like", discH.ToggleLike)
+		discussions.DELETE("/:id", discH.Delete)
+	}
+
+	notifs := g.Group("/notifications")
+	notifs.Use(middleware.Auth(d.JWT))
+	{
+		notifs.GET("/me", notifH.ListMine)
+		notifs.GET("/me/unread_count", notifH.UnreadCount)
+		notifs.PATCH("/:id/read", notifH.MarkRead)
+		notifs.POST("/read_all", notifH.MarkAllRead)
 	}
 
 	users := g.Group("/users")

@@ -62,6 +62,10 @@ func main() {
 	subRepo := repository.NewSubmissionRepository(gormDB)
 	solveRepo := repository.NewSolveRepository(gormDB)
 	instRepo := repository.NewInstanceRepository(gormDB)
+	annRepo := repository.NewAnnouncementRepository(gormDB)
+	discRepo := repository.NewDiscussionRepository(gormDB)
+	likeRepo := repository.NewDiscussionLikeRepository(gormDB)
+	notifRepo := repository.NewNotificationRepository(gormDB)
 
 	jwtSvc := service.NewJWTService(cfg.JWT)
 	authSvc := service.NewAuthService(userRepo, jwtSvc, cfg)
@@ -69,21 +73,27 @@ func main() {
 	userSvc := service.NewUserService(userRepo, solveRepo)
 	attSvc := service.NewAttachmentService(attRepo, chalRepo, storageBackend)
 	instSvc := service.NewInstanceService(dockerOrch, instRepo, chalRepo, cfg.Instance)
-	chalSvc := service.NewChallengeService(chalRepo, catRepo, flagRepo, attRepo, subRepo, solveRepo, userRepo, instSvc)
+	notifSvc := service.NewNotificationService(notifRepo)
+	chalSvc := service.NewChallengeService(chalRepo, catRepo, flagRepo, attRepo, subRepo, solveRepo, userRepo, instSvc, notifSvc)
+	annSvc := service.NewAnnouncementService(annRepo)
+	discSvc := service.NewDiscussionService(discRepo, likeRepo, chalRepo, notifSvc)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
 	v1.Register(r, &v1.Deps{
-		Logger:   log,
-		RDB:      rdb,
-		JWT:      jwtSvc,
-		Auth:     authSvc,
-		User:     userSvc,
-		Cat:      catSvc,
-		Chal:     chalSvc,
-		Att:      attSvc,
-		Instance: instSvc,
+		Logger:       log,
+		RDB:          rdb,
+		JWT:          jwtSvc,
+		Auth:         authSvc,
+		User:         userSvc,
+		Cat:          catSvc,
+		Chal:         chalSvc,
+		Att:          attSvc,
+		Instance:     instSvc,
+		Announcement: annSvc,
+		Discussion:   discSvc,
+		Notification: notifSvc,
 	})
 
 	srv := &http.Server{

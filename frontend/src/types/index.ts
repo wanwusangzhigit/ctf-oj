@@ -146,3 +146,42 @@ export interface StartInstanceResult {
   connection: string;
   flag?: string;
 }
+
+export interface Announcement {
+  id: number;
+  title: string;
+  contentMd: string;
+  isPinned: boolean;
+  isPublished: boolean;
+  publishedAt?: string;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Discussion {
+  id: number;
+  challengeId: number;
+  userId: number;
+  parentId?: number;
+  contentMd: string;
+  likeCount: number;
+  createdAt: string;
+  updatedAt: string;
+  user?: User;
+  replies?: Discussion[];
+  liked?: boolean;
+}
+
+export type NotificationKind = 'solve' | 'reply' | 'announcement' | 'system';
+
+export interface AppNotification {
+  id: number;
+  userId: number;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  link: string;
+  readAt?: string;
+  createdAt: string;
+}

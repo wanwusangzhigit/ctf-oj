@@ -1,14 +1,16 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Flag, LogOut, User as UserIcon, Trophy, LayoutGrid, Shield, Server } from 'lucide-react';
+import { Flag, LogOut, User as UserIcon, Trophy, LayoutGrid, Shield, Server, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { Avatar } from './Avatar';
+import { NotificationBell } from './NotificationBell';
 import { Button } from '@/components/ui';
 
 const NAV_ITEMS = [
   { to: '/challenges', label: '题目', icon: LayoutGrid, end: false },
   { to: '/scoreboard', label: '榜单', icon: Trophy, end: false },
   { to: '/instances', label: '我的实例', icon: Server, end: false },
+  { to: '/announcements', label: '公告', icon: Megaphone, end: false },
 ];
 
 export function AppLayout() {
@@ -45,6 +47,7 @@ export function AppLayout() {
 
           {user ? (
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <Link
                 to={`/users/${user.id}`}
                 className="flex items-center gap-2 px-2 py-1 rounded hover:bg-surface-2 transition-colors"

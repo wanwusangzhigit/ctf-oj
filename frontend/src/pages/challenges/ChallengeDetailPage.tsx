@@ -22,6 +22,8 @@ import {
   useToast,
 } from '@/components/ui';
 import { DynamicInstancePanel } from '@/components/DynamicInstancePanel';
+import { DiscussionPanel } from '@/components/DiscussionPanel';
+import { Markdown } from '@/components/Markdown';
 import { formatBytes, formatTime, relativeTime } from '@/lib/utils';
 import { ApiClientError } from '@/api/client';
 
@@ -126,9 +128,7 @@ export function ChallengeDetailPage() {
             </CardHeader>
             <CardBody>
               {data.description ? (
-                <div className="prose prose-sm max-w-none whitespace-pre-wrap leading-relaxed text-fg">
-                  {data.description}
-                </div>
+                <Markdown>{data.description}</Markdown>
               ) : (
                 <div className="text-sm text-muted">这道题没有描述，请尝试从附件或连接信息入手。</div>
               )}
@@ -257,6 +257,10 @@ export function ChallengeDetailPage() {
             </CardBody>
           </Card>
         </aside>
+      </div>
+
+      <div className="mt-8">
+        <DiscussionPanel challengeId={data.id} />
       </div>
     </div>
   );

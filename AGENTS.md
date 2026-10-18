@@ -76,11 +76,12 @@ frontend/
 
 ## 前端约定
 
-- 路由：`/auth/login`、`/auth/register`、`/`、`/challenges`、`/challenges/:id`、`/scoreboard`、`/admin/*`。
-- 未登录用户只能访问 `/auth/*` 与 `/`；其他路由重定向到登录页。
+- 路由：`/auth/login`、`/auth/register`、`/`、`/challenges`、`/challenges/:id`、`/scoreboard`、`/announcements`、`/announcements/:id`、`/notifications`、`/instances`、`/users/:id`、`/admin/*`。
+- 未登录用户只能访问 `/auth/*`、`/`、`/announcements*`；其他路由重定向到登录页。
 - 全局错误使用 toast，不在页面层处理业务错误细节。
 - 表单使用 `react-hook-form` + `zod` 校验。
 - 数据请求统一走 TanStack Query；本地状态走 Zustand。
+- 富文本一律走 `Markdown` 组件（react-markdown + rehype-sanitize）；不允许 `dangerouslySetInnerHTML`。
 
 ## 部署
 
@@ -102,7 +103,7 @@ frontend/
 - **P1 地基**：compose、配置、迁移、注册/登录/JWT、健康检查 ✅
 - **P2 核心题目**：分类、题目 CRUD、static/regex flag、提交判题、附件、动态打分 ✅
 - **P3 容器化题目**：docker-cli 编排、dynamic flag 注入、实例生命周期、TTL worker ✅
-- **P4 社区**：公告、讨论区、Markdown、通知（待启动）
+- **P4 社区**：公告、讨论区（嵌套 + 点赞）、Markdown 渲染、通知中心 ✅
 - **P5 管理后台 + 高级**：Admin UI 完善、实时记分板、统计图表、导入导出（待启动）
 
 ## 当前进度

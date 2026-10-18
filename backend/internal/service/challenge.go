@@ -21,6 +21,7 @@ type ChallengeService struct {
 	solves       domain.SolveRepository
 	users        domain.UserRepository
 	instances    *InstanceService
+	notifier     NotificationDispatcher
 }
 
 func NewChallengeService(
@@ -32,6 +33,7 @@ func NewChallengeService(
 	solves domain.SolveRepository,
 	users domain.UserRepository,
 	instances *InstanceService,
+	notifier NotificationDispatcher,
 ) *ChallengeService {
 	return &ChallengeService{
 		challenges:  challenges,
@@ -42,6 +44,7 @@ func NewChallengeService(
 		solves:      solves,
 		users:       users,
 		instances:   instances,
+		notifier:    notifier,
 	}
 }
 
@@ -337,7 +340,21 @@ func (s *ChallengeService) SubmitFlag(ctx context.Context, userID, challengeID u
 		return nil, err
 	}
 
+	if s.notifier != nil {
+		title := "已解题：" + c.Title
+		body := "获得 " + itoa(score) + " 分" + firstBloodSuffix(isFirst)
+		link := "/challenges/" + itoa(int(c.ID))
+		_ = s.notifier.Dispatch(ctx, userID, domain.NotifySolve, title, body, link)
+	}
+
 	return &SubmissionResult{Correct: true, Score: score, Message: "correct"}, nil
+}
+
+func firstBloodSuffix(b bool) string {
+	if !b {
+		return ""
+	}
+	return " · 首杀"
 }
 
 func (s *ChallengeService) computeScore(ctx context.Context, c *domain.Challenge) (int, error) {

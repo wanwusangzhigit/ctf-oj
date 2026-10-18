@@ -12,6 +12,7 @@ export function AdminLayout() {
       <nav className="flex items-center gap-1 mb-6 border-b border-border">
         <Tab to="/admin/categories">分类</Tab>
         <Tab to="/admin/challenges">题目</Tab>
+        <Tab to="/admin/announcements">公告</Tab>
       </nav>
 
       <Outlet />
