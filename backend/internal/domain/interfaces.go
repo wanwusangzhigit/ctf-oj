@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"io"
+	"time"
 )
 
 type UserRepository interface {
@@ -67,6 +68,20 @@ type SolveRepository interface {
 	ListByUser(ctx context.Context, userID uint) ([]*Solve, error)
 	ListTop(ctx context.Context, limit int) ([]*Solve, error)
 	ListScoreboard(ctx context.Context, page, pageSize int) ([]*User, int64, error)
+}
+
+type InstanceRepository interface {
+	Create(ctx context.Context, i *Instance) error
+	FindByID(ctx context.Context, id uint) (*Instance, error)
+	FindByUserAndChallenge(ctx context.Context, userID, challengeID uint) (*Instance, error)
+	FindActiveByUserAndChallenge(ctx context.Context, userID, challengeID uint) (*Instance, error)
+	ListByUser(ctx context.Context, userID uint) ([]*Instance, error)
+	ListExpired(ctx context.Context, now time.Time) ([]*Instance, error)
+	ListActive(ctx context.Context) ([]*Instance, error)
+	Update(ctx context.Context, i *Instance) error
+	UpdateStatus(ctx context.Context, id uint, status InstanceStatus, errMsg string) error
+	Delete(ctx context.Context, id uint) error
+	CountActiveByUser(ctx context.Context, userID uint) (int64, error)
 }
 
 type Storage interface {

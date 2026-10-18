@@ -34,6 +34,12 @@ const EMPTY: ChallengeInput = {
   isPublished: false,
   connectionInfo: '',
   tags: '',
+  isDynamic: false,
+  image: '',
+  internalPort: 0,
+  defaultTtl: 7200,
+  memoryLimitMb: 256,
+  cpuLimit: 1,
   flags: [{ type: 'static', content: '', caseSensitive: true }],
 };
 
@@ -85,7 +91,16 @@ export function AdminChallengesPage() {
       toast.error('请填写题目名称');
       return;
     }
-    if (form.flags.some((f) => !f.content.trim())) {
+    if (form.isDynamic) {
+      if (!(form.image ?? '').trim()) {
+        toast.error('请填写容器镜像');
+        return;
+      }
+      if (!form.internalPort || form.internalPort <= 0) {
+        toast.error('请填写容器内端口');
+        return;
+      }
+    } else if (form.flags.some((f) => !f.content.trim())) {
       toast.error('请完善所有 Flag 内容');
       return;
     }
@@ -184,58 +199,130 @@ export function AdminChallengesPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Flag 配置</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setForm((f) => ({
-                      ...f,
-                      flags: [...f.flags, { type: 'static', content: '', caseSensitive: true }],
-                    }))
-                  }
-                >
-                  + 添加 Flag
-                </Button>
-              </div>
-              {form.flags.map((fl, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-start">
-                  <select
-                    className="col-span-3 h-9 px-2 bg-surface border border-border rounded-md text-sm"
-                    value={fl.type}
-                    onChange={(e) => updateFlag(i, { type: e.target.value as FlagInput['type'] })}
-                  >
-                    <option value="static">static</option>
-                    <option value="regex">regex</option>
-                  </select>
-                  <Input
-                    className="col-span-7 font-mono"
-                    placeholder="flag{...} 或正则表达式"
-                    value={fl.content}
-                    onChange={(e) => updateFlag(i, { content: e.target.value })}
-                  />
-                  <label className="col-span-1 flex items-center justify-center h-9 text-2xs text-muted cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={fl.caseSensitive}
-                      onChange={(e) => updateFlag(i, { caseSensitive: e.target.checked })}
-                    />
-                  </label>
+                {!form.isDynamic && (
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="col-span-1"
-                    disabled={form.flags.length === 1}
+                    variant="outline"
+                    size="sm"
                     onClick={() =>
-                      setForm((f) => ({ ...f, flags: f.flags.filter((_, j) => j !== i) }))
+                      setForm((f) => ({
+                        ...f,
+                        flags: [...f.flags, { type: 'static', content: '', caseSensitive: true }],
+                      }))
                     }
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    + 添加 Flag
                   </Button>
+                )}
+              </div>
+              {form.isDynamic ? (
+                <p className="text-2xs text-muted">
+                  容器题在每次启动实例时由后端生成动态 Flag（格式如 <code>flag&#123;uuid&#125;</code>），
+                  通过环境变量 <code>FLAG</code> 注入容器。
+                </p>
+              ) : (
+                form.flags.map((fl, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-start">
+                    <select
+                      className="col-span-3 h-9 px-2 bg-surface border border-border rounded-md text-sm"
+                      value={fl.type}
+                      onChange={(e) => updateFlag(i, { type: e.target.value as FlagInput['type'] })}
+                    >
+                      <option value="static">static</option>
+                      <option value="regex">regex</option>
+                    </select>
+                    <Input
+                      className="col-span-7 font-mono"
+                      placeholder="flag{...} 或正则表达式"
+                      value={fl.content}
+                      onChange={(e) => updateFlag(i, { content: e.target.value })}
+                    />
+                    <label className="col-span-1 flex items-center justify-center h-9 text-2xs text-muted cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={fl.caseSensitive}
+                        onChange={(e) => updateFlag(i, { caseSensitive: e.target.checked })}
+                      />
+                    </label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="col-span-1"
+                      disabled={form.flags.length === 1}
+                      onClick={() =>
+                        setForm((f) => ({ ...f, flags: f.flags.filter((_, j) => j !== i) }))
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))
+              )}
+              {!form.isDynamic && (
+                <p className="text-2xs text-muted">复选框表示大小写敏感。</p>
+              )}
+            </div>
+
+            <div className="rounded-md border border-border bg-surface-2 p-3 space-y-3">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isDynamic}
+                  onChange={(e) => setForm((f) => ({ ...f, isDynamic: e.target.checked }))}
+                />
+                <span className="font-medium">容器化题目</span>
+                <span className="text-2xs text-muted">
+                  （启动 Docker 实例并注入动态 Flag）
+                </span>
+              </label>
+              {form.isDynamic && (
+                <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                  <Field label="镜像" hint="例如 eystinken/captcha-server:latest">
+                    <Input
+                      value={form.image}
+                      onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
+                      placeholder="registry/image:tag"
+                    />
+                  </Field>
+                  <Field label="容器内端口">
+                    <Input
+                      type="number"
+                      value={form.internalPort}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, internalPort: Number(e.target.value) || 0 }))
+                      }
+                    />
+                  </Field>
+                  <Field label="默认 TTL（秒）" hint="不填使用全局默认 2 小时">
+                    <Input
+                      type="number"
+                      value={form.defaultTtl}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, defaultTtl: Number(e.target.value) || 0 }))
+                      }
+                    />
+                  </Field>
+                  <Field label="内存上限（MB）">
+                    <Input
+                      type="number"
+                      value={form.memoryLimitMb}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, memoryLimitMb: Number(e.target.value) || 0 }))
+                      }
+                    />
+                  </Field>
+                  <Field label="CPU 核心数上限">
+                    <Input
+                      type="number"
+                      value={form.cpuLimit}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, cpuLimit: Number(e.target.value) || 0 }))
+                      }
+                    />
+                  </Field>
                 </div>
-              ))}
-              <p className="text-2xs text-muted">复选框表示大小写敏感。</p>
+              )}
             </div>
 
             <div className="flex items-center gap-2">

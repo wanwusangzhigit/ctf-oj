@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Flag, LogOut, User as UserIcon, Trophy, LayoutGrid, Shield } from 'lucide-react';
+import { Flag, LogOut, User as UserIcon, Trophy, LayoutGrid, Shield, Server } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { Avatar } from './Avatar';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui';
 const NAV_ITEMS = [
   { to: '/challenges', label: '题目', icon: LayoutGrid, end: false },
   { to: '/scoreboard', label: '榜单', icon: Trophy, end: false },
+  { to: '/instances', label: '我的实例', icon: Server, end: false },
 ];
 
 export function AppLayout() {

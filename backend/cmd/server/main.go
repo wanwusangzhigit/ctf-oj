@@ -16,6 +16,7 @@ import (
 	"github.com/ctf-oj/backend/internal/config"
 	"github.com/ctf-oj/backend/internal/infrastructure/cache"
 	"github.com/ctf-oj/backend/internal/infrastructure/db"
+	dockerinfra "github.com/ctf-oj/backend/internal/infrastructure/docker"
 	"github.com/ctf-oj/backend/internal/infrastructure/logger"
 	"github.com/ctf-oj/backend/internal/infrastructure/storage"
 	"github.com/ctf-oj/backend/internal/repository"
@@ -48,6 +49,11 @@ func main() {
 		log.Fatal("init storage", zap.Error(err))
 	}
 
+	dockerOrch, err := dockerinfra.New()
+	if err != nil {
+		log.Warn("docker orchestrator disabled", zap.Error(err))
+	}
+
 	userRepo := repository.NewUserRepository(gormDB)
 	catRepo := repository.NewCategoryRepository(gormDB)
 	chalRepo := repository.NewChallengeRepository(gormDB)
@@ -55,26 +61,29 @@ func main() {
 	attRepo := repository.NewAttachmentRepository(gormDB)
 	subRepo := repository.NewSubmissionRepository(gormDB)
 	solveRepo := repository.NewSolveRepository(gormDB)
+	instRepo := repository.NewInstanceRepository(gormDB)
 
 	jwtSvc := service.NewJWTService(cfg.JWT)
 	authSvc := service.NewAuthService(userRepo, jwtSvc, cfg)
 	catSvc := service.NewCategoryService(catRepo)
-	chalSvc := service.NewChallengeService(chalRepo, catRepo, flagRepo, attRepo, subRepo, solveRepo, userRepo)
-	attSvc := service.NewAttachmentService(attRepo, chalRepo, storageBackend)
 	userSvc := service.NewUserService(userRepo, solveRepo)
+	attSvc := service.NewAttachmentService(attRepo, chalRepo, storageBackend)
+	instSvc := service.NewInstanceService(dockerOrch, instRepo, chalRepo, cfg.Instance)
+	chalSvc := service.NewChallengeService(chalRepo, catRepo, flagRepo, attRepo, subRepo, solveRepo, userRepo, instSvc)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
 	v1.Register(r, &v1.Deps{
-		Logger: log,
-		RDB:    rdb,
-		JWT:    jwtSvc,
-		Auth:   authSvc,
-		User:   userSvc,
-		Cat:    catSvc,
-		Chal:   chalSvc,
-		Att:    attSvc,
+		Logger:   log,
+		RDB:      rdb,
+		JWT:      jwtSvc,
+		Auth:     authSvc,
+		User:     userSvc,
+		Cat:      catSvc,
+		Chal:     chalSvc,
+		Att:      attSvc,
+		Instance: instSvc,
 	})
 
 	srv := &http.Server{

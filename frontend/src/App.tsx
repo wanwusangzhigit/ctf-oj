@@ -12,6 +12,7 @@ import { ChallengesPage } from '@/pages/challenges/ChallengesPage';
 import { ChallengeDetailPage } from '@/pages/challenges/ChallengeDetailPage';
 import { ScoreboardPage } from '@/pages/ScoreboardPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
+import { MyInstancesPage } from '@/pages/MyInstancesPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { AdminLayout } from '@/pages/admin/AdminLayout';
 import { AdminCategoriesPage } from '@/pages/admin/AdminCategoriesPage';
@@ -44,6 +45,14 @@ function AppRoutes() {
           }
         />
         <Route path="/scoreboard" element={<ScoreboardPage />} />
+        <Route
+          path="/instances"
+          element={
+            <RequireAuth>
+              <MyInstancesPage />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/users/:id"
           element={

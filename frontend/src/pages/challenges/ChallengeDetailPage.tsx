@@ -21,6 +21,7 @@ import {
   Spinner,
   useToast,
 } from '@/components/ui';
+import { DynamicInstancePanel } from '@/components/DynamicInstancePanel';
 import { formatBytes, formatTime, relativeTime } from '@/lib/utils';
 import { ApiClientError } from '@/api/client';
 
@@ -175,7 +176,11 @@ export function ChallengeDetailPage() {
                 <Input
                   value={flag}
                   onChange={(e) => setFlag(e.target.value)}
-                  placeholder="flag{...}"
+                  placeholder={
+                    data.isDynamic
+                      ? 'flag 来自你的容器实例'
+                      : 'flag{...}'
+                  }
                   className="font-mono"
                   disabled={data.solved}
                 />
@@ -187,11 +192,26 @@ export function ChallengeDetailPage() {
                 >
                   {data.solved ? '已通过' : '提交'}
                 </Button>
+                {data.isDynamic && !data.solved && (
+                  <p className="text-2xs text-muted">
+                    你需要先启动右侧的实例，再从实例中获得 Flag 并提交。
+                  </p>
+                )}
               </form>
             </CardBody>
           </Card>
 
-          {data.connectionInfo && (
+          {data.isDynamic && (
+            <DynamicInstancePanel
+              challengeId={data.id}
+              solved={data.solved}
+              onSolvedRefresh={() =>
+                qc.invalidateQueries({ queryKey: ['challenge', challengeId] })
+              }
+            />
+          )}
+
+          {data.connectionInfo && !data.isDynamic && (
             <Card>
               <CardHeader>
                 <CardTitle>连接信息</CardTitle>
@@ -224,6 +244,13 @@ export function ChallengeDetailPage() {
             <CardBody>
               <dl className="space-y-2 text-sm">
                 <Row label="分类">{data.category?.name ?? '—'}</Row>
+                <Row label="类型">
+                  {data.isDynamic ? (
+                    <Badge tone="accent">容器题</Badge>
+                  ) : (
+                    <Badge>静态</Badge>
+                  )}
+                </Row>
                 <Row label="创建时间">{relativeTime(data.createdAt)}</Row>
                 <Row label="标签">{data.tags || '—'}</Row>
               </dl>

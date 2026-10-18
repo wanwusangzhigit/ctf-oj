@@ -31,6 +31,12 @@ export interface Challenge {
   isPublished: boolean;
   connectionInfo: string;
   tags: string;
+  isDynamic: boolean;
+  image: string;
+  internalPort: number;
+  defaultTtl: number;
+  memoryLimitMb: number;
+  cpuLimit: number;
   category?: Category;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +54,12 @@ export interface ChallengeView {
   isPublished: boolean;
   connectionInfo: string;
   tags: string;
+  isDynamic: boolean;
+  image: string;
+  internalPort: number;
+  defaultTtl: number;
+  memoryLimitMb: number;
+  cpuLimit: number;
   category?: Category;
   createdAt: string;
   updatedAt: string;
@@ -106,4 +118,31 @@ export interface TokenPair {
 export interface AuthResponse {
   user: User;
   tokens: TokenPair;
+}
+
+export type InstanceStatus = 'running' | 'stopped' | 'expired' | 'error';
+
+export interface Instance {
+  id: number;
+  userId: number;
+  challengeId: number;
+  containerId: string;
+  image: string;
+  host: string;
+  port: number;
+  internalPort: number;
+  status: InstanceStatus;
+  errorMessage: string;
+  expiresAt: string;
+  startedAt: string;
+  stoppedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  challenge?: Challenge;
+}
+
+export interface StartInstanceResult {
+  instance: Instance;
+  connection: string;
+  flag?: string;
 }

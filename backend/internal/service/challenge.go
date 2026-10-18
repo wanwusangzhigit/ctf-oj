@@ -20,6 +20,7 @@ type ChallengeService struct {
 	submissions  domain.SubmissionRepository
 	solves       domain.SolveRepository
 	users        domain.UserRepository
+	instances    *InstanceService
 }
 
 func NewChallengeService(
@@ -30,6 +31,7 @@ func NewChallengeService(
 	submissions domain.SubmissionRepository,
 	solves domain.SolveRepository,
 	users domain.UserRepository,
+	instances *InstanceService,
 ) *ChallengeService {
 	return &ChallengeService{
 		challenges:  challenges,
@@ -39,6 +41,7 @@ func NewChallengeService(
 		submissions: submissions,
 		solves:      solves,
 		users:       users,
+		instances:   instances,
 	}
 }
 
@@ -54,6 +57,12 @@ type ChallengeAdminInput struct {
 	ConnectionInfo  string            `json:"connectionInfo"`
 	Tags            string            `json:"tags"`
 	Flags           []FlagInput       `json:"flags"`
+	IsDynamic       bool              `json:"isDynamic"`
+	Image           string            `json:"image"`
+	InternalPort    int               `json:"internalPort"`
+	DefaultTTL      int               `json:"defaultTtl"`
+	MemoryLimitMB   int               `json:"memoryLimitMb"`
+	CPULimit        int               `json:"cpuLimit"`
 }
 
 type FlagInput struct {
@@ -73,8 +82,16 @@ func (s *ChallengeService) Create(ctx context.Context, in ChallengeAdminInput, c
 	if _, err := s.categories.FindByID(ctx, in.CategoryID); err != nil {
 		return nil, fmt.Errorf("category: %w", err)
 	}
-	if len(in.Flags) == 0 {
-		return nil, errors.New("at least one flag required")
+	if in.IsDynamic {
+		if strings.TrimSpace(in.Image) == "" {
+			return nil, errors.New("image required for dynamic challenge")
+		}
+		if in.InternalPort <= 0 {
+			return nil, errors.New("internalPort required for dynamic challenge")
+		}
+	}
+	if !in.IsDynamic && len(in.Flags) == 0 {
+		return nil, errors.New("at least one flag required for static challenge")
 	}
 	for _, f := range in.Flags {
 		if strings.TrimSpace(f.Content) == "" {
@@ -98,7 +115,13 @@ func (s *ChallengeService) Create(ctx context.Context, in ChallengeAdminInput, c
 		IsPublished:    in.IsPublished,
 		ConnectionInfo: in.ConnectionInfo,
 		Tags:           in.Tags,
-		CreatedBy:      creatorID,
+		IsDynamic:      in.IsDynamic,
+		Image:          strings.TrimSpace(in.Image),
+		InternalPort:   in.InternalPort,
+		DefaultTTL:     in.DefaultTTL,
+		MemoryLimitMB:  in.MemoryLimitMB,
+		CPULimit:      in.CPULimit,
+		CreatedBy:     creatorID,
 	}
 	if err := s.challenges.Create(ctx, c); err != nil {
 		return nil, err
@@ -141,6 +164,12 @@ func (s *ChallengeService) Update(ctx context.Context, id uint, in ChallengeAdmi
 	c.IsPublished = in.IsPublished
 	c.ConnectionInfo = in.ConnectionInfo
 	c.Tags = in.Tags
+	c.IsDynamic = in.IsDynamic
+	c.Image = strings.TrimSpace(in.Image)
+	c.InternalPort = in.InternalPort
+	c.DefaultTTL = in.DefaultTTL
+	c.MemoryLimitMB = in.MemoryLimitMB
+	c.CPULimit = in.CPULimit
 	normalize(&c.BaseScore, &c.MinScore, &c.Decay, &c.Difficulty)
 
 	if err := s.challenges.Update(ctx, c); err != nil {
@@ -251,20 +280,25 @@ func (s *ChallengeService) SubmitFlag(ctx context.Context, userID, challengeID u
 		return nil, domain.ErrSubmissionTooFast
 	}
 
-	flags, err := s.flags.FindByChallengeID(ctx, challengeID)
-	if err != nil {
-		return nil, err
-	}
-
 	matched := false
-	for _, f := range flags {
-		m, err := crypto.NewFlagMatcher(string(f.Type), f.Content, f.CaseSensitive)
-		if err != nil || m == nil {
-			continue
+	if c.IsDynamic {
+		if s.instances != nil {
+			matched = s.instances.ValidateDynamicFlag(ctx, userID, challengeID, flag)
 		}
-		if m.Match(flag) {
-			matched = true
-			break
+	} else {
+		flags, err := s.flags.FindByChallengeID(ctx, challengeID)
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range flags {
+			m, err := crypto.NewFlagMatcher(string(f.Type), f.Content, f.CaseSensitive)
+			if err != nil || m == nil {
+				continue
+			}
+			if m.Match(flag) {
+				matched = true
+				break
+			}
 		}
 	}
 

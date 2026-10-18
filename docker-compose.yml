@@ -1,5 +1,3 @@
-version: "3.9"
-
 name: ctfoj
 
 volumes:
@@ -71,10 +69,42 @@ services:
       BACKEND_STORAGE_DRIVER: local
       BACKEND_STORAGE_LOCAL_DIR: /data/uploads
       BACKEND_RATE_LIMIT_RPM: ${BACKEND_RATE_LIMIT_RPM:-120}
+      BACKEND_INSTANCE_PUBLIC_HOST: ${BACKEND_INSTANCE_PUBLIC_HOST:-localhost}
+      BACKEND_INSTANCE_PORT_MIN: ${BACKEND_INSTANCE_PORT_MIN:-30000}
+      BACKEND_INSTANCE_PORT_MAX: ${BACKEND_INSTANCE_PORT_MAX:-40000}
+      BACKEND_INSTANCE_DEFAULT_TTL: ${BACKEND_INSTANCE_DEFAULT_TTL:-2h}
+      BACKEND_INSTANCE_MAX_PER_USER: ${BACKEND_INSTANCE_MAX_PER_USER:-1}
+      BACKEND_INSTANCE_FLAG_PREFIX: ${BACKEND_INSTANCE_FLAG_PREFIX:-flag}
     volumes:
       - uploads:/data/uploads
+      - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - "8081"
+    networks:
+      - ctfoj-net
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/app/worker"]
+    command: []
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-ctfoj}
+      POSTGRES_USER: ${POSTGRES_USER:-ctfoj}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      BACKEND_LOG_LEVEL: ${BACKEND_LOG_LEVEL:-info}
+      BACKEND_JWT_SECRET: ${BACKEND_JWT_SECRET:-dev-secret-change-me}
+      BACKEND_INSTANCE_DEFAULT_TTL: ${BACKEND_INSTANCE_DEFAULT_TTL:-2h}
+      WORKER_INTERVAL_SECONDS: ${WORKER_INTERVAL_SECONDS:-30}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - ctfoj-net
 

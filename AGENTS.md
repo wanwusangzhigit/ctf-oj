@@ -101,9 +101,9 @@ frontend/
 
 - **P1 地基**：compose、配置、迁移、注册/登录/JWT、健康检查 ✅
 - **P2 核心题目**：分类、题目 CRUD、static/regex flag、提交判题、附件、动态打分 ✅
-- **P3 容器化题目**：Docker SDK、dynamic flag、实例生命周期、TTL worker（待启动）
+- **P3 容器化题目**：docker-cli 编排、dynamic flag 注入、实例生命周期、TTL worker ✅
 - **P4 社区**：公告、讨论区、Markdown、通知（待启动）
-- **P5 管理后台 + 高级**：Admin UI、实时记分板、统计图表、导入导出（待启动）
+- **P5 管理后台 + 高级**：Admin UI 完善、实时记分板、统计图表、导入导出（待启动）
 
 ## 当前进度
 

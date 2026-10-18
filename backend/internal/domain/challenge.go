@@ -10,21 +10,27 @@ const (
 )
 
 type Challenge struct {
-	ID            uint       `gorm:"primaryKey" json:"id"`
-	CategoryID    uint       `gorm:"index;not null" json:"categoryId"`
-	Title         string     `gorm:"size:128;not null" json:"title"`
-	Description   string     `gorm:"type:text" json:"description"`
-	BaseScore     int        `gorm:"not null;default:500" json:"baseScore"`
-	MinScore      int        `gorm:"not null;default:100" json:"minScore"`
-	Decay         int        `gorm:"not null;default:10" json:"decay"`
-	Difficulty    int        `gorm:"not null;default:2" json:"difficulty"`
-	IsPublished   bool       `gorm:"not null;default:false;index" json:"isPublished"`
-	ConnectionInfo string    `gorm:"size:255" json:"connectionInfo"`
-	Tags          string     `gorm:"size:255" json:"tags"`
-	CreatedBy     uint       `gorm:"index" json:"createdBy"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	UpdatedAt     time.Time  `json:"updatedAt"`
-	Category      *Category  `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	ID             uint       `gorm:"primaryKey" json:"id"`
+	CategoryID     uint       `gorm:"index;not null" json:"categoryId"`
+	Title          string     `gorm:"size:128;not null" json:"title"`
+	Description    string     `gorm:"type:text" json:"description"`
+	BaseScore      int        `gorm:"not null;default:500" json:"baseScore"`
+	MinScore       int        `gorm:"not null;default:100" json:"minScore"`
+	Decay          int        `gorm:"not null;default:10" json:"decay"`
+	Difficulty     int        `gorm:"not null;default:2" json:"difficulty"`
+	IsPublished    bool       `gorm:"not null;default:false;index" json:"isPublished"`
+	ConnectionInfo string     `gorm:"size:255" json:"connectionInfo"`
+	Tags           string     `gorm:"size:255" json:"tags"`
+	IsDynamic      bool       `gorm:"not null;default:false;index" json:"isDynamic"`
+	Image          string     `gorm:"size:255" json:"image"`
+	InternalPort   int        `gorm:"not null;default:0" json:"internalPort"`
+	DefaultTTL     int        `gorm:"not null;default:0" json:"defaultTtl"`
+	MemoryLimitMB  int        `gorm:"not null;default:0" json:"memoryLimitMb"`
+	CPULimit       int        `gorm:"not null;default:0" json:"cpuLimit"`
+	CreatedBy      uint       `gorm:"index" json:"createdBy"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+	Category       *Category  `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 }
 
 type Flag struct {

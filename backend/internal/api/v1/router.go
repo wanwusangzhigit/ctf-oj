@@ -10,14 +10,15 @@ import (
 )
 
 type Deps struct {
-	Logger *zap.Logger
-	RDB    *redis.Client
-	JWT    *service.JWTService
-	Auth   *service.AuthService
-	User   *service.UserService
-	Cat    *service.CategoryService
-	Chal   *service.ChallengeService
-	Att    *service.AttachmentService
+	Logger    *zap.Logger
+	RDB       *redis.Client
+	JWT       *service.JWTService
+	Auth      *service.AuthService
+	User      *service.UserService
+	Cat       *service.CategoryService
+	Chal      *service.ChallengeService
+	Att       *service.AttachmentService
+	Instance  *service.InstanceService
 }
 
 func Register(r *gin.Engine, d *Deps) {
@@ -39,6 +40,7 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 	catH := NewCategoryHandler(d.Cat)
 	chalH := NewChallengeHandler(d.Chal)
 	attH := NewAttachmentHandler(d.Att)
+	instH := NewInstanceHandler(d.Instance)
 
 	auth := g.Group("/auth")
 	{
@@ -68,6 +70,15 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 		challenges.GET("/:id/attachments", middleware.OptionalAuth(d.JWT), attH.List)
 		challenges.GET("/:id/attachments/:attachmentId/download", middleware.OptionalAuth(d.JWT), attH.Download)
 
+		instanceGroup := challenges.Group("/:id/instance")
+		instanceGroup.Use(middleware.Auth(d.JWT))
+		{
+			instanceGroup.POST("", instH.Start)
+			instanceGroup.GET("", instH.GetActive)
+			instanceGroup.POST("/:instanceId/extend", instH.Extend)
+			instanceGroup.DELETE("/:instanceId", instH.Stop)
+		}
+
 		adminCh := challenges.Group("")
 		adminCh.Use(middleware.Auth(d.JWT), middleware.RequireAdmin())
 		adminCh.POST("", chalH.Create)
@@ -75,6 +86,12 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 		adminCh.DELETE("/:id", chalH.Delete)
 		adminCh.POST("/:id/attachments", attH.Upload)
 		adminCh.DELETE("/:id/attachments/:attachmentId", attH.Delete)
+	}
+
+	instances := g.Group("/instances")
+	instances.Use(middleware.Auth(d.JWT))
+	{
+		instances.GET("/me", instH.ListMine)
 	}
 
 	users := g.Group("/users")

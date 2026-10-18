@@ -49,6 +49,12 @@ export interface ChallengeInput {
   isPublished: boolean;
   connectionInfo?: string;
   tags?: string;
+  isDynamic: boolean;
+  image?: string;
+  internalPort: number;
+  defaultTtl: number;
+  memoryLimitMb: number;
+  cpuLimit: number;
   flags: FlagInput[];
 }
 

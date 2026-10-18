@@ -13,11 +13,13 @@ type Config struct {
 	LogLevel     string
 	RegisterOpen bool
 
-	JWT    JWTConfig
-	DB     DBConfig
-	Redis  RedisConfig
-	Storage StorageConfig
+	JWT       JWTConfig
+	DB        DBConfig
+	Redis     RedisConfig
+	Storage   StorageConfig
 	RateLimit RateLimitConfig
+	Docker    DockerConfig
+	Instance  InstanceConfig
 }
 
 type JWTConfig struct {
@@ -49,6 +51,20 @@ type StorageConfig struct {
 
 type RateLimitConfig struct {
 	PerMinute int
+}
+
+type DockerConfig struct {
+	Host    string
+	Network string
+}
+
+type InstanceConfig struct {
+	PublicHost     string
+	PortMin        int
+	PortMax        int
+	DefaultTTL     time.Duration
+	MaxPerUser     int
+	FlagPrefix     string
 }
 
 func Load() (*Config, error) {
@@ -83,6 +99,18 @@ func Load() (*Config, error) {
 		},
 		RateLimit: RateLimitConfig{
 			PerMinute: envInt("BACKEND_RATE_LIMIT_RPM", 120),
+		},
+		Docker: DockerConfig{
+			Host:    env("BACKEND_DOCKER_HOST", "unix:///var/run/docker.sock"),
+			Network: env("BACKEND_DOCKER_NETWORK", ""),
+		},
+		Instance: InstanceConfig{
+			PublicHost: env("BACKEND_INSTANCE_PUBLIC_HOST", "localhost"),
+			PortMin:    envInt("BACKEND_INSTANCE_PORT_MIN", 30000),
+			PortMax:    envInt("BACKEND_INSTANCE_PORT_MAX", 40000),
+			DefaultTTL: envDuration("BACKEND_INSTANCE_DEFAULT_TTL", 2*time.Hour),
+			MaxPerUser: envInt("BACKEND_INSTANCE_MAX_PER_USER", 1),
+			FlagPrefix: env("BACKEND_INSTANCE_FLAG_PREFIX", "flag"),
 		},
 	}
 
