@@ -12,16 +12,28 @@ import (
 )
 
 type AnnouncementHandler struct {
-	svc *service.AnnouncementService
+	svc   *service.AnnouncementService
+	audit *service.AuditService
 }
 
-func NewAnnouncementHandler(s *service.AnnouncementService) *AnnouncementHandler {
-	return &AnnouncementHandler{svc: s}
+func NewAnnouncementHandler(s *service.AnnouncementService, audit *service.AuditService) *AnnouncementHandler {
+	return &AnnouncementHandler{svc: s, audit: audit}
 }
 
 func (h *AnnouncementHandler) List(c *gin.Context) {
 	page, pageSize := parsePaging(c)
 	as, total, err := h.svc.List(c.Request.Context(), true, page, pageSize)
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.Paged(c, as, total, page, pageSize)
+}
+
+// AdminList returns both published and draft announcements for the admin UI.
+func (h *AnnouncementHandler) AdminList(c *gin.Context) {
+	page, pageSize := parsePaging(c)
+	as, total, err := h.svc.List(c.Request.Context(), false, page, pageSize)
 	if err != nil {
 		response.Err(c, err)
 		return
@@ -40,7 +52,7 @@ func (h *AnnouncementHandler) Get(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
-	if !a.IsPublished && !middleware.IsAdmin(c) {
+	if !a.IsPublished && !middleware.HasPermission(c, domain.PermAnnouncementManage) {
 		response.Err(c, domain.ErrNotFound)
 		return
 	}
@@ -59,6 +71,7 @@ func (h *AnnouncementHandler) Create(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
+	recordAudit(c, h.audit, "announcement.create", "announcement", a.ID, map[string]string{"title": a.Title})
 	response.Created(c, a)
 }
 
@@ -78,6 +91,7 @@ func (h *AnnouncementHandler) Update(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
+	recordAudit(c, h.audit, "announcement.update", "announcement", a.ID, map[string]string{"title": a.Title})
 	response.OK(c, a)
 }
 
@@ -91,5 +105,6 @@ func (h *AnnouncementHandler) Delete(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
+	recordAudit(c, h.audit, "announcement.delete", "announcement", uint(id), nil)
 	response.NoContent(c)
 }

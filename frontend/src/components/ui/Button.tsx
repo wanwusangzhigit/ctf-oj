@@ -12,25 +12,25 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANT_CLS: Record<Variant, string> = {
   primary:
-    'bg-accent text-accent-fg border border-transparent hover:bg-accent-hover disabled:opacity-50',
+    'bg-amber text-white border border-amber hover:bg-amber-hover hover:border-amber-hover disabled:opacity-50',
   secondary:
-    'bg-surface-2 text-fg border border-border hover:bg-surface disabled:opacity-50',
+    'bg-paper-2 text-ink border border-rule hover:bg-paper-3 disabled:opacity-50',
   outline:
-    'bg-transparent text-fg border border-border-strong hover:bg-surface-2 disabled:opacity-50',
+    'bg-transparent text-ink border border-rule-strong hover:bg-paper-2 disabled:opacity-50',
   ghost:
-    'bg-transparent text-fg border border-transparent hover:bg-surface-2 disabled:opacity-50',
+    'bg-transparent text-ink border border-transparent hover:bg-paper-2 disabled:opacity-50',
   danger:
-    'bg-danger text-danger-fg border border-transparent hover:opacity-90 disabled:opacity-50',
+    'bg-oxblood text-white border border-oxblood hover:opacity-90 disabled:opacity-50',
 };
 
 const SIZE_CLS: Record<Size, string> = {
-  sm: 'h-7 px-2.5 text-2xs rounded-sm gap-1',
-  md: 'h-9 px-3 text-sm rounded-md gap-1.5',
-  lg: 'h-11 px-5 text-sm rounded-md gap-2',
-  icon: 'h-8 w-8 rounded-md',
+  sm:   'h-7  px-2.5 text-2xs rounded-sm gap-1',
+  md:   'h-9  px-3   text-sm  rounded   gap-1.5',
+  lg:   'h-11 px-5   text-sm  rounded   gap-2',
+  icon: 'h-8  w-8            rounded-sm',
 };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function button(
   { className, variant = 'primary', size = 'md', loading, disabled, children, ...rest },
   ref,
 ) {
@@ -39,7 +39,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center font-medium transition-colors select-none',
+        'inline-flex items-center justify-center font-medium select-none',
+        'transition-colors duration-120',
         'focus-visible:outline-none disabled:cursor-not-allowed',
         VARIANT_CLS[variant],
         SIZE_CLS[size],

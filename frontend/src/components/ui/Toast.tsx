@@ -65,27 +65,27 @@ function ToastItemView({ item, onClose }: { item: ToastItem; onClose: () => void
 
   const Icon =
     item.kind === 'success' ? CheckCircle2 : item.kind === 'error' ? AlertCircle : Info;
-  const color =
+  const accent =
     item.kind === 'success'
-      ? 'text-success'
+      ? 'text-moss'
       : item.kind === 'error'
-        ? 'text-danger'
-        : 'text-accent';
+        ? 'text-oxblood'
+        : 'text-amber';
 
   return (
     <div
       className={cn(
-        'pointer-events-auto bg-surface border border-border rounded-md shadow-popover',
-        'px-3.5 py-2.5 flex items-start gap-2.5 transition-all',
+        'pointer-events-auto bg-surface border border-rule-strong rounded-sm shadow-popover',
+        'px-3.5 py-2.5 flex items-start gap-2.5 transition-all duration-120',
         open ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1',
       )}
       role="status"
     >
-      <Icon className={cn('h-4 w-4 mt-0.5 shrink-0', color)} />
-      <div className="text-sm text-fg flex-1 min-w-0 break-words">{item.message}</div>
+      <Icon className={cn('h-4 w-4 mt-0.5 shrink-0', accent)} />
+      <div className="text-sm text-ink flex-1 min-w-0 break-words">{item.message}</div>
       <button
         onClick={onClose}
-        className="text-muted hover:text-fg transition-colors"
+        className="text-ink-3 hover:text-ink transition-colors"
         aria-label="close"
       >
         <X className="h-3.5 w-3.5" />

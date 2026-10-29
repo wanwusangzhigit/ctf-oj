@@ -48,3 +48,13 @@ export function relativeTime(value: string | number | Date): string {
   if (abs < month) return rtf.format(Math.round(diff / week), 'week');
   return rtf.format(Math.round(diff / month), 'month');
 }
+
+export function formatDuration(ms: number): string {
+  if (ms <= 0) return '0 秒';
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec} 秒`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} 分 ${sec % 60} 秒`;
+  const hr = Math.floor(min / 60);
+  return `${hr} 时 ${min % 60} 分`;
+}

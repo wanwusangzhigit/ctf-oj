@@ -14,8 +14,18 @@ type NotificationDispatcher interface {
 	DispatchMany(ctx context.Context, userIDs []uint, kind domain.NotificationKind, title, body, link string) error
 }
 
+type RealtimePublisher interface {
+	PublishTo(userID uint, typ string, payload interface{})
+}
+
 type NotificationService struct {
-	repos domain.NotificationRepository
+	repos     domain.NotificationRepository
+	publisher RealtimePublisher
+}
+
+// SetPublisher enables live delivery of new notifications over WebSocket.
+func (s *NotificationService) SetPublisher(p RealtimePublisher) {
+	s.publisher = p
 }
 
 func NewNotificationService(r domain.NotificationRepository) *NotificationService {
@@ -33,7 +43,13 @@ func (s *NotificationService) Dispatch(ctx context.Context, userID uint, kind do
 		Body:   truncate(body, 1000),
 		Link:   truncate(link, 255),
 	}
-	return s.repos.Create(ctx, n)
+	if err := s.repos.Create(ctx, n); err != nil {
+		return err
+	}
+	if s.publisher != nil {
+		s.publisher.PublishTo(userID, "notification", n)
+	}
+	return nil
 }
 
 func (s *NotificationService) DispatchMany(ctx context.Context, userIDs []uint, kind domain.NotificationKind, title, body, link string) error {

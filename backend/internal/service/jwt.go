@@ -26,10 +26,10 @@ type Claims struct {
 }
 
 type JWTService struct {
-	secret    []byte
-	accessTTL time.Duration
+	secret     []byte
+	accessTTL  time.Duration
 	refreshTTL time.Duration
-	issuer    string
+	issuer     string
 }
 
 func NewJWTService(cfg config.JWTConfig) *JWTService {
@@ -42,9 +42,10 @@ func NewJWTService(cfg config.JWTConfig) *JWTService {
 }
 
 type TokenPair struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresAt    int64  `json:"expiresAt"`
+	AccessToken      string `json:"-"`
+	RefreshToken     string `json:"-"`
+	ExpiresAt        int64  `json:"-"`
+	RefreshExpiresAt int64  `json:"-"`
 }
 
 func (s *JWTService) Issue(userID uint, username, role string) (*TokenPair, error) {
@@ -56,8 +57,13 @@ func (s *JWTService) Issue(userID uint, username, role string) (*TokenPair, erro
 	if err != nil {
 		return nil, err
 	}
-	exp := time.Now().Add(s.accessTTL).Unix()
-	return &TokenPair{AccessToken: at, RefreshToken: rt, ExpiresAt: exp}, nil
+	now := time.Now()
+	return &TokenPair{
+		AccessToken:      at,
+		RefreshToken:     rt,
+		ExpiresAt:        now.Add(s.accessTTL).Unix(),
+		RefreshExpiresAt: now.Add(s.refreshTTL).Unix(),
+	}, nil
 }
 
 func (s *JWTService) sign(userID uint, username, role string, typ TokenType, ttl time.Duration) (string, error) {

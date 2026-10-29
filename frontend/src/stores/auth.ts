@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import type { User } from '@/types';
-import { clearStoredTokens, saveStoredTokens } from '@/api/client';
 
 interface AuthState {
   user: User | null;
+  /** True once we've finished the initial session probe on boot. */
   hydrated: boolean;
-  set: (user: User, tokens: { accessToken: string; refreshToken: string; expiresAt: number }) => void;
+  set: (user: User) => void;
+  /** Apply a user (or null) and mark the store as hydrated. */
   setUser: (user: User | null) => void;
   clear: () => void;
 }
@@ -13,13 +14,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   hydrated: false,
-  set: (user, tokens) => {
-    saveStoredTokens(tokens);
-    set({ user, hydrated: true });
-  },
-  setUser: (user) => set({ user }),
-  clear: () => {
-    clearStoredTokens();
-    set({ user: null });
-  },
+  set: (user) => set({ user, hydrated: true }),
+  setUser: (user) => set({ user, hydrated: true }),
+  clear: () => set({ user: null, hydrated: true }),
 }));

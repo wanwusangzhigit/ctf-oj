@@ -14,6 +14,7 @@ type AttachmentService struct {
 	attachments domain.AttachmentRepository
 	challenges  domain.ChallengeRepository
 	storage     domain.Storage
+	access      *ChallengeAccessService
 }
 
 func NewAttachmentService(a domain.AttachmentRepository, c domain.ChallengeRepository, s domain.Storage) *AttachmentService {
@@ -54,10 +55,27 @@ func (s *AttachmentService) Upload(ctx context.Context, challengeID uint, header
 	return a, nil
 }
 
-func (s *AttachmentService) Download(ctx context.Context, attachmentID uint) (io.ReadCloser, *domain.Attachment, error) {
+func (s *AttachmentService) SetAccessService(a *ChallengeAccessService) { s.access = a }
+
+func (s *AttachmentService) Download(ctx context.Context, attachmentID, userID uint, isAdmin bool) (io.ReadCloser, *domain.Attachment, error) {
 	a, err := s.attachments.FindByID(ctx, attachmentID)
 	if err != nil {
 		return nil, nil, err
+	}
+	c, err := s.challenges.FindByID(ctx, a.ChallengeID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if s.access != nil {
+		ok, err := s.access.CanView(ctx, c, userID, isAdmin)
+		if err != nil {
+			return nil, nil, err
+		}
+		if !ok {
+			return nil, nil, domain.ErrNotFound
+		}
+	} else if !c.IsPublished && !isAdmin {
+		return nil, nil, domain.ErrNotFound
 	}
 	rc, _, err := s.storage.Open(ctx, a.StorageKey)
 	if err != nil {
@@ -66,7 +84,22 @@ func (s *AttachmentService) Download(ctx context.Context, attachmentID uint) (io
 	return rc, a, nil
 }
 
-func (s *AttachmentService) ListByChallenge(ctx context.Context, challengeID uint) ([]*domain.Attachment, error) {
+func (s *AttachmentService) ListByChallenge(ctx context.Context, challengeID, userID uint, isAdmin bool) ([]*domain.Attachment, error) {
+	c, err := s.challenges.FindByID(ctx, challengeID)
+	if err != nil {
+		return nil, err
+	}
+	if s.access != nil {
+		ok, err := s.access.CanView(ctx, c, userID, isAdmin)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, domain.ErrNotFound
+		}
+	} else if !c.IsPublished && !isAdmin {
+		return nil, domain.ErrNotFound
+	}
 	return s.attachments.ListByChallengeID(ctx, challengeID)
 }
 

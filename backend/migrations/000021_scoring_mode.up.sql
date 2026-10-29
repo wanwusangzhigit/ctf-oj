@@ -1,0 +1,1 @@
+ALTER TABLE competitions ADD COLUMN IF NOT EXISTS scoring_mode VARCHAR(16) NOT NULL DEFAULT 'dynamic';

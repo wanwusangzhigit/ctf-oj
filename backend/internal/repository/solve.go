@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -103,13 +104,15 @@ func (r *solveRepo) ListScoreboard(ctx context.Context, page, pageSize int) ([]*
 		pageSize = 20
 	}
 	var (
-		total  int64
+		total int64
 		users []*domain.User
 	)
-	if err := r.db.WithContext(ctx).Model(&domain.User{}).Count(&total).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&domain.User{}).
+		Where("score_excluded = ?", false).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	if err := r.db.WithContext(ctx).
+		Where("score_excluded = ?", false).
 		Order("score DESC, id ASC").
 		Offset((page - 1) * pageSize).
 		Limit(pageSize).
@@ -117,4 +120,45 @@ func (r *solveRepo) ListScoreboard(ctx context.Context, page, pageSize int) ([]*
 		return nil, 0, err
 	}
 	return users, total, nil
+}
+
+// ListScoreboardAt returns the ranking as it stood at cutoff: each user's
+// score is recomputed from solves solved at or before that instant. Used to
+// honour a competition's freeze window.
+func (r *solveRepo) ListScoreboardAt(ctx context.Context, cutoff time.Time, page, pageSize int) ([]*domain.User, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	var total int64
+	if err := r.db.WithContext(ctx).Model(&domain.User{}).
+		Where("score_excluded = ?", false).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var users []*domain.User
+	err := r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Where("score_excluded = ?", false).
+		Select(`users.id, users.username, users.bio, users.role, users.created_at, users.updated_at,
+			users.score - COALESCE((SELECT SUM(s.score) FROM solves s WHERE s.user_id = users.id AND s.solved_at > ?), 0) AS score`, cutoff).
+		Order("score DESC, users.id ASC").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&users).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return users, total, nil
+}
+
+func (r *solveRepo) SumScoreByUserUntil(ctx context.Context, userID uint, cutoff time.Time) (int, error) {
+	var sum int
+	err := r.db.WithContext(ctx).
+		Model(&domain.Solve{}).
+		Select("COALESCE(SUM(score), 0)").
+		Where("user_id = ? AND solved_at <= ?", userID, cutoff).
+		Scan(&sum).Error
+	return sum, err
 }

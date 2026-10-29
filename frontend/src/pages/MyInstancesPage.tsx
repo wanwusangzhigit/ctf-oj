@@ -1,31 +1,38 @@
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  CardTitle,
-  Spinner,
-  useToast,
-} from '@/components/ui';
+import { Badge, Button, Spinner, useToast } from '@/components/ui';
 import { listMyInstances, stopInstance } from '@/api/instance';
 import { ApiClientError } from '@/api/client';
 import { formatTime, relativeTime } from '@/lib/utils';
 import type { InstanceStatus } from '@/types';
+import { useAuthStore } from '@/stores/auth';
 
 const STATUS_TONE: Record<InstanceStatus, 'success' | 'neutral' | 'warning' | 'danger'> = {
   running: 'success',
   stopped: 'neutral',
   expired: 'neutral',
+  auto_expired: 'warning',
   error: 'danger',
 };
 
+const STATUS_LABEL: Record<InstanceStatus, string> = {
+  running: '运行中',
+  stopped: '已停止',
+  expired: '已过期',
+  auto_expired: '自动回收',
+  error: '错误',
+};
+
+/**
+ * My instances — a dense ruled list, not a card with a header slab.
+ * Each row reads like a `docker ps` line:
+ *   title   status   host:port   started   expires   [destroy]
+ */
 export function MyInstancesPage() {
   const qc = useQueryClient();
   const toast = useToast();
+  const me = useAuthStore((s) => s.user);
   const list = useQuery({ queryKey: ['my-instances'], queryFn: listMyInstances });
 
   const stopMut = useMutation({
@@ -39,40 +46,61 @@ export function MyInstancesPage() {
   });
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">我的实例</h1>
-        <p className="text-sm text-muted mt-1">你启动过的全部容器实例。</p>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+      <header className="border-t-2 border-ink pt-6 mb-8">
+        <p className="font-mono text-2xs text-ink-3 mb-3">$ docker ps --user=self</p>
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
+          我的实例
+        </h1>
+        <p className="mt-2 text-ink-2 max-w-prose">
+          你与队友共享的容器实例 —— 包括运行中、已过期、自动回收。
+        </p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>当前实例（{list.data?.length ?? 0}）</CardTitle>
-        </CardHeader>
-        <CardBody className="p-0">
-          {list.isLoading ? (
-            <div className="py-12 flex items-center justify-center">
-              <Spinner className="h-5 w-5 text-muted" />
-            </div>
-          ) : list.data?.length ? (
-            <ul className="divide-y divide-border">
-              {list.data.map((inst) => (
-                <li key={inst.id} className="px-5 py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={`/challenges/${inst.challengeId}`}
-                        className="font-medium truncate hover:text-accent"
-                      >
-                        {inst.challenge?.title ?? `题目 #${inst.challengeId}`}
-                      </Link>
-                      <Badge tone={STATUS_TONE[inst.status]}>{inst.status}</Badge>
-                    </div>
-                    <div className="text-2xs text-muted mt-0.5 font-mono">
-                      {inst.host}:{inst.port} · 启动 {relativeTime(inst.startedAt)}
-                      {inst.status === 'running' && <> · 到期 {formatTime(inst.expiresAt)}</>}
-                    </div>
+      {list.isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Spinner className="h-5 w-5 text-ink-3" />
+        </div>
+      ) : list.data?.length ? (
+        <div className="border-t border-rule">
+          <div className="hidden md:grid grid-cols-[1fr_8rem_12rem_5rem] gap-x-4 py-2 border-b border-rule-strong font-mono text-2xs text-ink-3">
+            <span>challenge</span>
+            <span>status</span>
+            <span>endpoint</span>
+            <span></span>
+          </div>
+          <ul>
+            {list.data.map((inst) => (
+              <li
+                key={inst.id}
+                className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_8rem_12rem_5rem] gap-x-4 items-center py-3 border-b border-rule"
+              >
+                <div className="min-w-0">
+                  <Link
+                    to={`/challenges/${inst.challengeId}`}
+                    className="font-medium truncate hover:text-amber transition-colors hover:no-underline"
+                  >
+                    {inst.challenge?.title ?? `题目 #${inst.challengeId}`}
+                  </Link>
+                  <div className="font-mono text-2xs text-ink-3 mt-1 tabular-nums">
+                    {inst.teamId && inst.userId !== me?.id && (
+                      <span className="text-amber">
+                        团队 · {inst.user?.username ?? '队友'} ·{' '}
+                      </span>
+                    )}
+                    启动 {relativeTime(inst.startedAt)}
+                    {inst.status === 'running' && <> · 到期 {formatTime(inst.expiresAt)}</>}
                   </div>
+                </div>
+                <div>
+                  <Badge tone={STATUS_TONE[inst.status]}>
+                    {STATUS_LABEL[inst.status]}
+                  </Badge>
+                </div>
+                <div className="hidden md:block font-mono text-2xs text-ink-2 truncate tabular-nums">
+                  {inst.host}:{inst.port}
+                </div>
+                <div className="hidden md:flex justify-end">
                   {inst.status === 'running' && (
                     <Button
                       variant="ghost"
@@ -80,23 +108,38 @@ export function MyInstancesPage() {
                       onClick={() =>
                         stopMut.mutate({ challengeId: inst.challengeId, id: inst.id })
                       }
+                      aria-label="销毁实例"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="py-12 text-center text-sm text-muted">
-              还没有实例。
-              <Link to="/challenges" className="text-accent ml-1">
-                去浏览题目
-              </Link>
-            </div>
-          )}
-        </CardBody>
-      </Card>
+                </div>
+                {inst.status === 'running' && (
+                  <div className="md:hidden">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        stopMut.mutate({ challengeId: inst.challengeId, id: inst.id })
+                      }
+                      aria-label="销毁实例"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="border-t border-rule py-16 text-center text-sm text-ink-3">
+          还没有实例。{' '}
+          <Link to="/challenges" className="text-amber">
+            去浏览题目
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -66,6 +66,40 @@ func (r *instanceRepo) ListByUser(ctx context.Context, userID uint) ([]*domain.I
 	return is, nil
 }
 
+func (r *instanceRepo) ListAll(ctx context.Context, page, pageSize int, filter domain.InstanceListFilter) ([]*domain.Instance, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 200 {
+		pageSize = 50
+	}
+	q := r.db.WithContext(ctx).Model(&domain.Instance{})
+	if filter.UserID > 0 {
+		q = q.Where("user_id = ?", filter.UserID)
+	}
+	if filter.ChallengeID > 0 {
+		q = q.Where("challenge_id = ?", filter.ChallengeID)
+	}
+	if filter.Status != "" {
+		q = q.Where("status = ?", filter.Status)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var is []*domain.Instance
+	if err := q.
+		Preload("Challenge").
+		Preload("User").
+		Order("created_at DESC").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&is).Error; err != nil {
+		return nil, 0, err
+	}
+	return is, total, nil
+}
+
 func (r *instanceRepo) ListExpired(ctx context.Context, now time.Time) ([]*domain.Instance, error) {
 	var is []*domain.Instance
 	if err := r.db.WithContext(ctx).
@@ -112,6 +146,43 @@ func (r *instanceRepo) CountActiveByUser(ctx context.Context, userID uint) (int6
 	if err := r.db.WithContext(ctx).
 		Model(&domain.Instance{}).
 		Where("user_id = ? AND status = ?", userID, domain.InstanceRunning).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *instanceRepo) FindActiveByTeamAndChallenge(ctx context.Context, teamID, challengeID uint) (*domain.Instance, error) {
+	var i domain.Instance
+	if err := r.db.WithContext(ctx).
+		Where("team_id = ? AND challenge_id = ? AND status = ? AND expires_at > ?",
+			teamID, challengeID, domain.InstanceRunning, time.Now()).
+		Order("expires_at DESC").
+		First(&i).Error; err != nil {
+		return nil, mapErr(err)
+	}
+	return &i, nil
+}
+
+func (r *instanceRepo) ListByUserOrTeam(ctx context.Context, userID, teamID uint) ([]*domain.Instance, error) {
+	q := r.db.WithContext(ctx).Preload("Challenge").Preload("User")
+	if teamID > 0 {
+		q = q.Where("user_id = ? OR team_id = ?", userID, teamID)
+	} else {
+		q = q.Where("user_id = ?", userID)
+	}
+	var is []*domain.Instance
+	if err := q.Order("created_at DESC").Find(&is).Error; err != nil {
+		return nil, err
+	}
+	return is, nil
+}
+
+func (r *instanceRepo) CountActiveByTeam(ctx context.Context, teamID uint) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Instance{}).
+		Where("team_id = ? AND status = ?", teamID, domain.InstanceRunning).
 		Count(&count).Error; err != nil {
 		return 0, err
 	}

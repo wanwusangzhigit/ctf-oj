@@ -16,9 +16,9 @@ import {
 import {
   createAnnouncement,
   deleteAnnouncement,
-  listAnnouncements,
   updateAnnouncement,
 } from '@/api/announcement';
+import { adminListAnnouncements } from '@/api/admin';
 import { ApiClientError } from '@/api/client';
 import { formatTime } from '@/lib/utils';
 import type { Announcement } from '@/types';
@@ -36,7 +36,7 @@ export function AdminAnnouncementsPage() {
 
   const list = useQuery({
     queryKey: ['admin-announcements'],
-    queryFn: () => listAnnouncements(1, 100),
+    queryFn: () => adminListAnnouncements(1, 100),
     staleTime: 30_000,
   });
 

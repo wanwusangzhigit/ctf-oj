@@ -16,11 +16,12 @@ func getUID(c *gin.Context) (uint, bool) {
 }
 
 type CategoryHandler struct {
-	svc *service.CategoryService
+	svc   *service.CategoryService
+	audit *service.AuditService
 }
 
-func NewCategoryHandler(s *service.CategoryService) *CategoryHandler {
-	return &CategoryHandler{svc: s}
+func NewCategoryHandler(s *service.CategoryService, audit *service.AuditService) *CategoryHandler {
+	return &CategoryHandler{svc: s, audit: audit}
 }
 
 type categoryReq struct {
@@ -55,6 +56,7 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
+	recordAudit(c, h.audit, "category.create", "category", cat.ID, map[string]string{"name": cat.Name})
 	response.Created(c, cat)
 }
 
@@ -82,6 +84,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
+	recordAudit(c, h.audit, "category.update", "category", cat.ID, map[string]string{"name": cat.Name})
 	response.OK(c, cat)
 }
 
@@ -95,5 +98,6 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
+	recordAudit(c, h.audit, "category.delete", "category", uint(id), nil)
 	response.NoContent(c)
 }

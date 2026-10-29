@@ -5,6 +5,10 @@ export function startInstance(challengeId: number): Promise<StartInstanceResult>
   return apiPost<StartInstanceResult>(`/challenges/${challengeId}/instance`);
 }
 
+export function restartInstance(challengeId: number): Promise<StartInstanceResult> {
+  return apiPost<StartInstanceResult>(`/challenges/${challengeId}/instance/restart`);
+}
+
 export function getActiveInstance(challengeId: number): Promise<Instance | null> {
   return apiGet<Instance>(`/challenges/${challengeId}/instance`);
 }

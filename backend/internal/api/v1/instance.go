@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -38,6 +39,25 @@ func (h *InstanceHandler) Start(c *gin.Context) {
 	response.OK(c, res)
 }
 
+func (h *InstanceHandler) Restart(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	uid, ok := getUID(c)
+	if !ok {
+		response.Err(c, domain.ErrUnauthorized)
+		return
+	}
+	res, err := h.svc.Restart(c.Request.Context(), uid, uint(id))
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.OK(c, res)
+}
+
 func (h *InstanceHandler) GetActive(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -51,6 +71,10 @@ func (h *InstanceHandler) GetActive(c *gin.Context) {
 	}
 	inst, err := h.svc.GetActive(c.Request.Context(), uid, uint(id))
 	if err != nil {
+		if errors.Is(err, service.ErrInstanceNotFound) || errors.Is(err, service.ErrInstanceNotRunning) {
+			response.OK(c, nil)
+			return
+		}
 		response.Err(c, err)
 		return
 	}

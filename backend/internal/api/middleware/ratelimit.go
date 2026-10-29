@@ -8,12 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/ctf-oj/backend/internal/domain"
 	"github.com/ctf-oj/backend/internal/pkg/response"
 )
 
 func RateLimit(rdb *redis.Client, perMinute int) gin.HandlerFunc {
 	if perMinute <= 0 {
-		perMinute = 120
+		perMinute = 600
 	}
 	return func(c *gin.Context) {
 		key := fmt.Sprintf("rl:%s", c.ClientIP())
@@ -26,7 +27,7 @@ func RateLimit(rdb *redis.Client, perMinute int) gin.HandlerFunc {
 		}
 		if count > int64(perMinute) {
 			c.Header("Retry-After", "60")
-			response.Err(c, fmt.Errorf("rate limit exceeded"))
+			response.Err(c, domain.ErrRateLimited)
 			c.Abort()
 			return
 		}

@@ -50,6 +50,8 @@ func classify(err error) (int, int, string) {
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
 		return http.StatusNotFound, 40400, "resource not found"
+	case errors.Is(err, domain.ErrTOTPRequired):
+		return http.StatusUnauthorized, 40101, "totp required"
 	case errors.Is(err, domain.ErrUnauthorized):
 		return http.StatusUnauthorized, 40100, "unauthorized"
 	case errors.Is(err, domain.ErrForbidden):
@@ -60,6 +62,10 @@ func classify(err error) (int, int, string) {
 		return http.StatusConflict, 40900, "conflict"
 	case errors.Is(err, domain.ErrSubmissionTooFast):
 		return http.StatusTooManyRequests, 42900, "too many submissions"
+	case errors.Is(err, domain.ErrRateLimited):
+		return http.StatusTooManyRequests, 42900, "rate limit exceeded"
+	case errors.Is(err, domain.ErrUnavailable):
+		return http.StatusServiceUnavailable, 50300, "service unavailable"
 	default:
 		return http.StatusInternalServerError, 50000, "internal server error"
 	}

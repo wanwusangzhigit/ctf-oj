@@ -50,3 +50,58 @@ func (r *submissionRepo) CountRecent(ctx context.Context, userID uint, since int
 	}
 	return count, nil
 }
+
+func (r *submissionRepo) ListByUser(ctx context.Context, userID uint, page, pageSize int) ([]*domain.Submission, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 || pageSize > 200 {
+		pageSize = 50
+	}
+	q := r.db.WithContext(ctx).Model(&domain.Submission{}).Where("user_id = ?", userID)
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var out []*domain.Submission
+	if err := q.Preload("Challenge").
+		Order("created_at DESC, id DESC").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&out).Error; err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}
+
+func (r *submissionRepo) ListAll(ctx context.Context, page, pageSize int, filter domain.SubmissionListFilter) ([]*domain.Submission, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 || pageSize > 200 {
+		pageSize = 50
+	}
+	q := r.db.WithContext(ctx).Model(&domain.Submission{})
+	if filter.UserID > 0 {
+		q = q.Where("user_id = ?", filter.UserID)
+	}
+	if filter.ChallengeID > 0 {
+		q = q.Where("challenge_id = ?", filter.ChallengeID)
+	}
+	if filter.IsCorrect != nil {
+		q = q.Where("is_correct = ?", *filter.IsCorrect)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var out []*domain.Submission
+	if err := q.Preload("User").Preload("Challenge").
+		Order("created_at DESC, id DESC").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Find(&out).Error; err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}

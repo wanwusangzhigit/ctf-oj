@@ -1,32 +1,12 @@
 import axios, { type AxiosError, type AxiosInstance } from 'axios';
 import { useAuthStore } from '@/stores/auth';
 
-const STORAGE_KEY = 'ctf-oj.tokens';
+const SESSION_COOKIE = 'ctf_oj_session';
 
-interface StoredTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
-}
-
-export function loadStoredTokens(): StoredTokens | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredTokens;
-    if (!parsed.accessToken || !parsed.refreshToken) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-export function saveStoredTokens(tokens: StoredTokens): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
-}
-
-export function clearStoredTokens(): void {
-  localStorage.removeItem(STORAGE_KEY);
+export function hasSessionCookie(): boolean {
+  return document.cookie
+    .split(';')
+    .some((part) => part.trim().startsWith(`${SESSION_COOKIE}=`));
 }
 
 export interface ApiResponse<T> {
@@ -38,37 +18,25 @@ export interface ApiResponse<T> {
 const client: AxiosInstance = axios.create({
   baseURL: '/api/v1',
   timeout: 15_000,
-  withCredentials: false,
+  withCredentials: true,
 });
 
-client.interceptors.request.use((config) => {
-  const tokens = loadStoredTokens();
-  if (tokens?.accessToken) {
-    config.headers.Authorization = `Bearer ${tokens.accessToken}`;
-  }
-  return config;
-});
+let refreshPromise: Promise<boolean> | null = null;
 
-let refreshPromise: Promise<string | null> | null = null;
-
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshSession(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
-  const tokens = loadStoredTokens();
-  if (!tokens?.refreshToken) return null;
   refreshPromise = (async () => {
     try {
-      const resp = await axios.post<ApiResponse<{ tokens: StoredTokens }>>(
-        '/api/v1/auth/refresh',
-        { refreshToken: tokens.refreshToken },
-        { baseURL: '/api/v1', timeout: 10_000 },
+      const resp = await axios.post<ApiResponse<unknown>>(
+        '/auth/refresh',
+        undefined,
+        { baseURL: '/api/v1', timeout: 10_000, withCredentials: true },
       );
-      const next = resp.data.data.tokens;
-      saveStoredTokens(next);
-      return next.accessToken;
+      if (resp.data.code !== 0) throw new Error(resp.data.message);
+      return true;
     } catch {
-      clearStoredTokens();
       useAuthStore.getState().clear();
-      return null;
+      return false;
     } finally {
       refreshPromise = null;
     }
@@ -91,17 +59,18 @@ client.interceptors.response.use(
     const original = err.config as (typeof err.config) & { _retried?: boolean };
 
     if (status === 401 && original && !original._retried && !original.url?.includes('/auth/')) {
-      const next = await refreshAccessToken();
-      if (next) {
+      const refreshed = await refreshSession();
+      if (refreshed) {
         original._retried = true;
-        original.headers = original.headers ?? {};
-        original.headers.Authorization = `Bearer ${next}`;
         return client(original);
       }
     }
 
     const payload = err.response?.data;
     if (payload && typeof payload === 'object' && 'code' in payload) {
+      if (payload.code === 40310) {
+        useAuthStore.getState().clear();
+      }
       return Promise.reject(new ApiClientError(payload.code, payload.message));
     }
     return Promise.reject(new ApiClientError(-1, err.message || 'network error'));

@@ -8,25 +8,47 @@ import (
 	"github.com/joho/godotenv"
 )
 
+func envList(key string, def []string) []string {
+	v := strings.TrimSpace(env(key, ""))
+	if v == "" {
+		return def
+	}
+	parts := strings.Split(v, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if s := strings.TrimSpace(p); s != "" {
+			out = append(out, s)
+		}
+	}
+	if len(out) == 0 {
+		return def
+	}
+	return out
+}
+
 type Config struct {
 	HTTPAddr     string
 	LogLevel     string
 	RegisterOpen bool
+	PublicURL    string
 
 	JWT       JWTConfig
 	DB        DBConfig
 	Redis     RedisConfig
 	Storage   StorageConfig
+	Challenge ChallengeConfig
 	RateLimit RateLimitConfig
 	Docker    DockerConfig
 	Instance  InstanceConfig
+	Mailer    MailerConfig
+	CORS      CORSConfig
 }
 
 type JWTConfig struct {
-	Secret      string
-	AccessTTL   time.Duration
-	RefreshTTL  time.Duration
-	Issuer      string
+	Secret     string
+	AccessTTL  time.Duration
+	RefreshTTL time.Duration
+	Issuer     string
 }
 
 type DBConfig struct {
@@ -49,6 +71,10 @@ type StorageConfig struct {
 	MaxSize  int64
 }
 
+type ChallengeConfig struct {
+	SourceDir string
+}
+
 type RateLimitConfig struct {
 	PerMinute int
 }
@@ -59,12 +85,27 @@ type DockerConfig struct {
 }
 
 type InstanceConfig struct {
-	PublicHost     string
-	PortMin        int
-	PortMax        int
-	DefaultTTL     time.Duration
-	MaxPerUser     int
-	FlagPrefix     string
+	PublicHost string
+	PortMin    int
+	PortMax    int
+	DefaultTTL time.Duration
+	MaxPerUser int
+	FlagPrefix string
+}
+
+type MailerConfig struct {
+	Driver   string // "console" | "smtp" | "off"
+	From     string
+	SMTPHost string
+	SMTPPort int
+	SMTPUser string
+	SMTPPass string
+	SMTPFrom string
+	UseTLS   bool
+}
+
+type CORSConfig struct {
+	AllowOrigins []string
 }
 
 func Load() (*Config, error) {
@@ -77,7 +118,7 @@ func Load() (*Config, error) {
 		JWT: JWTConfig{
 			Secret:     env("BACKEND_JWT_SECRET", "dev-secret-change-me"),
 			AccessTTL:  envDuration("BACKEND_JWT_ACCESS_TTL", 15*time.Minute),
-			RefreshTTL: envDuration("BACKEND_JWT_REFRESH_TTL", 720*time.Hour),
+			RefreshTTL: envDuration("BACKEND_JWT_REFRESH_TTL", 168*time.Hour),
 			Issuer:     "ctf-oj",
 		},
 		DB: DBConfig{
@@ -97,6 +138,9 @@ func Load() (*Config, error) {
 			LocalDir: env("BACKEND_STORAGE_LOCAL_DIR", "./data/uploads"),
 			MaxSize:  50 * 1024 * 1024,
 		},
+		Challenge: ChallengeConfig{
+			SourceDir: env("BACKEND_CHALLENGE_SOURCE_DIR", "./data/challenge_sources"),
+		},
 		RateLimit: RateLimitConfig{
 			PerMinute: envInt("BACKEND_RATE_LIMIT_RPM", 120),
 		},
@@ -112,6 +156,20 @@ func Load() (*Config, error) {
 			MaxPerUser: envInt("BACKEND_INSTANCE_MAX_PER_USER", 1),
 			FlagPrefix: env("BACKEND_INSTANCE_FLAG_PREFIX", "flag"),
 		},
+		Mailer: MailerConfig{
+			Driver:   env("BACKEND_MAILER_DRIVER", "console"),
+			From:     env("BACKEND_MAILER_FROM", "noreply@ctf-oj.local"),
+			SMTPHost: env("BACKEND_SMTP_HOST", ""),
+			SMTPPort: envInt("BACKEND_SMTP_PORT", 587),
+			SMTPUser: env("BACKEND_SMTP_USER", ""),
+			SMTPPass: env("BACKEND_SMTP_PASS", ""),
+			SMTPFrom: env("BACKEND_SMTP_FROM", ""),
+			UseTLS:   envBool("BACKEND_SMTP_USE_TLS", true),
+		},
+		CORS: CORSConfig{
+			AllowOrigins: envList("BACKEND_CORS_ORIGINS", []string{"*"}),
+		},
+		PublicURL: env("BACKEND_PUBLIC_URL", "http://localhost:8080"),
 	}
 
 	if err := cfg.validate(); err != nil {

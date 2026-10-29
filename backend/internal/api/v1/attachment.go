@@ -5,17 +5,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/ctf-oj/backend/internal/api/middleware"
 	"github.com/ctf-oj/backend/internal/domain"
 	"github.com/ctf-oj/backend/internal/pkg/response"
 	"github.com/ctf-oj/backend/internal/service"
 )
 
 type AttachmentHandler struct {
-	svc *service.AttachmentService
+	svc   *service.AttachmentService
+	audit *service.AuditService
 }
 
-func NewAttachmentHandler(s *service.AttachmentService) *AttachmentHandler {
-	return &AttachmentHandler{svc: s}
+func NewAttachmentHandler(s *service.AttachmentService, audit *service.AuditService) *AttachmentHandler {
+	return &AttachmentHandler{svc: s, audit: audit}
 }
 
 func (h *AttachmentHandler) List(c *gin.Context) {
@@ -24,7 +26,8 @@ func (h *AttachmentHandler) List(c *gin.Context) {
 		response.Err(c, domain.ErrInvalidArgument)
 		return
 	}
-	as, err := h.svc.ListByChallenge(c.Request.Context(), uint(id))
+	uid, _ := getUID(c)
+	as, err := h.svc.ListByChallenge(c.Request.Context(), uint(id), uid, middleware.CanManageChallenges(c))
 	if err != nil {
 		response.Err(c, err)
 		return
@@ -48,6 +51,9 @@ func (h *AttachmentHandler) Upload(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
+	recordAudit(c, h.audit, "attachment.upload", "attachment", a.ID, map[string]string{
+		"challengeId": strconv.FormatUint(chalID, 10), "filename": a.Filename,
+	})
 	response.Created(c, a)
 }
 
@@ -57,7 +63,8 @@ func (h *AttachmentHandler) Download(c *gin.Context) {
 		response.Err(c, domain.ErrInvalidArgument)
 		return
 	}
-	rc, a, err := h.svc.Download(c.Request.Context(), uint(id))
+	uid, _ := getUID(c)
+	rc, a, err := h.svc.Download(c.Request.Context(), uint(id), uid, middleware.CanManageChallenges(c))
 	if err != nil {
 		response.Err(c, err)
 		return
@@ -80,5 +87,6 @@ func (h *AttachmentHandler) Delete(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
+	recordAudit(c, h.audit, "attachment.delete", "attachment", uint(id), nil)
 	response.NoContent(c)
 }

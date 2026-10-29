@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trash2, Pencil, Plus } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -164,7 +164,13 @@ export function AdminCategoriesPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        if (confirm(`确认删除分类「${c.name}」？`)) deleteMutation.mutate(c.id);
+                        if (
+                          confirm(
+                            `确认删除分类「${c.name}」？\n若分类下仍有题目，删除会被拒绝。`,
+                          )
+                        ) {
+                          deleteMutation.mutate(c.id);
+                        }
                       }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -175,10 +181,7 @@ export function AdminCategoriesPage() {
             </ul>
           ) : (
             <div className="py-10 text-center text-sm text-muted">
-              还没有任何分类，
-              <button className="text-accent" onClick={() => {}}>
-                创建第一个吧
-              </button>
+              还没有任何分类，使用左侧表单创建第一个。
             </div>
           )}
         </CardBody>
@@ -186,5 +189,3 @@ export function AdminCategoriesPage() {
     </div>
   );
 }
-
-export { Plus };

@@ -15,6 +15,7 @@ CTF-OJ 是一个面向 CTF 练习的在线评测系统，对标 HydroOJ，使用
    - 配色使用 `frontend/src/styles/tokens.css` 中的设计令牌；不要在组件里硬编码十六进制色值。
    - 圆角、阴影、间距统一走 Tailwind 预设与令牌。
    - 字体仅使用 Inter（西文）+ 系统中文回退；不要引入花哨字体。
+   - 前端不得依赖外部运行时资源（CDN、Google Fonts、外部图片/脚本）；字体等静态资源必须放入仓库并本地加载。
    - 不写"powerful / elegant / seamless"等空泛形容词，代码注释保持简洁。
 4. **代码风格**：
    - Go：遵循 [Effective Go](https://go.dev/doc/effective_go)；错误处理使用 `errors.Wrap` 风格；不写无意义注释。
@@ -71,17 +72,29 @@ frontend/
   { "code": 0, "data": {...}, "message": "ok" }
   ```
   业务错误 `code != 0`；HTTP 状态码语义化（200/201/400/401/403/404/409/500）。
-- 鉴权使用 `Authorization: Bearer <accessToken>`；刷新令牌走 `POST /api/v1/auth/refresh`。
+- 鉴权默认使用 HttpOnly cookie（`ctf_oj_access` / `ctf_oj_refresh`），同时兼容 `Authorization: Bearer <accessToken>`；刷新令牌走 `POST /api/v1/auth/refresh`，登出走 `POST /api/v1/auth/logout`。
 - 列表接口必须分页：`?page=1&page_size=20`，返回 `{ items, total, page, page_size }`。
+- 题目/赛事授权使用 `permission: view | manage`；`manage` 隐含 `view`。`/users/me` 与登录响应返回 `delegations`（`resourceType` / `resourceId` / `permission`）。
+- 社区讨论权限使用独立的 `community_access_grants`：`view` 允许读取受限社区，`manage` 允许发帖、置顶、锁定与删除；全局管理权限为 `community.manage`，社区/题目 moderation 还接受 `discussion.moderate`。
+- 被授权者走同一 `/admin` 路由，但仅开放其授权资源；创建/删除、导出成绩、激活/归档、修改可见性/发布状态、调整授权列表仍仅限全局管理员。
+- 被授权操作写入审计时，payload 追加 `delegated: true` 与 `grant`（如 `challenge:12:manage`）。
+- 讨论区按 `scope` 分为 `challenge` / `community` / `team`；团队讨论仅团队成员可读写，队长可 moderation。
+- 社区讨论列表支持 `sort=last_reply|newest|oldest`、`tag`、`q`；`GET /community/discussions/:id` 返回主题与全部楼层并递增浏览数。
+- 比赛解题与练习解题分离：练习写 `solves` 并更新用户全局分；赛事写 `competition_solves`，不更新全局分。`submissions.competition_id` 为空表示练习提交。
+- `GET /challenges/:id?competition_id=ID` 返回 `competitionSolved` / `competitionScore`；`POST /challenges/:id/submit` 接受 `{ flag, competitionId? }`。
+- 未显式传 `competitionId` 时，若存在进行中的激活赛事覆盖该题，提交自动按赛事模式处理；显式 ID 必须对应 active、live、包含该题的赛事。已解出后可重复提交，返回 `score=0` 与 `alreadySolved=true`，不重复计分。
+- `GET /challenges` 支持 `competition_id`，并返回 `competitionId` / `competitionSolved` / `competitionScore`；题目列表与赛事详情据此标注「已通过」「比赛已解出」「赛事题」。
 
 ## 前端约定
 
-- 路由：`/auth/login`、`/auth/register`、`/`、`/challenges`、`/challenges/:id`、`/scoreboard`、`/announcements`、`/announcements/:id`、`/notifications`、`/instances`、`/users/:id`、`/admin/*`。
-- 未登录用户只能访问 `/auth/*`、`/`、`/announcements*`；其他路由重定向到登录页。
+- 路由：`/auth/*`、`/`、`/challenges`、`/challenges/:id`、`/competitions`、`/competitions/:id`、`/scoreboard`、`/scoreboard/realtime`、`/stats`、`/search`、`/community`、`/community/:id`、`/teams`、`/teams/:id`、`/teams/scoreboard`、`/announcements*`、`/notifications`、`/instances`、`/users/:id`、`/admin/*`。
+- 公开路由：`/auth/*`、`/`、`/challenges` 列表、`/competitions*`、`/scoreboard*`、`/stats`、`/search`、`/community`、`/community/:id`、`/teams/scoreboard`、`/announcements*`；其余需登录，后台按权限守卫。
+- 后台守卫需同时支持全局权限与 `delegations`：`RequireChallengeManage` / `RequireCompetitionManage` 允许对应资源的管理授权；无资源 id 的列表路由允许任一该类型授权。社区权限页使用 `community.manage`。
 - 全局错误使用 toast，不在页面层处理业务错误细节。
 - 表单使用 `react-hook-form` + `zod` 校验。
 - 数据请求统一走 TanStack Query；本地状态走 Zustand。
 - 富文本一律走 `Markdown` 组件（react-markdown + rehype-sanitize）；不允许 `dangerouslySetInnerHTML`。
+- 赛事进行中从 `/competitions/:id` 进入题目时，链接必须携带 `?competition=ID`；题目页据此展示比赛模式并按赛事提交。
 
 ## 部署
 
@@ -96,7 +109,7 @@ frontend/
 ## 测试
 
 - Go：`go test ./...`；优先表驱动测试。
-- 前端：暂不引入测试框架，待页面稳定后评估。
+- 前端：暂不引入测试框架；页面回归使用系统 Chrome + playwright-core 脚本执行（脚本不入库）。
 
 ## 路线图
 
@@ -104,7 +117,7 @@ frontend/
 - **P2 核心题目**：分类、题目 CRUD、static/regex flag、提交判题、附件、动态打分 ✅
 - **P3 容器化题目**：docker-cli 编排、dynamic flag 注入、实例生命周期、TTL worker ✅
 - **P4 社区**：公告、讨论区（嵌套 + 点赞）、Markdown 渲染、通知中心 ✅
-- **P5 管理后台 + 高级**：Admin UI 完善、实时记分板、统计图表、导入导出（待启动）
+- **P5 管理后台 + 高级**：Admin UI 完善、实时记分板、统计图表、导入导出 ✅（持续打磨）
 
 ## 当前进度
 

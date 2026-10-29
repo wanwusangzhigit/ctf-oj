@@ -7,6 +7,14 @@
 		reverse_proxy backend:8081
 	}
 
+	handle /metrics {
+		reverse_proxy backend:8081
+	}
+
+	handle /health {
+		reverse_proxy backend:8081
+	}
+
 	handle {
 		reverse_proxy frontend:80
 	}

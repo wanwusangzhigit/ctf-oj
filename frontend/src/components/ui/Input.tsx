@@ -5,7 +5,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+export const Input = forwardRef<HTMLInputElement, InputProps>(function input(
   { className, invalid, ...rest },
   ref,
 ) {
@@ -13,11 +13,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     <input
       ref={ref}
       className={cn(
-        'w-full h-9 px-3 bg-surface border rounded-md text-sm',
-        'placeholder:text-muted/70',
-        'focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15',
-        'disabled:bg-surface-2 disabled:cursor-not-allowed',
-        invalid ? 'border-danger' : 'border-border',
+        'w-full h-9 px-3 bg-paper border border-rule rounded-sm text-sm',
+        'placeholder:text-ink-3/70 placeholder:font-normal',
+        'focus:outline-none focus:border-amber',
+        'disabled:bg-paper-2 disabled:cursor-not-allowed',
+        'transition-colors duration-120',
+        invalid ? 'border-oxblood' : 'border-rule',
         className,
       )}
       {...rest}
@@ -29,7 +30,7 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
   invalid?: boolean;
 }
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function textarea(
   { className, invalid, rows = 4, ...rest },
   ref,
 ) {
@@ -38,10 +39,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       ref={ref}
       rows={rows}
       className={cn(
-        'w-full px-3 py-2 bg-surface border rounded-md text-sm leading-relaxed',
-        'placeholder:text-muted/70',
-        'focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15',
-        invalid ? 'border-danger' : 'border-border',
+        'w-full px-3 py-2 bg-paper border rounded-sm text-sm leading-relaxed',
+        'placeholder:text-ink-3/70',
+        'focus:outline-none focus:border-amber',
+        'transition-colors duration-120',
+        invalid ? 'border-oxblood' : 'border-rule',
         className,
       )}
       {...rest}
@@ -61,15 +63,18 @@ export function Field({ label, hint, error, htmlFor, children }: FieldProps) {
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={htmlFor} className="block text-sm font-medium text-fg">
+        <label
+          htmlFor={htmlFor}
+          className="block text-sm font-medium text-ink"
+        >
           {label}
         </label>
       )}
       {children}
       {error ? (
-        <p className="text-2xs text-danger">{error}</p>
+        <p className="text-2xs text-oxblood">{error}</p>
       ) : hint ? (
-        <p className="text-2xs text-muted">{hint}</p>
+        <p className="text-2xs text-ink-3">{hint}</p>
       ) : null}
     </div>
   );

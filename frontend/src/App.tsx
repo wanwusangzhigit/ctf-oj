@@ -1,26 +1,49 @@
 import { Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Spinner, ToastProvider } from '@/components/ui';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { PublicOnly, RequireAdmin, RequireAuth } from '@/components/Guards';
+import { AdminIndexRedirect, PublicOnly, RequireAdmin, RequireAuth, RequireChallengeManage, RequireCompetitionManage, RequirePermission } from '@/components/Guards';
 import { useBootstrapAuth } from '@/hooks/useBootstrapAuth';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
+import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage';
 import { ChallengesPage } from '@/pages/challenges/ChallengesPage';
 import { ChallengeDetailPage } from '@/pages/challenges/ChallengeDetailPage';
 import { ScoreboardPage } from '@/pages/ScoreboardPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
 import { MyInstancesPage } from '@/pages/MyInstancesPage';
+import { MySubmissionsPage } from '@/pages/MySubmissionsPage';
 import { AnnouncementsPage } from '@/pages/AnnouncementsPage';
+import { SearchPage } from '@/pages/SearchPage';
 import { AnnouncementDetailPage } from '@/pages/AnnouncementDetailPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
+import { StatsPage } from '@/pages/StatsPage';
+import { RealtimeScoreboardPage } from '@/pages/RealtimeScoreboardPage';
+import { TeamsPage } from '@/pages/TeamsPage';
+import { TeamDetailPage, TeamScoreboardPage } from '@/pages/TeamDetailPage';
+import { CompetitionsPage } from '@/pages/CompetitionsPage';
+import { CommunityPage } from '@/pages/CommunityPage';
+import { CommunityTopicPage } from '@/pages/CommunityTopicPage';
+import { CompetitionDetailPage } from '@/pages/CompetitionDetailPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { AdminLayout } from '@/pages/admin/AdminLayout';
 import { AdminCategoriesPage } from '@/pages/admin/AdminCategoriesPage';
 import { AdminChallengesPage } from '@/pages/admin/AdminChallengesPage';
+import { AdminAccessGroupsPage } from '@/pages/admin/AdminAccessGroupsPage';
+import { AdminChallengeNewPage } from '@/pages/admin/AdminChallengeNewPage';
+import { AdminChallengeEditPage } from '@/pages/admin/AdminChallengeEditPage';
 import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage';
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
+import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
+import { AdminServerPage } from '@/pages/admin/AdminServerPage';
+import { AdminCompetitionsPage } from '@/pages/admin/AdminCompetitionsPage';
+import { AdminCommunityPage } from '@/pages/admin/AdminCommunityPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,11 +72,29 @@ function AppRoutes() {
           }
         />
         <Route path="/scoreboard" element={<ScoreboardPage />} />
+        <Route path="/scoreboard/realtime" element={<RealtimeScoreboardPage />} />
+        <Route path="/stats" element={<StatsPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/community" element={<CommunityPage />} />
+        <Route path="/community/:id" element={<CommunityTopicPage />} />
+        <Route path="/competitions" element={<CompetitionsPage />} />
+        <Route path="/competitions/:id" element={<CompetitionDetailPage />} />
+        <Route path="/teams" element={<RequireAuth><TeamsPage /></RequireAuth>} />
+        <Route path="/teams/scoreboard" element={<TeamScoreboardPage />} />
+        <Route path="/teams/:id" element={<TeamDetailPage />} />
         <Route
           path="/instances"
           element={
             <RequireAuth>
               <MyInstancesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/me/submissions"
+          element={
+            <RequireAuth>
+              <MySubmissionsPage />
             </RequireAuth>
           }
         />
@@ -83,10 +124,20 @@ function AppRoutes() {
             </RequireAdmin>
           }
         >
-          <Route index element={<Navigate to="/admin/categories" replace />} />
-          <Route path="categories" element={<AdminCategoriesPage />} />
-          <Route path="challenges" element={<AdminChallengesPage />} />
-          <Route path="announcements" element={<AdminAnnouncementsPage />} />
+          <Route index element={<AdminIndexRedirect />} />
+          <Route path="overview" element={<RequirePermission permission="admin.overview"><AdminOverviewPage /></RequirePermission>} />
+          <Route path="categories" element={<RequirePermission permission="challenge.manage"><AdminCategoriesPage /></RequirePermission>} />
+          <Route path="challenges" element={<RequireChallengeManage><AdminChallengesPage /></RequireChallengeManage>} />
+          <Route path="challenges/new" element={<RequirePermission permission="challenge.manage"><AdminChallengeNewPage /></RequirePermission>} />
+          <Route path="challenges/:id/edit" element={<RequireChallengeManage><AdminChallengeEditPage /></RequireChallengeManage>} />
+          <Route path="access-groups" element={<RequirePermission permission="challenge.manage"><AdminAccessGroupsPage /></RequirePermission>} />
+          <Route path="announcements" element={<RequirePermission permission="announcement.manage"><AdminAnnouncementsPage /></RequirePermission>} />
+          <Route path="community" element={<RequirePermission permission="community.manage"><AdminCommunityPage /></RequirePermission>} />
+          <Route path="users" element={<RequirePermission permission="user.manage"><AdminUsersPage /></RequirePermission>} />
+          <Route path="competitions" element={<RequireCompetitionManage><AdminCompetitionsPage /></RequireCompetitionManage>} />
+          <Route path="settings" element={<RequirePermission permission="settings.manage"><AdminSettingsPage /></RequirePermission>} />
+          <Route path="audit" element={<RequirePermission permission="audit.view"><AdminAuditPage /></RequirePermission>} />
+          <Route path="server" element={<RequirePermission permission="server.manage"><AdminServerPage /></RequirePermission>} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
@@ -107,6 +158,18 @@ function AppRoutes() {
           </PublicOnly>
         }
       />
+      <Route
+        path="/auth/forgot-password"
+        element={
+          <PublicOnly>
+            <ForgotPasswordPage />
+          </PublicOnly>
+        }
+      />
+      <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
+      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/auth/verify-email/:token" element={<VerifyEmailPage />} />
+      <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
     </Routes>
   );
 }

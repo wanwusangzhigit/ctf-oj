@@ -1,390 +1,224 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  CardTitle,
-  Field,
-  Input,
-  Textarea,
-  useToast,
-} from '@/components/ui';
-import { listCategories } from '@/api/category';
-import {
-  listChallenges,
-  createChallenge,
-  deleteChallenge,
-  type ChallengeInput,
-  type FlagInput,
-} from '@/api/challenge';
+import { useDeferredValue, useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Badge, Button, Input, Spinner, useToast } from '@/components/ui';
+import { deleteChallenge, listChallenges } from '@/api/challenge';
 import { ApiClientError } from '@/api/client';
+import type { ChallengeStatus } from '@/types';
+import { useAuthStore } from '@/stores/auth';
+import { hasPermission } from '@/lib/permissions';
 
-const EMPTY: ChallengeInput = {
-  categoryId: 0,
-  title: '',
-  description: '',
-  baseScore: 500,
-  minScore: 100,
-  decay: 10,
-  difficulty: 2,
-  isPublished: false,
-  connectionInfo: '',
-  tags: '',
-  isDynamic: false,
-  image: '',
-  internalPort: 0,
-  defaultTtl: 7200,
-  memoryLimitMb: 256,
-  cpuLimit: 1,
-  flags: [{ type: 'static', content: '', caseSensitive: true }],
+const STATUS_LABEL: Record<ChallengeStatus, string> = {
+  draft: '草稿',
+  hidden: '隐藏',
+  published: '已发布',
+  archived: '已归档',
 };
+
+/**
+ * Admin challenge list. Pure listing — no inline edit form.
+ *
+ * Clicking 编辑 navigates to /admin/challenges/:id/edit.
+ * 新建题目 button navigates to /admin/challenges/new.
+ *
+ * Reads like the user-facing ChallengesPage: ruled list, mono IDs, status
+ * badges for publish state and container flag.
+ */
+const PAGE_SIZE = 50;
 
 export function AdminChallengesPage() {
   const qc = useQueryClient();
   const toast = useToast();
-  const [form, setForm] = useState<ChallengeInput>(EMPTY);
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const canManageAll = hasPermission(user, 'challenge.manage');
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<ChallengeStatus | ''>('');
+  const [page, setPage] = useState(1);
+  const deferredQuery = useDeferredValue(query);
 
-  const cats = useQuery({ queryKey: ['categories'], queryFn: listCategories });
+  useEffect(() => {
+    setPage(1);
+  }, [deferredQuery, status]);
+
   const list = useQuery({
-    queryKey: ['admin-challenges'],
-    queryFn: () => listChallenges({ scope: 'admin', pageSize: 100 }),
+    queryKey: ['admin-challenges', deferredQuery, status, page],
+    queryFn: () =>
+      listChallenges({
+        scope: 'admin',
+        page,
+        pageSize: PAGE_SIZE,
+        q: deferredQuery.trim() || undefined,
+        status: status || undefined,
+      }),
   });
-
-  const createMut = useMutation({
-    mutationFn: (input: ChallengeInput) => createChallenge(input),
-    onSuccess: () => {
-      toast.success('已创建');
-      qc.invalidateQueries({ queryKey: ['admin-challenges'] });
-      qc.invalidateQueries({ queryKey: ['challenges'] });
-      setForm({ ...EMPTY, categoryId: cats.data?.[0]?.id ?? 0 });
-    },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '创建失败'),
-  });
+  const total = list.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteChallenge(id),
     onSuccess: () => {
-      toast.success('已删除');
+      toast.success('题目已删除');
       qc.invalidateQueries({ queryKey: ['admin-challenges'] });
+      qc.invalidateQueries({ queryKey: ['challenges'] });
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+    onError: (err) => {
+      toast.error(err instanceof ApiClientError ? err.message : '删除失败');
+    },
   });
 
-  function updateFlag(idx: number, patch: Partial<FlagInput>) {
-    setForm((f) => ({
-      ...f,
-      flags: f.flags.map((fl, i) => (i === idx ? { ...fl, ...patch } : fl)),
-    }));
-  }
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.categoryId) {
-      toast.error('请选择分类');
-      return;
-    }
-    if (!form.title.trim()) {
-      toast.error('请填写题目名称');
-      return;
-    }
-    if (form.isDynamic) {
-      if (!(form.image ?? '').trim()) {
-        toast.error('请填写容器镜像');
-        return;
-      }
-      if (!form.internalPort || form.internalPort <= 0) {
-        toast.error('请填写容器内端口');
-        return;
-      }
-    } else if (form.flags.some((f) => !f.content.trim())) {
-      toast.error('请完善所有 Flag 内容');
-      return;
-    }
-    createMut.mutate(form);
-  }
-
   return (
-    <div className="grid gap-6 xl:grid-cols-3">
-      <Card className="xl:col-span-2">
-        <CardHeader>
-          <CardTitle>新建题目</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <form onSubmit={submit} className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Field label="标题">
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  required
-                />
-              </Field>
-              <Field label="分类">
-                <select
-                  value={form.categoryId}
-                  onChange={(e) => setForm((f) => ({ ...f, categoryId: Number(e.target.value) }))}
-                  className="w-full h-9 px-3 bg-surface border border-border rounded-md text-sm focus:outline-none focus:border-accent"
-                >
-                  <option value={0}>请选择</option>
-                  {cats.data?.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-
-            <Field label="描述">
-              <Textarea
-                rows={5}
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </Field>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Field label="基础分">
-                <Input
-                  type="number"
-                  value={form.baseScore}
-                  onChange={(e) => setForm((f) => ({ ...f, baseScore: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label="最低分">
-                <Input
-                  type="number"
-                  value={form.minScore}
-                  onChange={(e) => setForm((f) => ({ ...f, minScore: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label="衰减系数">
-                <Input
-                  type="number"
-                  value={form.decay}
-                  onChange={(e) => setForm((f) => ({ ...f, decay: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label="难度">
-                <Input
-                  type="number"
-                  min={1}
-                  max={5}
-                  value={form.difficulty}
-                  onChange={(e) => setForm((f) => ({ ...f, difficulty: Number(e.target.value) }))}
-                />
-              </Field>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Field label="连接信息（可选）" hint="例如 nc host 1337">
-                <Input
-                  value={form.connectionInfo}
-                  onChange={(e) => setForm((f) => ({ ...f, connectionInfo: e.target.value }))}
-                />
-              </Field>
-              <Field label="标签（逗号分隔）">
-                <Input
-                  value={form.tags}
-                  onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
-                  placeholder="web,sqli"
-                />
-              </Field>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Flag 配置</span>
-                {!form.isDynamic && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setForm((f) => ({
-                        ...f,
-                        flags: [...f.flags, { type: 'static', content: '', caseSensitive: true }],
-                      }))
-                    }
-                  >
-                    + 添加 Flag
-                  </Button>
-                )}
-              </div>
-              {form.isDynamic ? (
-                <p className="text-2xs text-muted">
-                  容器题在每次启动实例时由后端生成动态 Flag（格式如 <code>flag&#123;uuid&#125;</code>），
-                  通过环境变量 <code>FLAG</code> 注入容器。
-                </p>
-              ) : (
-                form.flags.map((fl, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-2 items-start">
-                    <select
-                      className="col-span-3 h-9 px-2 bg-surface border border-border rounded-md text-sm"
-                      value={fl.type}
-                      onChange={(e) => updateFlag(i, { type: e.target.value as FlagInput['type'] })}
-                    >
-                      <option value="static">static</option>
-                      <option value="regex">regex</option>
-                    </select>
-                    <Input
-                      className="col-span-7 font-mono"
-                      placeholder="flag{...} 或正则表达式"
-                      value={fl.content}
-                      onChange={(e) => updateFlag(i, { content: e.target.value })}
-                    />
-                    <label className="col-span-1 flex items-center justify-center h-9 text-2xs text-muted cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={fl.caseSensitive}
-                        onChange={(e) => updateFlag(i, { caseSensitive: e.target.checked })}
-                      />
-                    </label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="col-span-1"
-                      disabled={form.flags.length === 1}
-                      onClick={() =>
-                        setForm((f) => ({ ...f, flags: f.flags.filter((_, j) => j !== i) }))
-                      }
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))
-              )}
-              {!form.isDynamic && (
-                <p className="text-2xs text-muted">复选框表示大小写敏感。</p>
-              )}
-            </div>
-
-            <div className="rounded-md border border-border bg-surface-2 p-3 space-y-3">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isDynamic}
-                  onChange={(e) => setForm((f) => ({ ...f, isDynamic: e.target.checked }))}
-                />
-                <span className="font-medium">容器化题目</span>
-                <span className="text-2xs text-muted">
-                  （启动 Docker 实例并注入动态 Flag）
-                </span>
-              </label>
-              {form.isDynamic && (
-                <div className="grid sm:grid-cols-2 gap-3 pt-1">
-                  <Field label="镜像" hint="例如 eystinken/captcha-server:latest">
-                    <Input
-                      value={form.image}
-                      onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-                      placeholder="registry/image:tag"
-                    />
-                  </Field>
-                  <Field label="容器内端口">
-                    <Input
-                      type="number"
-                      value={form.internalPort}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, internalPort: Number(e.target.value) || 0 }))
-                      }
-                    />
-                  </Field>
-                  <Field label="默认 TTL（秒）" hint="不填使用全局默认 2 小时">
-                    <Input
-                      type="number"
-                      value={form.defaultTtl}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, defaultTtl: Number(e.target.value) || 0 }))
-                      }
-                    />
-                  </Field>
-                  <Field label="内存上限（MB）">
-                    <Input
-                      type="number"
-                      value={form.memoryLimitMb}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, memoryLimitMb: Number(e.target.value) || 0 }))
-                      }
-                    />
-                  </Field>
-                  <Field label="CPU 核心数上限">
-                    <Input
-                      type="number"
-                      value={form.cpuLimit}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, cpuLimit: Number(e.target.value) || 0 }))
-                      }
-                    />
-                  </Field>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                id="publish"
-                type="checkbox"
-                checked={form.isPublished}
-                onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))}
-              />
-              <label htmlFor="publish" className="text-sm">
-                立即发布
-              </label>
-            </div>
-
-            <Button type="submit" loading={createMut.isPending} size="lg">
-              创建题目
+    <div>
+      <header className="flex items-end justify-between gap-4 flex-wrap mb-6">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-ink">
+            题目（{total}）
+          </h2>
+          <p className="text-sm text-ink-3 mt-1">
+            {canManageAll
+              ? '新建、编辑、删除题目与容器源。'
+              : '你被授予了这些题目的修改权限。删除与授权管理仅限全局题目管理员。'}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索标题 / 标签"
+            className="w-56"
+          />
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as ChallengeStatus | '')}
+            className="h-9 px-2 bg-paper border border-rule rounded-sm text-sm"
+          >
+            <option value="">全部状态</option>
+            {Object.entries(STATUS_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {canManageAll && (
+            <Button onClick={() => navigate('/admin/challenges/new')}>
+              <Plus className="h-3.5 w-3.5" />
+              新建题目
             </Button>
-          </form>
-        </CardBody>
-      </Card>
+          )}
+        </div>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>题目列表（{list.data?.total ?? 0}）</CardTitle>
-        </CardHeader>
-        <CardBody className="p-0">
-          {list.isLoading ? (
-            <div className="py-10 text-center text-sm text-muted">加载中...</div>
-          ) : list.data?.items?.length ? (
-            <ul className="divide-y divide-border">
-              {list.data.items.map((c) => (
-                <li key={c.id} className="px-5 py-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium truncate">{c.title}</span>
-                      {c.isPublished ? (
-                        <Badge tone="success">已发布</Badge>
-                      ) : (
-                        <Badge>草稿</Badge>
-                      )}
-                    </div>
-                    <div className="text-2xs text-muted mt-0.5">
-                      {c.category?.name ?? '—'} · {c.solveCount} 人已解
-                    </div>
+      {list.isLoading ? (
+        <div className="border-t border-rule py-12 flex justify-center">
+          <Spinner className="h-5 w-5 text-ink-3" />
+        </div>
+      ) : (list.data?.items?.length ?? 0) > 0 ? (
+        <div className="border-t border-rule">
+          <div className="hidden md:grid grid-cols-[3.5rem_1fr_8rem_8rem_5rem] gap-x-4 py-2 border-b border-rule-strong font-mono text-2xs text-ink-3">
+            <span>id</span>
+            <span>title</span>
+            <span>category</span>
+            <span>state</span>
+            <span />
+          </div>
+          <ul>
+            {(list.data?.items ?? []).map((c) => (
+              <li
+                key={c.id}
+                className="grid grid-cols-[3.5rem_1fr_auto] md:grid-cols-[3.5rem_1fr_8rem_8rem_5rem] gap-x-4 items-center py-3 border-b border-rule hover:bg-paper-2 transition-colors"
+              >
+                <span className="font-mono text-2xs text-ink-3 tabular-nums">
+                  {String(c.id).padStart(3, '0')}
+                </span>
+                <div className="min-w-0">
+                  <Link
+                    to={`/admin/challenges/${c.id}/edit`}
+                    className="font-medium truncate hover:text-amber transition-colors hover:no-underline"
+                  >
+                    {c.title}
+                  </Link>
+                  <div className="md:hidden mt-1 flex items-center gap-3 text-2xs font-mono text-ink-3 tabular-nums">
+                    <span>{c.category?.name ?? '—'}</span>
+                    <span>{STATUS_LABEL[c.status] ?? '草稿'}</span>
                   </div>
+                </div>
+                <span className="hidden md:block font-mono text-sm text-ink-2 truncate">
+                  {c.category?.name ?? '—'}
+                </span>
+                <div className="hidden md:flex items-center gap-1.5">
+                  <Badge tone={c.status === 'published' ? 'success' : undefined}>
+                    {STATUS_LABEL[c.status] ?? '草稿'}
+                  </Badge>
+                  {c.isDynamic && <Badge tone="accent">容器</Badge>}
+                </div>
+                <div className="flex items-center justify-end gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => {
-                      if (confirm(`确认删除题目「${c.title}」？`)) deleteMut.mutate(c.id);
-                    }}
+                    onClick={() => navigate(`/admin/challenges/${c.id}/edit`)}
+                    aria-label="编辑"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="py-10 text-center text-sm text-muted">暂无题目。</div>
+                  {canManageAll && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      loading={deleteMut.isPending && deleteMut.variables === c.id}
+                      onClick={() => {
+                        if (confirm(`确认删除题目「${c.title}」？相关提交与解题记录也会被删除。`)) {
+                          deleteMut.mutate(c.id);
+                        }
+                      }}
+                      aria-label="删除"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="border-t border-rule py-16 text-center">
+          <p className="text-sm text-ink-3 mb-4">
+            {deferredQuery || status ? '没有匹配的题目。' : '暂无题目。'}
+          </p>
+          {canManageAll && !deferredQuery && !status && (
+            <Button onClick={() => navigate('/admin/challenges/new')}>
+              <Plus className="h-3.5 w-3.5" />
+              创建第一道题
+            </Button>
           )}
-        </CardBody>
-      </Card>
+        </div>
+      )}
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between border-t border-rule py-4 text-2xs text-muted">
+          <span>
+            第 {page} / {totalPages} 页 · 共 {total} 道题
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || list.isFetching}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              上一页
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages || list.isFetching}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              下一页
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,7 +13,32 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	Update(ctx context.Context, u *User) error
 	List(ctx context.Context, page, pageSize int) ([]*User, int64, error)
+	Search(ctx context.Context, filter UserFilter, page, pageSize int) ([]*User, int64, error)
 	UpdateScore(ctx context.Context, userID uint, delta int) error
+	SetBanned(ctx context.Context, id uint, banned bool, reason string) error
+	SetRole(ctx context.Context, id uint, role Role) error
+	SetScoreExcluded(ctx context.Context, id uint, excluded bool) error
+}
+
+type FollowRepository interface {
+	Follow(ctx context.Context, followerID, followeeID uint) error
+	Unfollow(ctx context.Context, followerID, followeeID uint) error
+	IsFollowing(ctx context.Context, followerID, followeeID uint) (bool, error)
+	CountFollowers(ctx context.Context, userID uint) (int64, error)
+	CountFollowing(ctx context.Context, userID uint) (int64, error)
+	ListFollowers(ctx context.Context, userID uint, page, pageSize int) ([]*User, int64, error)
+	ListFollowing(ctx context.Context, userID uint, page, pageSize int) ([]*User, int64, error)
+	Feed(ctx context.Context, userID uint, limit int) ([]*FeedItem, error)
+}
+
+type SearchRepository interface {
+	Search(ctx context.Context, query string, limit int) ([]*SearchHit, error)
+}
+
+type UserFilter struct {
+	Query  string
+	Role   string
+	Banned *bool
 }
 
 type CategoryRepository interface {
@@ -35,10 +60,41 @@ type ChallengeRepository interface {
 }
 
 type ChallengeFilter struct {
-	CategoryID  uint
-	OnlyPublished bool
-	Page        int
-	PageSize    int
+	CategoryID      uint
+	OnlyPublished   bool
+	AccessUserID    uint
+	AccessTeamID    uint
+	Query           string
+	Status          string
+	Difficulty      int
+	IsDynamic       *bool
+	SolvedBy        uint
+	Solved          *bool
+	CompetitionID   uint
+	ManagedByUserID uint
+	ManagedByTeamID uint
+	Page            int
+	PageSize        int
+}
+
+type ChallengeAccessRepository interface {
+	ListGroups(ctx context.Context) ([]*ChallengeGroup, error)
+	FindGroupByID(ctx context.Context, id uint) (*ChallengeGroup, error)
+	FindGroupByName(ctx context.Context, name string) (*ChallengeGroup, error)
+	CreateGroup(ctx context.Context, g *ChallengeGroup) error
+	UpdateGroup(ctx context.Context, g *ChallengeGroup) error
+	DeleteGroup(ctx context.Context, id uint) error
+	ReplaceGroupMembers(ctx context.Context, groupID uint, members []ChallengeGroupMember) error
+	ListGrants(ctx context.Context, challengeID uint) ([]*ChallengeAccessGrant, error)
+	ReplaceGrants(ctx context.Context, challengeID uint, grants []ChallengeAccessGrant) error
+	HasAccess(ctx context.Context, challengeID, userID, teamID uint) (bool, error)
+	AccessLevel(ctx context.Context, challengeID, userID, teamID uint) (AccessPermission, error)
+	ListCompetitionGrants(ctx context.Context, competitionID uint) ([]*CompetitionAccessGrant, error)
+	ReplaceCompetitionGrants(ctx context.Context, competitionID uint, grants []CompetitionAccessGrant) error
+	CompetitionAccessLevel(ctx context.Context, competitionID, userID, teamID uint) (AccessPermission, error)
+	ManagedCompetitionIDs(ctx context.Context, userID, teamID uint) ([]uint, error)
+	ListDelegations(ctx context.Context, userID, teamID uint) ([]Delegation, error)
+	SearchSubjects(ctx context.Context, subjectType AccessSubjectType, query string, limit int) ([]AccessSubject, error)
 }
 
 type FlagRepository interface {
@@ -58,6 +114,14 @@ type SubmissionRepository interface {
 	Create(ctx context.Context, s *Submission) error
 	ListByUserAndChallenge(ctx context.Context, userID, challengeID uint, limit int) ([]*Submission, error)
 	CountRecent(ctx context.Context, userID uint, since interface{}) (int64, error)
+	ListByUser(ctx context.Context, userID uint, page, pageSize int) ([]*Submission, int64, error)
+	ListAll(ctx context.Context, page, pageSize int, filter SubmissionListFilter) ([]*Submission, int64, error)
+}
+
+type SubmissionListFilter struct {
+	UserID      uint
+	ChallengeID uint
+	IsCorrect   *bool
 }
 
 type SolveRepository interface {
@@ -68,6 +132,14 @@ type SolveRepository interface {
 	ListByUser(ctx context.Context, userID uint) ([]*Solve, error)
 	ListTop(ctx context.Context, limit int) ([]*Solve, error)
 	ListScoreboard(ctx context.Context, page, pageSize int) ([]*User, int64, error)
+	ListScoreboardAt(ctx context.Context, cutoff time.Time, page, pageSize int) ([]*User, int64, error)
+	SumScoreByUserUntil(ctx context.Context, userID uint, cutoff time.Time) (int, error)
+}
+
+type CompetitionSolveRepository interface {
+	Create(ctx context.Context, s *CompetitionSolve) error
+	FindByUserAndChallenge(ctx context.Context, competitionID, userID, challengeID uint) (*CompetitionSolve, error)
+	CountByCompetitionChallenge(ctx context.Context, competitionID, challengeID uint) (int64, error)
 }
 
 type InstanceRepository interface {
@@ -75,13 +147,23 @@ type InstanceRepository interface {
 	FindByID(ctx context.Context, id uint) (*Instance, error)
 	FindByUserAndChallenge(ctx context.Context, userID, challengeID uint) (*Instance, error)
 	FindActiveByUserAndChallenge(ctx context.Context, userID, challengeID uint) (*Instance, error)
+	FindActiveByTeamAndChallenge(ctx context.Context, teamID, challengeID uint) (*Instance, error)
 	ListByUser(ctx context.Context, userID uint) ([]*Instance, error)
+	ListByUserOrTeam(ctx context.Context, userID, teamID uint) ([]*Instance, error)
+	ListAll(ctx context.Context, page, pageSize int, filter InstanceListFilter) ([]*Instance, int64, error)
 	ListExpired(ctx context.Context, now time.Time) ([]*Instance, error)
 	ListActive(ctx context.Context) ([]*Instance, error)
 	Update(ctx context.Context, i *Instance) error
 	UpdateStatus(ctx context.Context, id uint, status InstanceStatus, errMsg string) error
 	Delete(ctx context.Context, id uint) error
 	CountActiveByUser(ctx context.Context, userID uint) (int64, error)
+	CountActiveByTeam(ctx context.Context, teamID uint) (int64, error)
+}
+
+type InstanceListFilter struct {
+	UserID      uint
+	ChallengeID uint
+	Status      InstanceStatus
 }
 
 type AnnouncementRepository interface {
@@ -92,16 +174,36 @@ type AnnouncementRepository interface {
 	Delete(ctx context.Context, id uint) error
 }
 
+type WriteupRepository interface {
+	Create(ctx context.Context, w *Writeup) error
+	FindByID(ctx context.Context, id uint) (*Writeup, error)
+	ListByChallenge(ctx context.Context, challengeID uint, publishedOnly bool) ([]*Writeup, error)
+	ListByUser(ctx context.Context, userID uint) ([]*Writeup, error)
+	Update(ctx context.Context, w *Writeup) error
+	Delete(ctx context.Context, id uint) error
+}
+
 type DiscussionRepository interface {
 	Create(ctx context.Context, d *Discussion) error
 	FindByID(ctx context.Context, id uint) (*Discussion, error)
 	ListByChallenge(ctx context.Context, challengeID uint, page, pageSize int) ([]*Discussion, int64, error)
+	ListByScope(ctx context.Context, scope DiscussionScope, targetID uint, opts DiscussionListOptions) ([]*Discussion, int64, error)
 	ListReplies(ctx context.Context, parentID uint) ([]*Discussion, error)
 	ListByUser(ctx context.Context, userID uint, limit int) ([]*Discussion, error)
 	Update(ctx context.Context, d *Discussion) error
 	Delete(ctx context.Context, id uint) error
 	IncrLikeCount(ctx context.Context, id uint, delta int) error
+	IncrViewCount(ctx context.Context, id uint) error
+	TouchReply(ctx context.Context, parentID uint, at time.Time) error
+	RefreshReplyStats(ctx context.Context, parentID uint) error
 	CountReplies(ctx context.Context, parentID uint) (int64, error)
+}
+
+type CommunityAccessRepository interface {
+	CommunityAccessLevel(ctx context.Context, userID, teamID uint) (AccessPermission, error)
+	ListCommunityGrants(ctx context.Context) ([]*CommunityAccessGrant, error)
+	ReplaceCommunityGrants(ctx context.Context, grants []CommunityAccessGrant) error
+	FindGroupByID(ctx context.Context, id uint) (*ChallengeGroup, error)
 }
 
 type DiscussionLikeRepository interface {
@@ -118,6 +220,22 @@ type NotificationRepository interface {
 	MarkAllRead(ctx context.Context, userID uint) error
 }
 
+type TeamRepository interface {
+	Create(ctx context.Context, t *Team) error
+	FindByID(ctx context.Context, id uint) (*Team, error)
+	FindBySlug(ctx context.Context, slug string) (*Team, error)
+	FindByInviteCode(ctx context.Context, code string) (*Team, error)
+	List(ctx context.Context, page, pageSize int) ([]*Team, int64, error)
+	ListScoreboard(ctx context.Context, page, pageSize int) ([]*Team, int64, error)
+	Update(ctx context.Context, t *Team) error
+	Delete(ctx context.Context, id uint) error
+	AddMember(ctx context.Context, m *TeamMember) error
+	RemoveMember(ctx context.Context, teamID, userID uint) error
+	ListMembers(ctx context.Context, teamID uint) ([]*TeamMember, error)
+	FindMembership(ctx context.Context, userID uint) (*TeamMember, error)
+	SumMemberScoresUntil(ctx context.Context, teamID uint, cutoff time.Time) (int, error)
+}
+
 type Storage interface {
 	Save(ctx context.Context, reader io.Reader, originalName string) (*StoredObject, error)
 	Open(ctx context.Context, key string) (io.ReadCloser, int64, error)
@@ -127,4 +245,63 @@ type Storage interface {
 type StoredObject struct {
 	Key  string
 	Size int64
+}
+
+// --- Settings ---
+
+type SettingRepository interface {
+	List(ctx context.Context) ([]*SiteSetting, error)
+	Get(ctx context.Context, key string) (*SiteSetting, error)
+	GetMany(ctx context.Context, keys []string) ([]*SiteSetting, error)
+	Upsert(ctx context.Context, s *SiteSetting) error
+	UpsertMany(ctx context.Context, settings []*SiteSetting) error
+}
+
+type AuditLogRepository interface {
+	Record(ctx context.Context, entry *AuditLog) error
+	List(ctx context.Context, page, pageSize int, filter AuditLogFilter) ([]*AuditLog, int64, error)
+}
+
+type AuditLogFilter struct {
+	ActorID    uint
+	Action     string
+	TargetType string
+}
+
+type CompetitionRepository interface {
+	Create(ctx context.Context, c *Competition) error
+	FindByID(ctx context.Context, id uint) (*Competition, error)
+	FindActive(ctx context.Context) (*Competition, error)
+	List(ctx context.Context, page, pageSize int) ([]*Competition, int64, error)
+	Update(ctx context.Context, c *Competition) error
+	Delete(ctx context.Context, id uint) error
+	DeactivateAll(ctx context.Context) error
+	SetChallenges(ctx context.Context, competitionID uint, challengeIDs []uint) error
+	Scoreboard(ctx context.Context, competitionID uint, start, end time.Time, mode string, page, pageSize int) ([]*User, int64, error)
+	TeamScoreboard(ctx context.Context, competitionID uint, start, end time.Time, mode string, page, pageSize int) ([]*TeamScore, int64, error)
+}
+
+type EmailVerificationRepository interface {
+	Create(ctx context.Context, ev *EmailVerification) error
+	FindByToken(ctx context.Context, token string) (*EmailVerification, error)
+	MarkUsed(ctx context.Context, id int64) error
+}
+
+type PasswordResetRepository interface {
+	Create(ctx context.Context, pr *PasswordReset) error
+	FindByToken(ctx context.Context, token string) (*PasswordReset, error)
+	MarkUsed(ctx context.Context, id int64) error
+}
+
+// --- Hints ---
+
+type HintRepository interface {
+	Create(ctx context.Context, h *ChallengeHint) error
+	FindByChallenge(ctx context.Context, challengeID uint) ([]*ChallengeHint, error)
+	FindByID(ctx context.Context, id uint) (*ChallengeHint, error)
+	Update(ctx context.Context, h *ChallengeHint) error
+	Delete(ctx context.Context, id uint) error
+	ListUnlocksByUser(ctx context.Context, userID, challengeID uint) ([]*HintUnlock, error)
+	ListUnlockedHintIDs(ctx context.Context, userID uint, hintIDs []uint) ([]uint, error)
+	Unlock(ctx context.Context, userID, hintID uint) error
 }

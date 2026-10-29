@@ -12,6 +12,7 @@ import (
 	"github.com/ctf-oj/backend/internal/config"
 	"github.com/ctf-oj/backend/internal/infrastructure/db"
 	"github.com/ctf-oj/backend/internal/infrastructure/logger"
+	"github.com/ctf-oj/backend/internal/infrastructure/storage"
 	"github.com/ctf-oj/backend/internal/repository"
 	"github.com/ctf-oj/backend/internal/service"
 )
@@ -22,7 +23,8 @@ import (
 // 调用编排器销毁对应的容器并标记为 expired。
 //
 // 配置：
-//   WORKER_INTERVAL_SECONDS  扫描间隔（默认 30）
+//
+//	WORKER_INTERVAL_SECONDS  扫描间隔（默认 30）
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -41,7 +43,11 @@ func main() {
 
 	instRepo := repository.NewInstanceRepository(gormDB)
 	chalRepo := repository.NewChallengeRepository(gormDB)
-	instSvc := service.NewInstanceService(nil, instRepo, chalRepo, cfg.Instance)
+	challengeSources, err := storage.NewChallengeSources(cfg.Challenge.SourceDir)
+	if err != nil {
+		log.Fatal("init challenge sources", zap.Error(err))
+	}
+	instSvc := service.NewInstanceService(nil, instRepo, chalRepo, challengeSources, cfg.Instance)
 
 	interval := 30 * time.Second
 	if v := os.Getenv("WORKER_INTERVAL_SECONDS"); v != "" {

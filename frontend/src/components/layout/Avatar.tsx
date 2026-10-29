@@ -1,10 +1,15 @@
 import { cn } from '@/lib/utils';
 
+/**
+ * Identity avatar — a small monospace tile with the user's initial.
+ * Shape echoes the rest of the system (square, not circular),
+ * tinted amber to read as a "callsign chip" rather than a generic profile bubble.
+ */
 const PALETTE: string[] = [
-  'bg-accent/15 text-accent',
-  'bg-success/15 text-success',
-  'bg-warning/15 text-warning',
-  'bg-danger/15 text-danger',
+  'bg-amber-soft text-amber border-amber/30',
+  'bg-moss-bg text-moss border-moss/30',
+  'bg-oxblood-bg text-oxblood border-oxblood/30',
+  'bg-paper-3 text-ink-2 border-rule',
 ];
 
 function hashIndex(s: string, mod: number): number {
@@ -21,7 +26,8 @@ export function Avatar({ name, className }: { name: string; className?: string }
   return (
     <span
       className={cn(
-        'inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium',
+        'inline-flex h-7 w-7 items-center justify-center rounded-sm',
+        'text-xs font-mono font-medium border tabular-nums',
         tone,
         className,
       )}
