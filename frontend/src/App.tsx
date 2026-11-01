@@ -55,6 +55,10 @@ import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 import { AdminServerPage } from '@/pages/admin/AdminServerPage';
 import { AdminCompetitionsPage } from '@/pages/admin/AdminCompetitionsPage';
+import { AdminCompetitionNewPage } from '@/pages/admin/AdminCompetitionNewPage';
+import { AdminCompetitionEditPage } from '@/pages/admin/AdminCompetitionEditPage';
+import { AdminCompetitionAnnouncementsPage } from '@/pages/admin/AdminCompetitionAnnouncementsPage';
+import { AdminCompetitionRegistrationsPage } from '@/pages/admin/AdminCompetitionRegistrationsPage';
 import { AdminCommunityPage } from '@/pages/admin/AdminCommunityPage';
 
 const queryClient = new QueryClient({
@@ -162,6 +166,10 @@ function AppRoutes() {
           <Route path="community" element={<RequirePermission permission="community.manage"><AdminCommunityPage /></RequirePermission>} />
           <Route path="users" element={<RequirePermission permission="user.manage"><AdminUsersPage /></RequirePermission>} />
           <Route path="competitions" element={<RequireCompetitionManage><AdminCompetitionsPage /></RequireCompetitionManage>} />
+          <Route path="competitions/new" element={<RequirePermission permission="competition.manage"><AdminCompetitionNewPage /></RequirePermission>} />
+          <Route path="competitions/:id/edit" element={<RequireCompetitionManage><AdminCompetitionEditPage /></RequireCompetitionManage>} />
+          <Route path="competitions/:id/announcements" element={<RequireCompetitionManage><AdminCompetitionAnnouncementsPage /></RequireCompetitionManage>} />
+          <Route path="competitions/:id/registrations" element={<RequireCompetitionManage><AdminCompetitionRegistrationsPage /></RequireCompetitionManage>} />
           <Route path="settings" element={<RequirePermission permission="settings.manage"><AdminSettingsPage /></RequirePermission>} />
           <Route path="audit" element={<RequirePermission permission="audit.view"><AdminAuditPage /></RequirePermission>} />
           <Route path="server" element={<RequirePermission permission="server.manage"><AdminServerPage /></RequirePermission>} />
