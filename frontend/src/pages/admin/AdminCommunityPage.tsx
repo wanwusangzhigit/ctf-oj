@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import { Button, Field, Spinner, useToast } from '@/components/ui';
 import { AccessGrantEditor } from '@/components/admin/ChallengeAccessEditor';
+import { CommunityCopyEditor } from '@/components/admin/CommunityCopyEditor';
 import {
   getCommunityAdmin,
   setCommunityGrants,
@@ -55,7 +56,7 @@ export function AdminCommunityPage() {
     );
   }
 
-  if (q.isError) {
+  if (q.isError || !q.data) {
     return <p className="text-sm text-ink-3">加载社区配置失败。</p>;
   }
 
@@ -99,6 +100,8 @@ export function AdminCommunityPage() {
         onChange={setGrants}
         groupsLink="/admin/access-groups"
       />
+
+      <CommunityCopyEditor overrides={q.data.copy} />
 
       <div className="flex justify-end">
         <Button type="button" variant="primary" loading={saveMut.isPending} onClick={() => saveMut.mutate()}>

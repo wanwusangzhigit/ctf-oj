@@ -19,7 +19,8 @@ import { ApiClientError } from '@/api/client';
  * Keys with reserved prefixes (system.*) are filtered server-side.
  *
  * Two semi-structured groups at top (branding + registration),
- * then a raw key/value editor for everything else.
+ * then a raw key/value editor for everything else. community.copy.*
+ * belongs to /admin/community, so it stays out of the raw list.
  */
 export function AdminSettingsPage() {
   const qc = useQueryClient();
@@ -71,7 +72,7 @@ export function AdminSettingsPage() {
       'community.posting',
     ]);
     const etc = listQ.data
-      .filter((r) => !reserved.has(r.key))
+      .filter((r) => !reserved.has(r.key) && !r.key.startsWith('community.copy.'))
       .map((r) => ({ key: r.key, value: r.value }));
     setExtra(etc);
     const initial: Record<string, string> = {
