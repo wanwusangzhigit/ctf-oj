@@ -13,6 +13,10 @@ export function adminListUsers(
   return apiGet<Paginated<User>>('/admin/users', params);
 }
 
+export function adminGetUser(id: number): Promise<User> {
+  return apiGet<User>(`/admin/users/${id}`);
+}
+
 export function adminListAnnouncements(
   page = 1,
   pageSize = 100,

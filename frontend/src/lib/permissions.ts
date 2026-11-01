@@ -1,4 +1,4 @@
-import type { AccessPermission, Delegation, User } from '@/types';
+import type { AccessPermission, Delegation, Role, User } from '@/types';
 
 export type Permission =
   | 'admin.overview'
@@ -16,6 +16,14 @@ export type Permission =
   | 'instance.manage'
   | 'broadcast.send'
   | 'server.manage';
+
+export const ROLE_LABEL: Record<Role, string> = {
+  user: '普通用户',
+  challenge_admin: '题目管理员',
+  competition_admin: '比赛管理员',
+  moderator: '内容版主',
+  admin: '管理员',
+};
 
 const ROLE_FALLBACK: Record<string, Permission[]> = {
   admin: [

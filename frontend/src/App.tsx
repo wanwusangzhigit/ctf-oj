@@ -50,6 +50,7 @@ import { AdminChallengeNewPage } from '@/pages/admin/AdminChallengeNewPage';
 import { AdminChallengeEditPage } from '@/pages/admin/AdminChallengeEditPage';
 import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage';
 import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage';
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
@@ -165,6 +166,7 @@ function AppRoutes() {
           <Route path="announcements" element={<RequirePermission permission="announcement.manage"><AdminAnnouncementsPage /></RequirePermission>} />
           <Route path="community" element={<RequirePermission permission="community.manage"><AdminCommunityPage /></RequirePermission>} />
           <Route path="users" element={<RequirePermission permission="user.manage"><AdminUsersPage /></RequirePermission>} />
+          <Route path="users/:id" element={<RequirePermission permission="user.manage"><AdminUserDetailPage /></RequirePermission>} />
           <Route path="competitions" element={<RequireCompetitionManage><AdminCompetitionsPage /></RequireCompetitionManage>} />
           <Route path="competitions/new" element={<RequirePermission permission="competition.manage"><AdminCompetitionNewPage /></RequirePermission>} />
           <Route path="competitions/:id/edit" element={<RequireCompetitionManage><AdminCompetitionEditPage /></RequireCompetitionManage>} />
