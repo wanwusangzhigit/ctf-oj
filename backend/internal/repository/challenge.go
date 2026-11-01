@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/ctf-oj/backend/internal/domain"
 )
@@ -128,7 +129,9 @@ func (r *challengeRepo) List(ctx context.Context, filter domain.ChallengeFilter)
 }
 
 func (r *challengeRepo) Update(ctx context.Context, c *domain.Challenge) error {
-	return mapErr(r.db.WithContext(ctx).Save(c).Error)
+	// FindByID preloads Category, and Save would rebuild category_id from that
+	// loaded row, so a category change would silently revert.
+	return mapErr(r.db.WithContext(ctx).Omit(clause.Associations).Save(c).Error)
 }
 
 func (r *challengeRepo) Delete(ctx context.Context, id uint) error {
