@@ -245,13 +245,14 @@ export interface Announcement {
   updatedAt: string;
 }
 
-export type DiscussionScope = 'challenge' | 'community' | 'team';
+export type DiscussionScope = 'challenge' | 'community' | 'team' | 'competition';
 
 export interface Discussion {
   id: number;
   scope: DiscussionScope;
   challengeId?: number;
   teamId?: number;
+  competitionId?: number;
   title?: string;
   userId: number;
   parentId?: number;
@@ -438,6 +439,11 @@ export interface Competition {
   archivedAt?: string;
   isActive: boolean;
   registrationCode?: string;
+  registrationRequired: boolean;
+  hasRegistrationCode?: boolean;
+  registered?: boolean;
+  registrationCount?: number;
+  scoreboardFrozen?: boolean;
   boundChallengeCount?: number;
   accessGrants?: AccessSubject[];
   challenges?: Pick<
@@ -456,12 +462,35 @@ export interface CompetitionInput {
   endAt?: string;
   freezeAt?: string;
   registrationCode?: string;
+  registrationRequired?: boolean;
   visibility?: 'public' | 'private';
   scoringMode?: 'dynamic' | 'fixed' | 'three_blood';
   challengeIds?: number[];
   archived?: boolean;
   isActive?: boolean;
   accessGrants?: AccessSubject[];
+}
+
+export interface CompetitionRegistration {
+  competitionId: number;
+  userId: number;
+  scoreExcluded: boolean;
+  excludedReason?: string;
+  excludedAt?: string;
+  excludedBy?: number;
+  createdAt: string;
+  user?: User;
+}
+
+export interface CompetitionAnnouncement {
+  id: number;
+  competitionId: number;
+  title: string;
+  contentMd: string;
+  isPublished: boolean;
+  createdBy?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SearchHit {

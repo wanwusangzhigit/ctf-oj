@@ -1,13 +1,12 @@
 import { useDeferredValue, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Flag, Search, Trophy } from 'lucide-react';
+import { CheckCircle2, Search } from 'lucide-react';
 import { listChallenges } from '@/api/challenge';
 import { listCategories } from '@/api/category';
-import { getActiveCompetition } from '@/api/competition';
 import { Badge, Spinner } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import type { ChallengeView, Competition } from '@/types';
+import type { ChallengeView } from '@/types';
 
 /**
  * Challenges — presented as a directory listing, not a card grid.
@@ -31,27 +30,8 @@ export function ChallengesPage() {
     queryFn: listCategories,
     staleTime: 5 * 60_000,
   });
-  const activeCompetition = useQuery({
-    queryKey: ['active-competition'],
-    queryFn: getActiveCompetition,
-    staleTime: 30_000,
-  });
-  const contest =
-    activeCompetition.data && competitionIsLive(activeCompetition.data)
-      ? activeCompetition.data
-      : null;
-  const contestId = contest?.id;
-  const contestChallengeIds = new Set(
-    contest?.challenges?.map((ch) => ch.id) ?? [],
-  );
-  const contestCoversAll = contest
-    ? (contest.boundChallengeCount ?? contest.challenges?.length ?? 0) === 0
-    : false;
-  const isContestChallenge = (id: number) =>
-    !!contest && (contestCoversAll || contestChallengeIds.has(id));
-
   const challenges = useQuery({
-    queryKey: ['challenges', catId, deferredQuery, difficulty, type, solved, contestId ?? 0],
+    queryKey: ['challenges', catId, deferredQuery, difficulty, type, solved],
     queryFn: () =>
       listChallenges({
         categoryId: catId,
@@ -59,10 +39,8 @@ export function ChallengesPage() {
         difficulty: difficulty || undefined,
         type: (type as 'static' | 'container') || undefined,
         solved: solved === '' ? undefined : solved === 'true',
-        competitionId: contestId,
         pageSize: 100,
       }),
-    enabled: !activeCompetition.isLoading,
     staleTime: 30_000,
   });
 
@@ -154,16 +132,12 @@ export function ChallengesPage() {
         </select>
       </div>
 
-      {activeCompetition.isLoading || challenges.isLoading ? (
+      {challenges.isLoading ? (
         <Loading />
       ) : filtered.length === 0 ? (
         <Empty />
       ) : (
-        <ChallengeTable
-          items={filtered}
-          contestId={contestId}
-          isContestChallenge={isContestChallenge}
-        />
+        <ChallengeTable items={filtered} />
       )}
     </div>
   );
@@ -173,15 +147,7 @@ export function ChallengesPage() {
  * The table itself: ruled rows, mono numerals, single hairline column headers.
  * Reads like a Unix directory listing — the data IS the design.
  */
-function ChallengeTable({
-  items,
-  contestId,
-  isContestChallenge,
-}: {
-  items: ChallengeView[];
-  contestId?: number;
-  isContestChallenge: (id: number) => boolean;
-}) {
+function ChallengeTable({ items }: { items: ChallengeView[] }) {
   return (
     <div className="border-t border-rule">
       {/* column header — minimal, lowercase, mono */}
@@ -194,16 +160,10 @@ function ChallengeTable({
       </div>
 
       <ul>
-        {items.map((c) => {
-          const inContest = isContestChallenge(c.id);
-          return (
+        {items.map((c) => (
             <li key={c.id}>
               <Link
-                to={
-                  inContest && contestId
-                    ? `/challenges/${c.id}?competition=${contestId}`
-                    : `/challenges/${c.id}`
-                }
+                to={`/challenges/${c.id}`}
                 className="group grid grid-cols-[3.5rem_1fr_auto] md:grid-cols-[3.5rem_1fr_9rem_6rem_5rem] gap-x-4 items-center py-3 border-b border-rule hover:bg-paper-2 transition-colors hover:no-underline"
               >
                 <span className="font-mono text-2xs text-ink-3 tabular-nums">
@@ -223,18 +183,6 @@ function ChallengeTable({
                       <Badge tone="success">
                         <CheckCircle2 className="h-3 w-3" />
                         已通过
-                      </Badge>
-                    )}
-                    {c.competitionSolved && (
-                      <Badge tone="success">
-                        <Trophy className="h-3 w-3" />
-                        比赛已解出
-                      </Badge>
-                    )}
-                    {inContest && !c.competitionSolved && (
-                      <Badge tone="warning">
-                        <Flag className="h-3 w-3" />
-                        赛事题
                       </Badge>
                     )}
                     {c.isDynamic && (
@@ -260,8 +208,7 @@ function ChallengeTable({
                 </span>
               </Link>
             </li>
-          );
-        })}
+          ))}
       </ul>
     </div>
   );
@@ -307,13 +254,4 @@ function Empty() {
       该分类下暂无题目。
     </div>
   );
-}
-
-
-function competitionIsLive(c: Competition): boolean {
-  if (!c.startAt && !c.endAt) return true;
-  const start = c.startAt ? Date.parse(c.startAt) : -Infinity;
-  const end = c.endAt ? Date.parse(c.endAt) : Infinity;
-  const now = Date.now();
-  return now >= start && now <= end;
 }

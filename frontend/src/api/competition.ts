@@ -1,5 +1,13 @@
-import { apiGet, apiPost, apiPut, apiDelete, client } from './client';
-import type { Competition, CompetitionInput, Paginated, PublicUser, TeamScore } from '@/types';
+import { apiGet, apiPost, apiPut, apiDelete, apiPatch, client } from './client';
+import type {
+  Competition,
+  CompetitionAnnouncement,
+  CompetitionInput,
+  CompetitionRegistration,
+  Paginated,
+  PublicUser,
+  TeamScore,
+} from '@/types';
 
 export function getActiveCompetition(): Promise<Competition | null> {
   return apiGet<Competition | null>('/competition');
@@ -30,6 +38,92 @@ export function competitionScoreboard(
     page,
     page_size: pageSize,
   });
+}
+
+export function registerCompetition(id: number, code?: string): Promise<CompetitionRegistration> {
+  return apiPost<CompetitionRegistration>(`/competitions/${id}/register`, { code });
+}
+
+export function unregisterCompetition(id: number): Promise<{ ok: true }> {
+  return apiDelete<{ ok: true }>(`/competitions/${id}/register`);
+}
+
+export function getCompetitionRegistration(
+  id: number,
+): Promise<{ registered: boolean; registration?: CompetitionRegistration }> {
+  return apiGet<{ registered: boolean; registration?: CompetitionRegistration }>(
+    `/competitions/${id}/registration`,
+  );
+}
+
+export function listCompetitionAnnouncements(
+  id: number,
+  page = 1,
+  pageSize = 20,
+): Promise<Paginated<CompetitionAnnouncement>> {
+  return apiGet<Paginated<CompetitionAnnouncement>>(`/competitions/${id}/announcements`, {
+    page,
+    page_size: pageSize,
+  });
+}
+
+export function listAdminCompetitionAnnouncements(
+  id: number,
+  page = 1,
+  pageSize = 50,
+): Promise<Paginated<CompetitionAnnouncement>> {
+  return apiGet<Paginated<CompetitionAnnouncement>>(`/admin/competitions/${id}/announcements`, {
+    page,
+    page_size: pageSize,
+  });
+}
+
+export function createCompetitionAnnouncement(
+  id: number,
+  input: { title: string; contentMd: string; isPublished: boolean },
+): Promise<CompetitionAnnouncement> {
+  return apiPost<CompetitionAnnouncement>(`/admin/competitions/${id}/announcements`, input);
+}
+
+export function updateCompetitionAnnouncement(
+  id: number,
+  announcementId: number,
+  input: { title: string; contentMd: string; isPublished: boolean },
+): Promise<CompetitionAnnouncement> {
+  return apiPut<CompetitionAnnouncement>(
+    `/admin/competitions/${id}/announcements/${announcementId}`,
+    input,
+  );
+}
+
+export function deleteCompetitionAnnouncement(
+  id: number,
+  announcementId: number,
+): Promise<{ ok: true }> {
+  return apiDelete<{ ok: true }>(`/admin/competitions/${id}/announcements/${announcementId}`);
+}
+
+export function listCompetitionRegistrations(
+  id: number,
+  page = 1,
+  pageSize = 50,
+): Promise<Paginated<CompetitionRegistration>> {
+  return apiGet<Paginated<CompetitionRegistration>>(`/admin/competitions/${id}/registrations`, {
+    page,
+    page_size: pageSize,
+  });
+}
+
+export function setCompetitionScoreExcluded(
+  id: number,
+  userId: number,
+  excluded: boolean,
+  reason?: string,
+): Promise<CompetitionRegistration> {
+  return apiPatch<CompetitionRegistration>(
+    `/admin/competitions/${id}/registrations/${userId}`,
+    { excluded, reason },
+  );
 }
 
 export function createCompetition(input: CompetitionInput): Promise<Competition> {

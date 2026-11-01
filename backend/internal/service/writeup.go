@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,10 +11,11 @@ import (
 )
 
 type WriteupService struct {
-	repos  domain.WriteupRepository
-	chals  domain.ChallengeRepository
-	solves domain.SolveRepository
-	access *ChallengeAccessService
+	repos        domain.WriteupRepository
+	chals        domain.ChallengeRepository
+	solves       domain.SolveRepository
+	competitions domain.CompetitionRepository
+	access       *ChallengeAccessService
 }
 
 func NewWriteupService(r domain.WriteupRepository, c domain.ChallengeRepository, s domain.SolveRepository) *WriteupService {
@@ -21,6 +23,10 @@ func NewWriteupService(r domain.WriteupRepository, c domain.ChallengeRepository,
 }
 
 func (s *WriteupService) SetAccessService(a *ChallengeAccessService) { s.access = a }
+
+func (s *WriteupService) SetCompetitionRepository(c domain.CompetitionRepository) {
+	s.competitions = c
+}
 
 type WriteupView struct {
 	ID          uint              `json:"id"`
@@ -55,7 +61,7 @@ func toWriteupView(w *domain.Writeup) WriteupView {
 	return v
 }
 
-func (s *WriteupService) List(ctx context.Context, challengeID, viewerID uint, isAdmin bool) ([]WriteupView, error) {
+func (s *WriteupService) List(ctx context.Context, challengeID, viewerID uint, isAdmin bool, competitionID uint) ([]WriteupView, error) {
 	c, err := s.chals.FindByID(ctx, challengeID)
 	if err != nil {
 		return nil, err
@@ -72,6 +78,9 @@ func (s *WriteupService) List(ctx context.Context, challengeID, viewerID uint, i
 		return nil, domain.ErrNotFound
 	}
 	if !isAdmin {
+		if err := s.blockedByCompetition(ctx, competitionID, challengeID); err != nil {
+			return nil, err
+		}
 		if viewerID == 0 {
 			return []WriteupView{}, nil
 		}
@@ -93,7 +102,7 @@ func (s *WriteupService) List(ctx context.Context, challengeID, viewerID uint, i
 	return out, nil
 }
 
-func (s *WriteupService) Create(ctx context.Context, userID, challengeID uint, in WriteupInput, isAdmin bool) (*WriteupView, error) {
+func (s *WriteupService) Create(ctx context.Context, userID, challengeID uint, in WriteupInput, isAdmin bool, competitionID uint) (*WriteupView, error) {
 	in.Title = strings.TrimSpace(in.Title)
 	in.ContentMD = strings.TrimSpace(in.ContentMD)
 	if in.Title == "" || in.ContentMD == "" {
@@ -118,6 +127,9 @@ func (s *WriteupService) Create(ctx context.Context, userID, challengeID uint, i
 		return nil, domain.ErrNotFound
 	}
 	if !isAdmin {
+		if err := s.blockedByCompetition(ctx, competitionID, challengeID); err != nil {
+			return nil, err
+		}
 		if _, err := s.solves.FindByUserAndChallenge(ctx, userID, challengeID); err != nil {
 			return nil, domain.ErrForbidden
 		}
@@ -142,6 +154,23 @@ func (s *WriteupService) Create(ctx context.Context, userID, challengeID uint, i
 	}
 	v := toWriteupView(u)
 	return &v, nil
+}
+
+func (s *WriteupService) blockedByCompetition(ctx context.Context, competitionID, challengeID uint) error {
+	if competitionID == 0 || s.competitions == nil {
+		return nil
+	}
+	c, err := s.competitions.FindByID(ctx, competitionID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil
+		}
+		return err
+	}
+	if competitionIsLive(c) && competitionCoversChallenge(c, challengeID) {
+		return fmt.Errorf("%w: writeups unavailable during competition", domain.ErrForbidden)
+	}
+	return nil
 }
 
 func (s *WriteupService) Update(ctx context.Context, id, actorID uint, isAdmin bool, in WriteupInput) (*WriteupView, error) {

@@ -44,8 +44,10 @@ func (r *challengeRepo) List(ctx context.Context, filter domain.ChallengeFilter)
 		q = q.Where("category_id = ?", filter.CategoryID)
 	}
 	if filter.OnlyPublished {
+		parts := []string{"is_published = true"}
+		args := []any{}
 		if filter.AccessUserID > 0 {
-			q = q.Where(`(is_published = true OR (status = 'hidden' AND EXISTS (
+			parts = append(parts, `(status = 'hidden' AND EXISTS (
 				SELECT 1 FROM challenge_access_grants g
 				WHERE g.challenge_id = challenges.id AND (
 					(g.subject_type = 'user' AND g.subject_id = ?)
@@ -56,10 +58,21 @@ func (r *challengeRepo) List(ctx context.Context, filter domain.ChallengeFilter)
 						   OR (m.subject_type = 'team' AND m.subject_id = ?)
 					))
 				)
-			)))`, filter.AccessUserID, filter.AccessTeamID, filter.AccessUserID, filter.AccessTeamID)
-		} else {
-			q = q.Where("is_published = ?", true)
+			))`)
+			args = append(args, filter.AccessUserID, filter.AccessTeamID, filter.AccessUserID, filter.AccessTeamID)
 		}
+		if filter.CompetitionID > 0 {
+			parts = append(parts, `(status = 'hidden' AND EXISTS (
+				SELECT 1 FROM competition_challenges cc
+				JOIN competitions comp ON comp.id = cc.competition_id
+				WHERE cc.competition_id = ? AND cc.challenge_id = challenges.id
+				  AND comp.archived_at IS NULL
+				  AND (comp.start_at IS NULL OR comp.start_at <= NOW())
+				  AND (comp.end_at IS NULL OR comp.end_at >= NOW())
+			))`)
+			args = append(args, filter.CompetitionID)
+		}
+		q = q.Where("("+strings.Join(parts, " OR ")+")", args...)
 	}
 	if v := strings.TrimSpace(filter.Status); v != "" {
 		q = q.Where("status = ?", v)

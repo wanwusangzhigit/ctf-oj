@@ -44,6 +44,17 @@ make frontend-dev  # 启动前端开发服务器
 
 访问 `http://localhost:8080` 即可。
 
+## 镜像
+
+GitHub Actions 在推送 `master` / `main` 或 `v*` 标签时构建并推送多架构镜像：
+
+```bash
+docker pull ghcr.io/<owner>/<repo>/backend:latest
+docker pull ghcr.io/<owner>/<repo>/frontend:latest
+```
+
+Pull Request 仅构建，不推送。工作流见 `.github/workflows/ghcr.yml`。
+
 ## 当前阶段
 
 P1 地基 + P2 核心题目 + P3 容器化题目 + P4 社区模块 已完成，并通过端到端验证。
@@ -53,7 +64,8 @@ P1 地基 + P2 核心题目 + P3 容器化题目 + P4 社区模块 已完成，�
 - 容器化题目（Docker 实例、动态 Flag、TTL 自动回收）
 - 动态打分、提交记录、解题榜
 - 公告、讨论区（嵌套回复 + 点赞）、Markdown 渲染、通知中心
-- 管理后台：分类 / 题目 / 公告管理
+- 比赛模式（赛事/练习解题分离）、封榜、固定/动态/三血计分、赛事报名、独立赛事公告、赛事答疑、取消/恢复成绩
+- 管理后台：分类 / 题目 / 赛事 / 公告管理
 
 详见 [memory.md](./memory.md)。
 

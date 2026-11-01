@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,13 +11,15 @@ import (
 )
 
 type DiscussionService struct {
-	discussions domain.DiscussionRepository
-	likes       domain.DiscussionLikeRepository
-	challenges  domain.ChallengeRepository
-	notifier    NotificationDispatcher
-	access      *ChallengeAccessService
-	teams       domain.TeamRepository
-	community   *CommunityAccessService
+	discussions   domain.DiscussionRepository
+	likes         domain.DiscussionLikeRepository
+	challenges    domain.ChallengeRepository
+	competitions  domain.CompetitionRepository
+	registrations domain.CompetitionRegistrationRepository
+	notifier      NotificationDispatcher
+	access        *ChallengeAccessService
+	teams         domain.TeamRepository
+	community     *CommunityAccessService
 }
 
 func NewDiscussionService(
@@ -30,13 +33,20 @@ func NewDiscussionService(
 
 func (s *DiscussionService) SetAccessService(a *ChallengeAccessService) { s.access = a }
 func (s *DiscussionService) SetTeamRepository(t domain.TeamRepository)  { s.teams = t }
+func (s *DiscussionService) SetCompetitionRepository(c domain.CompetitionRepository) {
+	s.competitions = c
+}
+func (s *DiscussionService) SetRegistrationRepository(r domain.CompetitionRegistrationRepository) {
+	s.registrations = r
+}
 func (s *DiscussionService) SetCommunityAccessService(c *CommunityAccessService) {
 	s.community = c
 }
 
 type DiscussionTarget struct {
-	Scope domain.DiscussionScope
-	ID    uint
+	Scope         domain.DiscussionScope
+	ID            uint
+	CompetitionID uint
 }
 
 type DiscussionInput struct {
@@ -153,7 +163,7 @@ func (s *DiscussionService) Get(ctx context.Context, target DiscussionTarget, id
 			r.Liked = liked[r.ID]
 		}
 	}
-	if d.Scope == domain.DiscussionScopeCommunity {
+	if d.Scope == domain.DiscussionScopeCommunity || d.Scope == domain.DiscussionScopeCompetition {
 		if err := s.discussions.IncrViewCount(ctx, d.ID); err == nil {
 			d.ViewCount++
 		}
@@ -186,9 +196,34 @@ func (s *DiscussionService) ensureVisible(ctx context.Context, target Discussion
 			if !ok {
 				return domain.ErrNotFound
 			}
+		} else if !c.IsPublished && !includeUnpublished {
+			return domain.ErrNotFound
+		}
+		if !globalModerate {
+			if err := s.blockedByCompetition(ctx, target); err != nil {
+				return err
+			}
+		}
+		return nil
+	case domain.DiscussionScopeCompetition:
+		if target.ID == 0 {
+			return domain.ErrInvalidArgument
+		}
+		c, err := s.competitionForTarget(ctx, target.ID)
+		if err != nil {
+			return err
+		}
+		if s.access != nil {
+			ok, err := s.access.CanViewCompetition(ctx, c, userID, includeUnpublished || globalModerate)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return domain.ErrNotFound
+			}
 			return nil
 		}
-		if !c.IsPublished && !includeUnpublished {
+		if c.Visibility == "private" || (c.ArchivedAt != nil && !globalModerate) {
 			return domain.ErrNotFound
 		}
 		return nil
@@ -221,9 +256,64 @@ func (s *DiscussionService) ensureVisible(ctx context.Context, target Discussion
 	}
 }
 
+func (s *DiscussionService) blockedByCompetition(ctx context.Context, target DiscussionTarget) error {
+	if target.Scope != domain.DiscussionScopeChallenge || target.CompetitionID == 0 || s.competitions == nil {
+		return nil
+	}
+	c, err := s.competitions.FindByID(ctx, target.CompetitionID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil
+		}
+		return err
+	}
+	if competitionIsLive(c) && competitionCoversChallenge(c, target.ID) {
+		return fmt.Errorf("%w: challenge discussions unavailable during competition", domain.ErrForbidden)
+	}
+	return nil
+}
+
 func (s *DiscussionService) canPost(ctx context.Context, target DiscussionTarget, userID uint, includeUnpublished bool, globalModerate bool) error {
 	if userID == 0 {
 		return domain.ErrUnauthorized
+	}
+	if target.Scope == domain.DiscussionScopeCompetition {
+		if err := s.ensureVisible(ctx, target, userID, includeUnpublished, globalModerate); err != nil {
+			return err
+		}
+		c, err := s.competitionForTarget(ctx, target.ID)
+		if err != nil {
+			return err
+		}
+		if globalModerate {
+			return nil
+		}
+		if s.access != nil {
+			ok, err := s.access.CanManageCompetition(ctx, c.ID, userID, false)
+			if err != nil {
+				return err
+			}
+			if ok {
+				return nil
+			}
+		}
+		if !c.RegistrationRequired {
+			return nil
+		}
+		if s.registrations == nil {
+			return domain.ErrForbidden
+		}
+		reg, err := s.registrations.Find(ctx, c.ID, userID)
+		if err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return fmt.Errorf("%w: competition registration required", domain.ErrForbidden)
+			}
+			return err
+		}
+		if reg.ScoreExcluded {
+			return fmt.Errorf("%w: competition score excluded", domain.ErrForbidden)
+		}
+		return nil
 	}
 	if target.Scope == domain.DiscussionScopeCommunity {
 		if s.community == nil {
@@ -284,7 +374,7 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 			return nil, domain.ErrForbidden
 		}
 		parent = p
-	} else if target.Scope == domain.DiscussionScopeCommunity {
+	} else if target.Scope == domain.DiscussionScopeCommunity || target.Scope == domain.DiscussionScopeCompetition {
 		if in.Title == "" {
 			return nil, errors.New("title required")
 		}
@@ -297,7 +387,7 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 	}
 
 	title := ""
-	if target.Scope == domain.DiscussionScopeCommunity && parent == nil {
+	if (target.Scope == domain.DiscussionScopeCommunity || target.Scope == domain.DiscussionScopeCompetition) && parent == nil {
 		title = in.Title
 	}
 	now := time.Now()
@@ -320,6 +410,9 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 	case domain.DiscussionScopeTeam:
 		id := target.ID
 		d.TeamID = &id
+	case domain.DiscussionScopeCompetition:
+		id := target.ID
+		d.CompetitionID = &id
 	}
 	if err := s.discussions.Create(ctx, d); err != nil {
 		return nil, err
@@ -404,6 +497,14 @@ func (s *DiscussionService) canModerateDiscussion(ctx context.Context, d *domain
 	switch d.Scope {
 	case domain.DiscussionScopeChallenge:
 		return globalModerate, nil
+	case domain.DiscussionScopeCompetition:
+		if globalModerate {
+			return true, nil
+		}
+		if s.access == nil || d.CompetitionID == nil {
+			return false, nil
+		}
+		return s.access.CanManageCompetition(ctx, *d.CompetitionID, userID, false)
 	case domain.DiscussionScopeCommunity:
 		if globalModerate {
 			return true, nil
@@ -424,6 +525,13 @@ func (s *DiscussionService) canModerateDiscussion(ctx context.Context, d *domain
 	default:
 		return false, nil
 	}
+}
+
+func (s *DiscussionService) competitionForTarget(ctx context.Context, id uint) (*domain.Competition, error) {
+	if s.competitions == nil {
+		return nil, domain.ErrNotFound
+	}
+	return s.competitions.FindByID(ctx, id)
 }
 
 func (s *DiscussionService) isTeamMember(ctx context.Context, teamID, userID uint) (bool, error) {
@@ -449,6 +557,8 @@ func sameDiscussionTarget(d *domain.Discussion, target DiscussionTarget) bool {
 		return d.ChallengeID != nil && *d.ChallengeID == target.ID
 	case domain.DiscussionScopeTeam:
 		return d.TeamID != nil && *d.TeamID == target.ID
+	case domain.DiscussionScopeCompetition:
+		return d.CompetitionID != nil && *d.CompetitionID == target.ID
 	case domain.DiscussionScopeCommunity:
 		return true
 	default:
@@ -466,6 +576,10 @@ func targetOf(d *domain.Discussion) DiscussionTarget {
 		if d.TeamID != nil {
 			return DiscussionTarget{Scope: d.Scope, ID: *d.TeamID}
 		}
+	case domain.DiscussionScopeCompetition:
+		if d.CompetitionID != nil {
+			return DiscussionTarget{Scope: d.Scope, ID: *d.CompetitionID}
+		}
 	}
 	return DiscussionTarget{Scope: d.Scope}
 }
@@ -476,6 +590,8 @@ func discussionLink(target DiscussionTarget, topicID uint) string {
 		return "/challenges/" + itoa(int(target.ID))
 	case domain.DiscussionScopeTeam:
 		return "/teams/" + itoa(int(target.ID))
+	case domain.DiscussionScopeCompetition:
+		return "/competitions/" + itoa(int(target.ID))
 	case domain.DiscussionScopeCommunity:
 		return "/community/" + itoa(int(topicID))
 	default:

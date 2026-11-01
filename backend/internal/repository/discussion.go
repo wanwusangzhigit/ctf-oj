@@ -72,6 +72,8 @@ func (r *discussionRepo) ListByScope(ctx context.Context, scope domain.Discussio
 		q = q.Where("challenge_id = ?", targetID)
 	case domain.DiscussionScopeTeam:
 		q = q.Where("team_id = ?", targetID)
+	case domain.DiscussionScopeCompetition:
+		q = q.Where("competition_id = ?", targetID)
 	}
 	if tag := strings.TrimSpace(opts.Tag); tag != "" {
 		q = q.Where("tags ILIKE ?", "%"+tag+"%")

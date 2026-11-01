@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/csv"
+	"errors"
 	"strconv"
 	"time"
 
@@ -193,6 +194,17 @@ func (h *CompetitionHandler) Delete(c *gin.Context) {
 	response.OK(c, gin.H{"ok": true})
 }
 
+func (h *CompetitionHandler) canSeeLiveScoreboard(c *gin.Context, id, uid uint) bool {
+	if middleware.CanManageCompetitions(c) {
+		return true
+	}
+	if uid == 0 {
+		return false
+	}
+	ok, err := h.svc.CanManage(c.Request.Context(), id, uid, false)
+	return err == nil && ok
+}
+
 func (h *CompetitionHandler) Scoreboard(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -206,8 +218,9 @@ func (h *CompetitionHandler) Scoreboard(c *gin.Context) {
 	}
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "50"))
+	includeFrozen := h.canSeeLiveScoreboard(c, uint(id), uid)
 	if c.Query("group") == "team" {
-		items, total, err := h.svc.TeamScoreboard(c.Request.Context(), uint(id), page, pageSize)
+		items, total, err := h.svc.TeamScoreboard(c.Request.Context(), uint(id), page, pageSize, includeFrozen)
 		if err != nil {
 			response.Err(c, err)
 			return
@@ -215,7 +228,7 @@ func (h *CompetitionHandler) Scoreboard(c *gin.Context) {
 		response.Paged(c, items, total, page, pageSize)
 		return
 	}
-	items, total, err := h.svc.Scoreboard(c.Request.Context(), uint(id), page, pageSize)
+	items, total, err := h.svc.Scoreboard(c.Request.Context(), uint(id), page, pageSize, includeFrozen)
 	if err != nil {
 		response.Err(c, err)
 		return
@@ -246,7 +259,7 @@ func (h *CompetitionHandler) Export(c *gin.Context) {
 	rank := 1
 	for page := 1; ; page++ {
 		if group == "team" {
-			items, total, err := h.svc.TeamScoreboard(c.Request.Context(), uint(id), page, perPage)
+			items, total, err := h.svc.TeamScoreboard(c.Request.Context(), uint(id), page, perPage, true)
 			if err != nil {
 				return
 			}
@@ -259,7 +272,7 @@ func (h *CompetitionHandler) Export(c *gin.Context) {
 			}
 			continue
 		}
-		items, total, err := h.svc.Scoreboard(c.Request.Context(), uint(id), page, perPage)
+		items, total, err := h.svc.Scoreboard(c.Request.Context(), uint(id), page, perPage, true)
 		if err != nil {
 			return
 		}
@@ -271,6 +284,232 @@ func (h *CompetitionHandler) Export(c *gin.Context) {
 			break
 		}
 	}
+}
+
+func (h *CompetitionHandler) Register(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	uid, ok := getUID(c)
+	if !ok || uid == 0 {
+		response.Err(c, domain.ErrUnauthorized)
+		return
+	}
+	var req struct {
+		Code string `json:"code"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	reg, err := h.svc.Register(c.Request.Context(), uint(id), uid, req.Code)
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.Created(c, reg)
+}
+
+func (h *CompetitionHandler) Unregister(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	uid, ok := getUID(c)
+	if !ok || uid == 0 {
+		response.Err(c, domain.ErrUnauthorized)
+		return
+	}
+	if err := h.svc.Unregister(c.Request.Context(), uint(id), uid); err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.OK(c, gin.H{"ok": true})
+}
+
+func (h *CompetitionHandler) RegistrationStatus(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	uid, ok := getUID(c)
+	if !ok || uid == 0 {
+		response.Err(c, domain.ErrUnauthorized)
+		return
+	}
+	reg, err := h.svc.Registration(c.Request.Context(), uint(id), uid)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			response.OK(c, gin.H{"registered": false})
+			return
+		}
+		response.Err(c, err)
+		return
+	}
+	response.OK(c, gin.H{"registered": true, "registration": reg})
+}
+
+func (h *CompetitionHandler) AdminListRegistrations(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "50"))
+	items, total, err := h.svc.ListRegistrations(c.Request.Context(), uint(id), page, pageSize)
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.Paged(c, items, total, page, pageSize)
+}
+
+func (h *CompetitionHandler) SetScoreExcluded(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	userID, err := strconv.ParseUint(c.Param("userId"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	var req struct {
+		Excluded bool   `json:"excluded"`
+		Reason   string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	actor, _ := getUID(c)
+	reg, err := h.svc.SetScoreExcluded(c.Request.Context(), uint(id), uint(userID), req.Excluded, req.Reason, actor)
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	action := "competition.score_restore"
+	if req.Excluded {
+		action = "competition.score_exclude"
+	}
+	recordAudit(c, h.audit, action, "competition_registration", uint(userID), map[string]string{
+		"competitionId": strconv.FormatUint(id, 10),
+		"reason":        req.Reason,
+	})
+	response.OK(c, reg)
+}
+
+func (h *CompetitionHandler) ListAnnouncements(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	uid, _ := getUID(c)
+	if _, err := h.svc.GetVisibleFor(c.Request.Context(), uint(id), uid, false); err != nil {
+		response.Err(c, err)
+		return
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	items, total, err := h.svc.ListAnnouncements(c.Request.Context(), uint(id), true, page, pageSize)
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.Paged(c, items, total, page, pageSize)
+}
+
+func (h *CompetitionHandler) AdminListAnnouncements(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "50"))
+	items, total, err := h.svc.ListAnnouncements(c.Request.Context(), uint(id), false, page, pageSize)
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.Paged(c, items, total, page, pageSize)
+}
+
+func (h *CompetitionHandler) CreateAnnouncement(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	var req service.CompetitionAnnouncementInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	actor, _ := getUID(c)
+	a, err := h.svc.CreateAnnouncement(c.Request.Context(), uint(id), actor, req)
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	recordAudit(c, h.audit, "competition.announcement.create", "competition_announcement", a.ID, map[string]string{
+		"competitionId": strconv.FormatUint(id, 10),
+		"title":         a.Title,
+	})
+	response.Created(c, a)
+}
+
+func (h *CompetitionHandler) UpdateAnnouncement(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	annID, err := strconv.ParseUint(c.Param("announcementId"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	var req service.CompetitionAnnouncementInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	a, err := h.svc.UpdateAnnouncement(c.Request.Context(), uint(id), uint(annID), req)
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	recordAudit(c, h.audit, "competition.announcement.update", "competition_announcement", a.ID, map[string]string{
+		"competitionId": strconv.FormatUint(id, 10),
+		"title":         a.Title,
+	})
+	response.OK(c, a)
+}
+
+func (h *CompetitionHandler) DeleteAnnouncement(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	annID, err := strconv.ParseUint(c.Param("announcementId"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	if err := h.svc.DeleteAnnouncement(c.Request.Context(), uint(id), uint(annID)); err != nil {
+		response.Err(c, err)
+		return
+	}
+	recordAudit(c, h.audit, "competition.announcement.delete", "competition_announcement", uint(annID), map[string]string{
+		"competitionId": strconv.FormatUint(id, 10),
+	})
+	response.OK(c, gin.H{"ok": true})
 }
 
 func nonEmpty(v, fallback string) string {

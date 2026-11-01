@@ -16,9 +16,11 @@ import { ApiClientError } from '@/api/client';
 
 export function WriteupsPanel({
   challengeId,
+  competitionId,
   solved,
 }: {
   challengeId: number;
+  competitionId?: number;
   solved: boolean;
 }) {
   const qc = useQueryClient();
@@ -28,18 +30,19 @@ export function WriteupsPanel({
   const [content, setContent] = useState('');
 
   const list = useQuery({
-    queryKey: ['writeups', challengeId],
-    queryFn: () => listWriteups(challengeId),
+    queryKey: ['writeups', challengeId, competitionId ?? 0],
+    queryFn: () => listWriteups(challengeId, competitionId),
     staleTime: 30_000,
     enabled: !!user,
   });
 
   const createMut = useMutation({
-    mutationFn: () => createWriteup(challengeId, { title, contentMd: content }),
+    mutationFn: () =>
+      createWriteup(challengeId, { title, contentMd: content }, competitionId),
     onSuccess: () => {
       setTitle('');
       setContent('');
-      qc.invalidateQueries({ queryKey: ['writeups', challengeId] });
+      qc.invalidateQueries({ queryKey: ['writeups', challengeId, competitionId ?? 0] });
       toast.success('Writeup 已发布');
     },
     onError: (err) =>
@@ -49,7 +52,7 @@ export function WriteupsPanel({
   const toggleMut = useMutation({
     mutationFn: (w: { id: number; isPublished: boolean }) =>
       updateWriteup(w.id, { isPublished: !w.isPublished }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['writeups', challengeId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['writeups', challengeId, competitionId ?? 0] }),
     onError: (err) =>
       toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
   });
@@ -57,7 +60,7 @@ export function WriteupsPanel({
   const delMut = useMutation({
     mutationFn: (id: number) => deleteWriteup(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['writeups', challengeId] });
+      qc.invalidateQueries({ queryKey: ['writeups', challengeId, competitionId ?? 0] });
       toast.success('已删除');
     },
     onError: (err) =>

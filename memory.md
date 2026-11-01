@@ -4,8 +4,8 @@
 
 ## 当前状态
 
-**阶段**：P1–P5 完成；设计指南差距审计 P1/P2/P3 全部落地，P4 部分落地（计分模式/分组榜/2FA/RBAC/权限细化）；题目/赛事 `view/manage` 分级授权与 delegated 管理、社区/团队讨论区与社区权限管理已上线；社区讨论区已升级为 Luogu 风格主题列表与楼层详情；比赛模式已支持赛事/练习解题分离与重复提交不计分，题目列表与赛事页已标注已通过/比赛已解出/赛事题
-**最后更新**：2026-10-29
+**阶段**：P1–P5 完成；设计指南差距审计 P1/P2/P3 全部落地，P4 部分落地（计分模式/分组榜/2FA/RBAC/权限细化）；题目/赛事 `view/manage` 分级授权与 delegated 管理、社区/团队讨论区与社区权限管理已上线；社区讨论区已升级为 Luogu 风格主题列表与楼层详情；比赛模式已支持赛事/练习解题分离与重复提交不计分，赛事页标注已通过/比赛已解出/赛事题；赛事报名、独立公告、赛事答疑与取消成绩已上线；封榜已接入公开榜/管理实时榜，计分按提交时存储分数汇总；赛事详情拆分为概览/赛题/赛事榜/公告/答疑独立页面；题目详情拆分为题目/Writeup/讨论独立页面；比赛进行中禁止访问题目 Writeup/讨论（前端隐藏入口并拦截直接 URL，后端校验 `competition_id` 并返回 403，管理员 API 保留 moderation 读取）；`/challenges` 列表保持普通目录且链接不带赛事参数；隐藏赛事题按 `?competition=ID` 显式放行；GHCR 多架构镜像 workflow 已加入
+**最后更新**：2026-11-01
 
 后端 Phase 1–4：站点设置、审计日志、比赛窗口、邮箱验证、密码重置、提示扣分、头像、Prometheus metrics、mailer（console/smtp/off）全部上线并经端到端验证。
 
@@ -13,13 +13,23 @@
 
 前端补全轮：新增赛事列表/详情、团队详情/团队榜、Admin 内联提示管理、队长转让 UI；补齐站点设置对注册/密码重置入口的门控；修复邮箱 token 走 query 参数的兼容问题。
 
-**2026-10-26 稳定性与移动端**：鉴权切换为 HttpOnly cookie（access/refresh/session 标记，Bearer 兼容）；限流超限改 429/42900；无活跃实例返回 `null`；Bootstrap 仅对鉴权错误清会话；头像增加 `hasAvatar` 兜底；移动端导航、Admin 用户/实例卡片布局与赛事头部按钮修复；Inter / JetBrains Mono 改为本地自托管，移除 Google Fonts / rsms.me 外链。浏览器回归：桌面 31/31、移动 18/18。
+**2026-11-01 比赛交互限制**：比赛进行中（live 且未归档）禁止访问题目 Writeup 与题目讨论。前端在 `ChallengeLayout` 中隐藏 Writeup/讨论导航，直接访问 `/challenges/:id/writeups|discussions?competition=ID` 显示「比赛期间不可用」；后端 Writeup list/create 与 challenge discussion list/create 校验 `competition_id`，非管理员返回 403，管理员保留 API 读取用于 moderation；赛事结束/未开始/非绑定题目仍按练习模式可用。API 回归 14/14，浏览器回归 27/27（比赛拦截、直接 URL、返回题目、练习/已结束回退、移动端无横向溢出、无页面错误），题目页面回归 25/25，赛事页面 28/28，比赛审计 20/20；Go test/vet、TypeScript 与生产构建通过；测试数据已清理。
 
-**2026-10-29 比赛模式**：新增 `competition_solves`（迁移 `000027_competition_mode`）与 `submissions.competition_id`。比赛进行中从赛事页进入题目自动携带 `?competition=ID` 并按赛事提交；未显式指定时，进行中的激活赛事覆盖该题则自动路由。赛事解题只写 `competition_solves`，不影响练习 `solves` 与用户全局分；练习解题仍写 `solves`。重复正确提交返回 `score=0`、`alreadySolved=true`，不重复计分。赛事榜优先 `competition_solves`，并 UNION 旧 `solves` 兼容历史成绩。`GET /challenges` 支持 `competition_id`，题目列表与赛事详情标注「已通过」「比赛已解出」「赛事题」，赛事题链接携带 `?competition=ID`。API 回归 25/25；浏览器回归 15/15 + 状态标注 16/16；Go test/vet、TypeScript 检查与前端生产构建通过。
+**2026-10-31 题目页面拆分**：题目详情从单页拆为共享布局下的 3 个独立路由：题目（`/challenges/:id`）、Writeup（`/challenges/:id/writeups`）、讨论（`/challenges/:id/discussions`）。布局统一渲染返回入口、比赛模式提示、题目标题/分数/解题状态与导航，子页面按需渲染提交/实例/提示、Writeup 和讨论；切换页面保留 `?competition=ID`。浏览器回归 25/25（路由、内容隔离、直接访问、比赛参数保留、移动端无横向溢出、无页面错误），TypeScript 与生产构建通过；测试数据已清理。
 
-**2026-10-28 社区与团队讨论**：讨论区扩展为 `challenge` / `community` / `team` 三种 scope；新增社区主题标题、社区可见范围（public/members/restricted）与发帖策略（members/restricted）、`community_access_grants`（view/manage）。新增 `/community`、`/community/:id`、团队详情内部讨论、`/admin/community` 社区权限页与 `community.manage` 权限。社区页升级为 Luogu 风格主题列表与楼层详情，支持搜索、排序、标签、分页、浏览/回复统计、置顶/锁定；通知跳转 `/community/:id`。迁移 `000025_community_discussions`、`000026_discussion_stats`。API 回归 37/37；浏览器回归 31/31（桌面 + 移动端无横向溢出）；Go test/vet、TypeScript 检查与前端生产构建通过。
+**2026-10-31 赛事页面拆分**：赛事详情从单页拆为共享布局下的 5 个独立路由：概览（`/competitions/:id`，报名 + 说明）、赛题（`/competitions/:id/challenges`）、赛事榜（`/competitions/:id/scoreboard`）、公告（`/competitions/:id/announcements`）、答疑（`/competitions/:id/discussions`）。布局统一渲染赛事头部、阶段/封榜/报名徽章、时间与导航，子页面按需请求数据；旧入口链接保持指向概览。浏览器回归 28/28（路由、内容隔离、直接访问、全部子页面移动端无横向溢出、无页面错误），封榜回归 6/6，TypeScript 与生产构建通过；测试数据已清理。
+
+**2026-10-31 比赛审计**：补齐 Luogu 风格封榜：`freeze_at` 后至结束前公开赛事榜只统计封榜前解题，管理员/赛事管理者通过 `includeFrozen` 看实时榜，结束后恢复完整榜；赛事详情/列表返回 `scoreboardFrozen`，前端展示「封榜中」与正确说明。修复计分模式不一致：`fixed` 固定基础分、`three_blood` 按第 1/2/3 解加 10%/5%/2%、`dynamic` 衰减，均在提交时写入 `competition_solves.score`；赛事榜改为汇总存储分数，不再按当前题目分值重算。新增赛事时间校验（`start < end`、`freeze_at` 在窗口内、名称/slug 必填，400）。API 审计回归 20/20，浏览器封榜回归 6/6，Go service 单元测试与全量 test/vet、TypeScript/生产构建通过；测试数据已清理。
+
+**2026-10-31 赛事参与**：新增迁移 `000028_competition_participation`（`registration_required`、`competition_registrations`、`competition_announcements`、`discussions.competition_id` 与 competition scope）。赛事支持报名开关/报名码、报名状态与人数、取消报名（开赛后禁止）；独立赛事公告支持草稿/发布，公开端仅见已发布；赛事答疑复用讨论区 `competition` scope，未报名用户不能发帖，`discussion.moderate` 与赛事管理者免报名；管理端可按赛事取消/恢复成绩（`competition_registrations.score_excluded`），排行榜过滤被取消用户，被取消成绩用户不能提交赛事题。新增 API：`GET /competitions/:id/registration`、`POST/DELETE /competitions/:id/register`、`GET /competitions/:id/announcements`、`GET/POST /competitions/:id/discussions`，管理端报名名单/公告 CRUD/答疑 moderation。API 回归 25/25（赛事参与）+ 25/25（比赛模式）；浏览器回归 22/22（赛事参与）+ 15/15（比赛模式）+ 16/16（状态标注）+ 9/9（隐藏题）+ 6/6（列表上下文）；Go test/vet、TypeScript 检查与前端生产构建通过；测试数据已清理。
+
+**2026-10-29 比赛模式**：新增 `competition_solves`（迁移 `000027_competition_mode`）与 `submissions.competition_id`。比赛进行中从赛事页进入题目携带 `?competition=ID` 并按赛事提交；未显式指定时按练习模式处理。赛事解题只写 `competition_solves`，不影响练习 `solves` 与用户全局分；练习解题仍写 `solves`。重复正确提交返回 `score=0`、`alreadySolved=true`，不重复计分。赛事榜优先 `competition_solves`，并 UNION 旧 `solves` 兼容历史成绩。`GET /challenges` 支持 `competition_id`，赛事详情标注「已通过」「比赛已解出」「赛事题」，赛事题链接携带 `?competition=ID`；`/challenges` 列表保持普通目录，链接不携带赛事参数。容器化题目已通过后仍可重新启动实例重做；比赛模式实例状态按 `competitionSolved` 判断，练习已通过不阻止赛事重做。隐藏题仅在携带 `competition_id` 且赛事 live、未归档、显式绑定时可见；无上下文返回 404。新增 `.github/workflows/ghcr.yml` 推送 `ghcr.io/<repo>/backend|frontend` 多架构镜像，PR 仅构建。API 回归 25/25 + 隐藏题 15/15；浏览器回归 15/15 + 状态标注 16/16 + 重做 7/7 + 隐藏题 9/9 + 列表上下文 6/6；Go test/vet、TypeScript 检查与前端生产构建通过。
+
+**2026-10-28 社区与团队讨论**：讨论区扩展为 `challenge` / `community` / `team` scope；新增社区主题标题、社区可见范围（public/members/restricted）与发帖策略（members/restricted）、`community_access_grants`（view/manage）。新增 `/community`、`/community/:id`、团队详情内部讨论、`/admin/community` 社区权限页与 `community.manage` 权限。社区页升级为 Luogu 风格主题列表与楼层详情，支持搜索、排序、标签、分页、浏览/回复统计、置顶/锁定；通知跳转 `/community/:id`。迁移 `000025_community_discussions`、`000026_discussion_stats`。API 回归 37/37；浏览器回归 31/31（桌面 + 移动端无横向溢出）；Go test/vet、TypeScript 检查与前端生产构建通过。
 
 **2026-10-27 分级授权**：题目与赛事授权支持 `view` / `manage`，按用户、团队、权限组授予；`manage` 隐含 `view`。被授权用户通过 `/users/me` 的 `delegations` 进入 `/admin`，仅看到被授权资源；创建/删除、导出、激活/归档、可见性/发布状态与授权列表仍限全局管理员。delegated 操作写入审计时附加 `delegated: true` 与 `grant`。迁移 `000024_scoped_access`。浏览器回归：分级授权 11/11、公共赛事 manage 2/2、移动端 delegated 3/3、桌面 31/31、移动 18/18、审计脚本 0 错误；Go test/vet 与前端生产构建通过。
+
+**2026-10-26 稳定性与移动端**：鉴权切换为 HttpOnly cookie（access/refresh/session 标记，Bearer 兼容）；限流超限改 429/42900；无活跃实例返回 `null`；Bootstrap 仅对鉴权错误清会话；头像增加 `hasAvatar` 兜底；移动端导航、Admin 用户/实例卡片布局与赛事头部按钮修复；Inter / JetBrains Mono 改为本地自托管，移除 Google Fonts / rsms.me 外链。浏览器回归：桌面 31/31、移动 18/18。
 
 ## 已完成功能
 
@@ -68,8 +78,8 @@
   - 首页置顶公告条 + 最新 3 条
   - Admin 后台：`/admin/announcements` 管理（编辑器 + 列表）
 - [x] 讨论区：`discussions` + `discussion_likes` 表，单层嵌套回复
-  - scope：`challenge`（题目）、`community`（社区）、`team`（团队内部）
-  - API：`GET/POST /challenges/:id/discussions`、`GET/POST /community/discussions`、`GET/PATCH /community/discussions/:id`、`GET/POST /teams/:id/discussions`、`POST /discussions/:id/like`、`DELETE /discussions/:id`
+  - scope：`challenge`（题目）、`community`（社区）、`team`（团队内部）、`competition`（赛事答疑）
+  - API：`GET/POST /challenges/:id/discussions`、`GET/POST /community/discussions`、`GET/PATCH /community/discussions/:id`、`GET/POST /teams/:id/discussions`、`GET/POST /competitions/:id/discussions`、`POST /discussions/:id/like`、`DELETE /discussions/:id`
   - 前端：题目/团队详情复用 `DiscussionPanel`；`/community` 为主题列表，`/community/:id` 为楼层详情（搜索/排序/标签/分页/浏览回复统计/置顶锁定）
   - 统计：`view_count`、`reply_count`、`last_reply_at`；详情自增浏览数，回复维护最后回复时间
   - Markdown 渲染，支持 GFM（表格/列表/代码块）
@@ -146,7 +156,7 @@
 - [x] App.tsx 所有新路由接入；站点设置存储于 `stores/site.ts`，更改后由 admin 页触发 `reloadSite()`
 
 #### 前端补全（后端已有能力 → 前端补齐）
-- [x] 赛事：`/competitions` 列表（活跃赛事摘要 + 阶段推导）、`/competitions/:id` 详情（Markdown 描述 / 时间 / 冻结提示）
+- [x] 赛事：`/competitions` 列表（活跃赛事摘要 + 阶段推导）；`/competitions/:id` 概览 + `/challenges`、`/scoreboard`、`/announcements`、`/discussions` 独立页面（2026-10-31）
 - [x] 团队：`/teams/:id` 详情（成员、队长标识、团队得分）、`/teams/scoreboard` 团队榜
 - [x] 队长转让：`POST /teams/:id/transfer` + 队长专属「转让队长」按钮（Crown 图标）
 - [x] Admin 题目编辑页内联 `HintManager`（成本百分比 / Markdown 内容 / 增删改）
@@ -166,7 +176,7 @@
 - [x] 主布局（顶部导航 + 通知铃铛 + 选手信息 + footer）
 - [x] 首页（统计卡片 + 置顶/最新公告 + 最新题目 + Top5 榜单）
 - [x] 题目列表（分类筛选 + 搜索 + 卡片网格 + 容器题标记）
-- [x] 题目详情（描述 Markdown、附件、提交 Flag、动态实例面板、讨论区）
+- [x] 题目详情（描述 Markdown、附件、提交 Flag、动态实例面板）+ Writeup / 讨论独立页面（2026-10-31）；比赛进行中隐藏并拦截 Writeup / 讨论（2026-11-01）
 - [x] 我的实例页面、榜单页、个人主页
 - [x] 公告列表 + 详情、通知中心
 - [x] 404 页面
@@ -201,13 +211,14 @@
 
 ### 比赛系统
 - ✅ CRUD、单激活、时间窗、阶段推导、倒计时
-- ✅ 可见范围 public/private；邀请/审批仍缺（2026-10-24）
+- ✅ 可见范围 public/private；报名开关/报名码已上线，审批仍缺（2026-10-31）
 - ✅ 比赛-题目绑定（`competition_challenges`）；赛中启停编排仍缺（2026-10-24）
+- ✅ 赛事报名、独立公告、赛事答疑、取消/恢复成绩（迁移 000028）（2026-10-31）
 - ✅ 比赛模式：赛事/练习解题分离（`competition_solves` + `submissions.competition_id`，迁移 000027）（2026-10-29）
-- ✅ 赛事页进入题目携带 `?competition=ID`；进行中激活赛事覆盖题自动路由；重复正确提交 0 分（2026-10-29）
+- ✅ 赛事页进入题目携带 `?competition=ID`；无参数按练习模式；隐藏题仅在有 live 赛事上下文时可见；重复正确提交 0 分（2026-10-29）
 - ✅ 计分模式 dynamic/fixed/three_blood（前三解加成 10%/5%/2%）（2026-10-24）
 - ✅ 比赛榜（个人 + 团队 `group=team`）；赛事榜含旧 `solves` 兼容回退（2026-10-29）
-- ◐ freeze 判定函数存在但从未调用，榜单不冻结（S）
+- ✅ 封榜：公开榜按 `freeze_at` 截止，管理员实时榜，结束后恢复完整榜（2026-10-31）
 - ✗ 赛中启停题目 / 实例策略覆盖（M）
 - ◐ 赛后归档 + CSV 成绩导出；回流练习仍缺（2026-10-24）
 - ✅ 队伍计分（赛事团队榜按成员聚合）（2026-10-24）
@@ -372,7 +383,8 @@ P1/P2/P3 全部完成。P4 已落地：计分模式（dynamic/fixed/three_blood�
 - **2026-10-23**：团队转让失败路径返回 `domain.ErrForbidden` / `ErrInvalidArgument`，避免统一映射成 500。
 - **2026-10-27**：题目/赛事授权分为 `view` / `manage`，`manage` 隐含 `view`；delegated 管理仅允许编辑，不授予删除/创建/导出/激活/可见性与授权管理能力。
 - **2026-10-27**：delegated 操作复用全局审计，payload 追加 `delegated: true` 与 `grant`；被授权者通过 `/users/me` 的 `delegations` 获得后台入口。
-- **2026-10-29**：比赛解题独立存 `competition_solves`，不复用练习 `solves`；重复正确提交记录 submission 但返回 0 分。未显式指定赛事时按进行中的激活赛事自动路由；赛事榜 UNION 旧 `solves` 兼容历史成绩。
+- **2026-10-29**：比赛解题独立存 `competition_solves`，不复用练习 `solves`；重复正确提交记录 submission 但返回 0 分。未显式指定赛事时按练习模式；隐藏题仅在有 live 赛事上下文时可见；赛事榜 UNION 旧 `solves` 兼容历史成绩。
+- **2026-10-31**：赛事榜以 `competition_solves.score`（及旧 `solves.score`）汇总，不在读取时按当前题目分值重算；封榜只影响公开榜，管理员/赛事管理者始终可看实时榜。
 
 ## 已知问题
 

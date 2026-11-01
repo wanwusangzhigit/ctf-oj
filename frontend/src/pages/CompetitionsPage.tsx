@@ -4,33 +4,13 @@ import { Calendar, Flame, Clock } from 'lucide-react';
 import { Badge, Spinner } from '@/components/ui';
 import { listCompetitions } from '@/api/competition';
 import { formatTime } from '@/lib/utils';
+import {
+  COMPETITION_PHASE_LABEL,
+  COMPETITION_PHASE_TONE,
+  competitionPhase,
+} from '@/lib/competition';
 import type { Competition } from '@/types';
 import { cn } from '@/lib/utils';
-
-type Phase = 'upcoming' | 'live' | 'ended' | 'unscheduled';
-
-function phaseOf(c: Competition, now = Date.now()): Phase {
-  if (!c.startAt && !c.endAt) return 'unscheduled';
-  const start = c.startAt ? Date.parse(c.startAt) : -Infinity;
-  const end = c.endAt ? Date.parse(c.endAt) : Infinity;
-  if (now < start) return 'upcoming';
-  if (now > end) return 'ended';
-  return 'live';
-}
-
-const PHASE_LABEL: Record<Phase, string> = {
-  upcoming: '即将开始',
-  live: '进行中',
-  ended: '已结束',
-  unscheduled: '未排期',
-};
-
-const PHASE_TONE: Record<Phase, 'accent' | 'neutral' | 'warning' | 'success'> = {
-  upcoming: 'neutral',
-  live: 'success',
-  ended: 'neutral',
-  unscheduled: 'warning',
-};
 
 /**
  * CompetitionsPage — public list of contest windows.
@@ -86,7 +66,7 @@ export function CompetitionsPage() {
 }
 
 function ActiveSummary({ competition }: { competition: Competition }) {
-  const phase = phaseOf(competition);
+  const phase = competitionPhase(competition);
   return (
     <div className="mb-8 border border-amber/30 bg-amber-soft rounded-sm px-4 py-3">
       <div className="flex items-center gap-2 flex-wrap">
@@ -98,7 +78,7 @@ function ActiveSummary({ competition }: { competition: Competition }) {
         >
           {competition.name}
         </Link>
-        <Badge tone={PHASE_TONE[phase]}>{PHASE_LABEL[phase]}</Badge>
+        <Badge tone={COMPETITION_PHASE_TONE[phase]}>{COMPETITION_PHASE_LABEL[phase]}</Badge>
       </div>
       <div className="mt-1 font-mono text-2xs text-ink-3 tabular-nums">
         {competition.startAt ? formatTime(competition.startAt) : '—'} →{' '}
@@ -109,7 +89,7 @@ function ActiveSummary({ competition }: { competition: Competition }) {
 }
 
 function CompetitionRow({ competition: c }: { competition: Competition }) {
-  const phase = phaseOf(c);
+  const phase = competitionPhase(c);
   return (
     <li>
       <Link
@@ -127,7 +107,8 @@ function CompetitionRow({ competition: c }: { competition: Competition }) {
               {c.name}
             </span>
             {c.isActive && <Badge tone="accent">当前</Badge>}
-            <Badge tone={PHASE_TONE[phase]}>{PHASE_LABEL[phase]}</Badge>
+            <Badge tone={COMPETITION_PHASE_TONE[phase]}>{COMPETITION_PHASE_LABEL[phase]}</Badge>
+            {c.scoreboardFrozen && <Badge tone="accent">封榜中</Badge>}
           </div>
           {c.description && (
             <p className="text-sm text-ink-2 mt-1 line-clamp-2 max-w-prose">
@@ -143,6 +124,11 @@ function CompetitionRow({ competition: c }: { competition: Competition }) {
               <span className="inline-flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 freeze {formatTime(c.freezeAt)}
+              </span>
+            )}
+            {typeof c.registrationCount === 'number' && (
+              <span className="inline-flex items-center gap-1">
+                {c.registrationCount} 人报名
               </span>
             )}
           </div>

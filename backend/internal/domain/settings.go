@@ -47,23 +47,28 @@ func (AuditLog) TableName() string { return "audit_logs" }
  * the public scoreboard endpoints (frozen between freeze_at and end_at).
  */
 type Competition struct {
-	ID                  uint            `gorm:"primaryKey" json:"id"`
-	Name                string          `gorm:"size:128;not null" json:"name"`
-	Slug                string          `gorm:"size:64;not null;uniqueIndex" json:"slug"`
-	Description         string          `gorm:"type:text;not null;default:''" json:"description"`
-	StartAt             *time.Time      `json:"startAt,omitempty"`
-	EndAt               *time.Time      `json:"endAt,omitempty"`
-	FreezeAt            *time.Time      `json:"freezeAt,omitempty"`
-	RegistrationCode    string          `gorm:"size:64;not null;default:''" json:"-"`
-	Visibility          string          `gorm:"size:16;not null;default:public" json:"visibility"`
-	ScoringMode         string          `gorm:"size:16;not null;default:dynamic" json:"scoringMode"`
-	ArchivedAt          *time.Time      `json:"archivedAt,omitempty"`
-	IsActive            bool            `gorm:"not null;default:false" json:"isActive"`
-	CreatedAt           time.Time       `json:"createdAt"`
-	UpdatedAt           time.Time       `json:"updatedAt"`
-	Challenges          []*Challenge    `gorm:"many2many:competition_challenges" json:"challenges,omitempty"`
-	AccessGrants        []AccessSubject `gorm:"-" json:"accessGrants,omitempty"`
-	BoundChallengeCount int             `gorm:"-" json:"boundChallengeCount"`
+	ID                   uint            `gorm:"primaryKey" json:"id"`
+	Name                 string          `gorm:"size:128;not null" json:"name"`
+	Slug                 string          `gorm:"size:64;not null;uniqueIndex" json:"slug"`
+	Description          string          `gorm:"type:text;not null;default:''" json:"description"`
+	StartAt              *time.Time      `json:"startAt,omitempty"`
+	EndAt                *time.Time      `json:"endAt,omitempty"`
+	FreezeAt             *time.Time      `json:"freezeAt,omitempty"`
+	RegistrationCode     string          `gorm:"size:64;not null;default:''" json:"-"`
+	RegistrationRequired bool            `gorm:"not null;default:false" json:"registrationRequired"`
+	Visibility           string          `gorm:"size:16;not null;default:public" json:"visibility"`
+	ScoringMode          string          `gorm:"size:16;not null;default:dynamic" json:"scoringMode"`
+	ArchivedAt           *time.Time      `json:"archivedAt,omitempty"`
+	IsActive             bool            `gorm:"not null;default:false" json:"isActive"`
+	CreatedAt            time.Time       `json:"createdAt"`
+	UpdatedAt            time.Time       `json:"updatedAt"`
+	Challenges           []*Challenge    `gorm:"many2many:competition_challenges" json:"challenges,omitempty"`
+	AccessGrants         []AccessSubject `gorm:"-" json:"accessGrants,omitempty"`
+	BoundChallengeCount  int             `gorm:"-" json:"boundChallengeCount"`
+	HasRegistrationCode  bool            `gorm:"-" json:"hasRegistrationCode"`
+	Registered           bool            `gorm:"-" json:"registered"`
+	RegistrationCount    int             `gorm:"-" json:"registrationCount"`
+	ScoreboardFrozen     bool            `gorm:"-" json:"scoreboardFrozen"`
 }
 
 func (Competition) TableName() string { return "competitions" }

@@ -78,28 +78,41 @@ frontend/
 - 社区讨论权限使用独立的 `community_access_grants`：`view` 允许读取受限社区，`manage` 允许发帖、置顶、锁定与删除；全局管理权限为 `community.manage`，社区/题目 moderation 还接受 `discussion.moderate`。
 - 被授权者走同一 `/admin` 路由，但仅开放其授权资源；创建/删除、导出成绩、激活/归档、修改可见性/发布状态、调整授权列表仍仅限全局管理员。
 - 被授权操作写入审计时，payload 追加 `delegated: true` 与 `grant`（如 `challenge:12:manage`）。
-- 讨论区按 `scope` 分为 `challenge` / `community` / `team`；团队讨论仅团队成员可读写，队长可 moderation。
+- 讨论区按 `scope` 分为 `challenge` / `community` / `team` / `competition`；团队讨论仅团队成员可读写，队长可 moderation。
 - 社区讨论列表支持 `sort=last_reply|newest|oldest`、`tag`、`q`；`GET /community/discussions/:id` 返回主题与全部楼层并递增浏览数。
+- 赛事报名由 `registration_required` 控制（默认 false）。报名码非空时必须匹配；赛事结束或归档后不可报名，开赛后不可取消报名。未报名不能提交赛事题或发起赛事答疑；`discussion.moderate` 与赛事管理者免报名。
+- 赛事公告独立于全局公告：公开列表只返回已发布公告，管理端可查看草稿。取消成绩按赛事记录在 `competition_registrations.score_excluded`，排行榜过滤该用户，管理端可恢复；被取消成绩用户不能提交赛事题或发起赛事答疑。
+- 赛事报名/公告/取消成绩 API：`GET /competitions/:id/registration`、`POST/DELETE /competitions/:id/register`、`GET /competitions/:id/announcements`、`GET/POST /competitions/:id/discussions`；管理端 `GET /admin/competitions/:id/registrations`、`PATCH /admin/competitions/:id/registrations/:userId`、`GET/POST/PUT/DELETE /admin/competitions/:id/announcements`、`PATCH /admin/competitions/:id/discussions/:discussionId`。
+- 赛事时间必须满足 `start_at < end_at`，`freeze_at` 若存在必须落在 `[start_at, end_at]`；名称与 slug 必填，否则返回 400。
+- 封榜：封榜后至结束前，公开赛事榜只统计 `solved_at <= freeze_at` 的解题；管理员与赛事管理者看实时榜，结束后所有人看完整榜。赛事详情/列表返回 `scoreboardFrozen`，导出成绩按实时榜处理。
+- 计分在提交时确定并写入 `competition_solves.score`：`fixed` 取 `base_score`；`three_blood` 对第 1/2/3 个解出分别加 10%/5%/2%；`dynamic` 按解出人数衰减。赛事榜汇总已存储分数，不再按当前题目分值重算。
 - 比赛解题与练习解题分离：练习写 `solves` 并更新用户全局分；赛事写 `competition_solves`，不更新全局分。`submissions.competition_id` 为空表示练习提交。
 - `GET /challenges/:id?competition_id=ID` 返回 `competitionSolved` / `competitionScore`；`POST /challenges/:id/submit` 接受 `{ flag, competitionId? }`。
-- 未显式传 `competitionId` 时，若存在进行中的激活赛事覆盖该题，提交自动按赛事模式处理；显式 ID 必须对应 active、live、包含该题的赛事。已解出后可重复提交，返回 `score=0` 与 `alreadySolved=true`，不重复计分。
-- `GET /challenges` 支持 `competition_id`，并返回 `competitionId` / `competitionSolved` / `competitionScore`；题目列表与赛事详情据此标注「已通过」「比赛已解出」「赛事题」。
+- 未显式传 `competitionId` 时按练习模式处理；显式 ID 必须对应 active、live、包含该题的赛事。已解出后可重复提交，返回 `score=0` 与 `alreadySolved=true`，不重复计分。
+- 隐藏题仅在携带 `competition_id` 且对应赛事 live、未归档、显式绑定该题时可见；无赛事上下文仍返回 404。公开题无上下文按普通模式访问。
+- `GET /challenges` 支持 `competition_id`，并返回 `competitionId` / `competitionSolved` / `competitionScore`；赛事详情据此标注「已通过」「比赛已解出」「赛事题」。`/challenges` 列表不带赛事上下文，进入题目不携带 `?competition`。
+- 容器化题目已通过后仍可重新启动实例以重做；比赛模式按 `competitionSolved` 判断实例状态，练习已通过不阻止赛事重做。
 
 ## 前端约定
 
-- 路由：`/auth/*`、`/`、`/challenges`、`/challenges/:id`、`/competitions`、`/competitions/:id`、`/scoreboard`、`/scoreboard/realtime`、`/stats`、`/search`、`/community`、`/community/:id`、`/teams`、`/teams/:id`、`/teams/scoreboard`、`/announcements*`、`/notifications`、`/instances`、`/users/:id`、`/admin/*`。
+- 路由：`/auth/*`、`/`、`/challenges`、`/challenges/:id`（题目）、`/challenges/:id/writeups`、`/challenges/:id/discussions`、`/competitions`、`/competitions/:id`（概览）、`/competitions/:id/challenges`、`/competitions/:id/scoreboard`、`/competitions/:id/announcements`、`/competitions/:id/discussions`、`/scoreboard`、`/scoreboard/realtime`、`/stats`、`/search`、`/community`、`/community/:id`、`/teams`、`/teams/:id`、`/teams/scoreboard`、`/announcements*`、`/notifications`、`/instances`、`/users/:id`、`/admin/*`。
 - 公开路由：`/auth/*`、`/`、`/challenges` 列表、`/competitions*`、`/scoreboard*`、`/stats`、`/search`、`/community`、`/community/:id`、`/teams/scoreboard`、`/announcements*`；其余需登录，后台按权限守卫。
 - 后台守卫需同时支持全局权限与 `delegations`：`RequireChallengeManage` / `RequireCompetitionManage` 允许对应资源的管理授权；无资源 id 的列表路由允许任一该类型授权。社区权限页使用 `community.manage`。
 - 全局错误使用 toast，不在页面层处理业务错误细节。
 - 表单使用 `react-hook-form` + `zod` 校验。
 - 数据请求统一走 TanStack Query；本地状态走 Zustand。
 - 富文本一律走 `Markdown` 组件（react-markdown + rehype-sanitize）；不允许 `dangerouslySetInnerHTML`。
-- 赛事进行中从 `/competitions/:id` 进入题目时，链接必须携带 `?competition=ID`；题目页据此展示比赛模式并按赛事提交。
+- 赛事详情拆分为概览 / 赛题 / 赛事榜 / 公告 / 答疑独立路由，由共享布局提供赛事头部与导航；`/competitions/:id` 仅展示概览与报名。
+- 题目详情拆分为题目 / Writeup / 讨论独立路由，由共享布局提供题目头部与导航；切换页面时保留 `?competition=ID`。
+- 比赛进行中（live 且未归档）禁止访问题目 Writeup / 讨论：前端隐藏入口并拦截直接 URL，后端对携带 `competition_id` 的非管理员请求返回 403；管理员保留 API 读取能力用于 moderation。
+- 赛事进行中从 `/competitions/:id/challenges` 进入题目时，链接必须携带 `?competition=ID`；题目页据此展示比赛模式并按赛事提交。隐藏赛事题无 `?competition` 时按 404 处理。
+- `/challenges` 列表只展示普通题目目录，进入题目链接固定为 `/challenges/:id`，不自动附加赛事上下文。
 
 ## 部署
 
 - 开发：`make up` 启动 db / redis；`make backend-dev`、`make frontend-dev` 分别热重载。
 - 生产：`make up-prod`（同时构建前后端镜像并以 Caddy 反代）。
+- CI：`.github/workflows/ghcr.yml` 构建并推送 `backend` / `frontend` 到 `ghcr.io/<owner>/<repo>/<image>`；PR 仅构建，不推送。
 - 端口约定：
   - `8080` 前端（Caddy 反代到前端 SPA + `/api` 到后端）
   - `8081` 后端（仅容器内可见，不对外暴露）

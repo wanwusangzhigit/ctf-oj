@@ -18,22 +18,30 @@ import type { HintView } from '@/types';
  * score by its costRatio (0.0–1.0). The reduction is computed at solve
  * time on the backend — the frontend just shows the cost transparently.
  */
-export function HintsPanel({ challengeId }: { challengeId: number }) {
+export function HintsPanel({
+  challengeId,
+  competitionId,
+}: {
+  challengeId: number;
+  competitionId?: number;
+}) {
   const qc = useQueryClient();
   const toast = useToast();
   const [unlockingId, setUnlockingId] = useState<number | null>(null);
 
   const hintsQ = useQuery({
-    queryKey: ['challenge-hints', challengeId],
-    queryFn: () => listHints(challengeId),
+    queryKey: ['challenge-hints', challengeId, competitionId ?? 0],
+    queryFn: () => listHints(challengeId, competitionId),
     staleTime: 30_000,
   });
 
   const unlockMut = useMutation({
-    mutationFn: (hintId: number) => unlockHint(challengeId, hintId),
+    mutationFn: (hintId: number) => unlockHint(challengeId, hintId, competitionId),
     onSuccess: () => {
       toast.success('已解锁');
-      qc.invalidateQueries({ queryKey: ['challenge-hints', challengeId] });
+      qc.invalidateQueries({
+        queryKey: ['challenge-hints', challengeId, competitionId ?? 0],
+      });
     },
     onError: (err) =>
       toast.error(err instanceof ApiClientError ? err.message : '解锁失败'),

@@ -13,6 +13,9 @@ import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage';
 import { ChallengesPage } from '@/pages/challenges/ChallengesPage';
 import { ChallengeDetailPage } from '@/pages/challenges/ChallengeDetailPage';
+import { ChallengeLayout } from '@/pages/challenges/ChallengeLayout';
+import { ChallengeWriteupsPage } from '@/pages/challenges/ChallengeWriteupsPage';
+import { ChallengeDiscussionsPage } from '@/pages/challenges/ChallengeDiscussionsPage';
 import { ScoreboardPage } from '@/pages/ScoreboardPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
 import { MyInstancesPage } from '@/pages/MyInstancesPage';
@@ -28,7 +31,12 @@ import { TeamDetailPage, TeamScoreboardPage } from '@/pages/TeamDetailPage';
 import { CompetitionsPage } from '@/pages/CompetitionsPage';
 import { CommunityPage } from '@/pages/CommunityPage';
 import { CommunityTopicPage } from '@/pages/CommunityTopicPage';
-import { CompetitionDetailPage } from '@/pages/CompetitionDetailPage';
+import { CompetitionLayout } from '@/pages/competitions/CompetitionLayout';
+import { CompetitionOverviewPage } from '@/pages/competitions/CompetitionOverviewPage';
+import { CompetitionChallengesPage } from '@/pages/competitions/CompetitionChallengesPage';
+import { CompetitionScoreboardPage } from '@/pages/competitions/CompetitionScoreboardPage';
+import { CompetitionAnnouncementsPage } from '@/pages/competitions/CompetitionAnnouncementsPage';
+import { CompetitionDiscussionsPage } from '@/pages/competitions/CompetitionDiscussionsPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { AdminLayout } from '@/pages/admin/AdminLayout';
 import { AdminCategoriesPage } from '@/pages/admin/AdminCategoriesPage';
@@ -67,10 +75,14 @@ function AppRoutes() {
           path="/challenges/:id"
           element={
             <RequireAuth>
-              <ChallengeDetailPage />
+              <ChallengeLayout />
             </RequireAuth>
           }
-        />
+        >
+          <Route index element={<ChallengeDetailPage />} />
+          <Route path="writeups" element={<ChallengeWriteupsPage />} />
+          <Route path="discussions" element={<ChallengeDiscussionsPage />} />
+        </Route>
         <Route path="/scoreboard" element={<ScoreboardPage />} />
         <Route path="/scoreboard/realtime" element={<RealtimeScoreboardPage />} />
         <Route path="/stats" element={<StatsPage />} />
@@ -78,7 +90,13 @@ function AppRoutes() {
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/community/:id" element={<CommunityTopicPage />} />
         <Route path="/competitions" element={<CompetitionsPage />} />
-        <Route path="/competitions/:id" element={<CompetitionDetailPage />} />
+        <Route path="/competitions/:id" element={<CompetitionLayout />}>
+          <Route index element={<CompetitionOverviewPage />} />
+          <Route path="challenges" element={<CompetitionChallengesPage />} />
+          <Route path="scoreboard" element={<CompetitionScoreboardPage />} />
+          <Route path="announcements" element={<CompetitionAnnouncementsPage />} />
+          <Route path="discussions" element={<CompetitionDiscussionsPage />} />
+        </Route>
         <Route path="/teams" element={<RequireAuth><TeamsPage /></RequireAuth>} />
         <Route path="/teams/scoreboard" element={<TeamScoreboardPage />} />
         <Route path="/teams/:id" element={<TeamDetailPage />} />

@@ -4,6 +4,7 @@ import type { Discussion, DiscussionScope, Paginated } from '@/types';
 export type DiscussionTarget = {
   scope: DiscussionScope;
   id?: number;
+  competitionId?: number;
 };
 
 function targetPath(target: DiscussionTarget): string {
@@ -14,6 +15,8 @@ function targetPath(target: DiscussionTarget): string {
       return '/community/discussions';
     case 'team':
       return `/teams/${target.id}/discussions`;
+    case 'competition':
+      return `/competitions/${target.id}/discussions`;
   }
 }
 
@@ -35,6 +38,7 @@ export function listDiscussions(
     sort: query.sort,
     tag: query.tag,
     q: query.q,
+    competition_id: target.competitionId,
   });
 }
 
@@ -48,11 +52,15 @@ export function createDiscussion(
   parentId?: number,
   title?: string,
 ): Promise<Discussion> {
-  return apiPost<Discussion>(targetPath(target), {
-    title,
-    contentMd,
-    parentId,
-  });
+  return apiPost<Discussion>(
+    targetPath(target),
+    {
+      title,
+      contentMd,
+      parentId,
+    },
+    target.competitionId ? { competition_id: target.competitionId } : undefined,
+  );
 }
 
 export function deleteDiscussion(id: number): Promise<void> {
@@ -73,6 +81,12 @@ export function moderateDiscussion(
   }
   if (target.scope === 'community') {
     return apiPatch<Discussion>(`/community/discussions/${id}`, input);
+  }
+  if (target.scope === 'competition') {
+    return apiPatch<Discussion>(
+      `/admin/competitions/${target.id}/discussions/${id}`,
+      input,
+    );
   }
   return apiPatch<Discussion>(`/teams/${target.id}/discussions/${id}`, input);
 }

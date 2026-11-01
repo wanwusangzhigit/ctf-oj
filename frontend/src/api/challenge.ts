@@ -116,8 +116,13 @@ export function uploadAttachment(challengeId: number, file: File): Promise<Attac
     })
     .then((r) => r.data.data as Attachment);
 }
-export function attachmentDownloadURL(challengeId: number, attachmentId: number): string {
-  return `/api/v1/challenges/${challengeId}/attachments/${attachmentId}/download`;
+export function attachmentDownloadURL(
+  challengeId: number,
+  attachmentId: number,
+  competitionId?: number,
+): string {
+  const base = `/api/v1/challenges/${challengeId}/attachments/${attachmentId}/download`;
+  return competitionId ? `${base}?competition_id=${competitionId}` : base;
 }
 
 export function deleteAttachment(challengeId: number, attachmentId: number): Promise<void> {

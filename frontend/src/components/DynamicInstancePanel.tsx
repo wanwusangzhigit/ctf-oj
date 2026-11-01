@@ -32,11 +32,13 @@ import type { ChallengeProtocol, Instance } from '@/types';
 
 export function DynamicInstancePanel({
   challengeId,
+  competitionId,
   protocol,
   solved,
   onSolvedRefresh,
 }: {
   challengeId: number;
+  competitionId?: number;
   protocol: ChallengeProtocol;
   solved: boolean;
   onSolvedRefresh?: () => void;
@@ -44,10 +46,11 @@ export function DynamicInstancePanel({
   const toast = useToast();
   const qc = useQueryClient();
   const [now, setNow] = useState(Date.now());
+  const instanceKey = ['active-instance', challengeId, competitionId ?? 0] as const;
 
   const query = useQuery({
-    queryKey: ['active-instance', challengeId],
-    queryFn: () => getActiveInstance(challengeId),
+    queryKey: instanceKey,
+    queryFn: () => getActiveInstance(challengeId, competitionId),
     retry: false,
     refetchInterval(query) {
       return query.state.data?.status === 'running' ? 30_000 : false;
@@ -55,10 +58,10 @@ export function DynamicInstancePanel({
   });
 
   const startMut = useMutation({
-    mutationFn: () => startInstance(challengeId),
+    mutationFn: () => startInstance(challengeId, competitionId),
     onSuccess: (res) => {
       toast.success('实例已启动');
-      qc.setQueryData(['active-instance', challengeId], res.instance);
+      qc.setQueryData(instanceKey, res.instance);
       onSolvedRefresh?.();
     },
     onError: (err) => {
@@ -67,10 +70,10 @@ export function DynamicInstancePanel({
   });
 
   const restartMut = useMutation({
-    mutationFn: () => restartInstance(challengeId),
+    mutationFn: () => restartInstance(challengeId, competitionId),
     onSuccess: (res) => {
       toast.success('实例已重启，新 Flag 已生成');
-      qc.setQueryData(['active-instance', challengeId], res.instance);
+      qc.setQueryData(instanceKey, res.instance);
       onSolvedRefresh?.();
     },
     onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '重启失败'),
@@ -80,7 +83,7 @@ export function DynamicInstancePanel({
     mutationFn: (id: number) => extendInstance(challengeId, id, 3600),
     onSuccess: (inst) => {
       toast.success('已延长 1 小时');
-      qc.setQueryData(['active-instance', challengeId], inst);
+      qc.setQueryData(instanceKey, inst);
     },
     onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '延长失败'),
   });
@@ -89,8 +92,8 @@ export function DynamicInstancePanel({
     mutationFn: (id: number) => stopInstance(challengeId, id),
     onSuccess: () => {
       toast.success('实例已销毁');
-      qc.setQueryData(['active-instance', challengeId], null);
-      qc.invalidateQueries({ queryKey: ['active-instance', challengeId] });
+      qc.setQueryData(instanceKey, null);
+      qc.invalidateQueries({ queryKey: instanceKey });
     },
     onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '销毁失败'),
   });
@@ -125,11 +128,15 @@ export function DynamicInstancePanel({
               className="w-full"
               onClick={() => startMut.mutate()}
               loading={startMut.isPending}
-              disabled={solved}
             >
               <Play className="h-3.5 w-3.5" />
-              {solved ? '已通过，无需启动' : '启动实例'}
+              {solved ? '重新启动实例' : '启动实例'}
             </Button>
+            {solved && (
+              <p className="text-2xs text-muted">
+                本题已通过。重新启动会生成新的专属 Flag，可继续练习或重做。
+              </p>
+            )}
           </div>
         ) : (
           <RunningView

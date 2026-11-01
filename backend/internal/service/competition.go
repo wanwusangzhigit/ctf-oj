@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -18,9 +20,11 @@ import (
  * between freeze_at and end_at.
  */
 type CompetitionService struct {
-	repo     domain.CompetitionRepository
-	settings *SettingService
-	access   *ChallengeAccessService
+	repo          domain.CompetitionRepository
+	registrations domain.CompetitionRegistrationRepository
+	announcements domain.CompetitionAnnouncementRepository
+	settings      *SettingService
+	access        *ChallengeAccessService
 }
 
 func NewCompetitionService(repo domain.CompetitionRepository, settings *SettingService) *CompetitionService {
@@ -28,6 +32,14 @@ func NewCompetitionService(repo domain.CompetitionRepository, settings *SettingS
 }
 
 func (s *CompetitionService) SetAccessService(a *ChallengeAccessService) { s.access = a }
+
+func (s *CompetitionService) SetRegistrationRepository(r domain.CompetitionRegistrationRepository) {
+	s.registrations = r
+}
+
+func (s *CompetitionService) SetAnnouncementRepository(r domain.CompetitionAnnouncementRepository) {
+	s.announcements = r
+}
 
 func (s *CompetitionService) List(ctx context.Context, page, pageSize int) ([]*domain.Competition, int64, error) {
 	return s.repo.List(ctx, page, pageSize)
@@ -46,44 +58,43 @@ func (s *CompetitionService) GetActive(ctx context.Context) (*domain.Competition
 		return nil, err
 	}
 	s.filterChallenges(ctx, c, 0, false)
+	s.decorate(ctx, c, 0)
 	return c, nil
 }
 
 type CompetitionInput struct {
-	Name             string                  `json:"name"`
-	Slug             string                  `json:"slug"`
-	Description      string                  `json:"description"`
-	StartAt          *time.Time              `json:"startAt"`
-	EndAt            *time.Time              `json:"endAt"`
-	FreezeAt         *time.Time              `json:"freezeAt"`
-	RegistrationCode string                  `json:"registrationCode"`
-	Visibility       string                  `json:"visibility"`
-	ScoringMode      string                  `json:"scoringMode"`
-	ChallengeIDs     []uint                  `json:"challengeIds"`
-	Archived         bool                    `json:"archived"`
-	IsActive         bool                    `json:"isActive"`
-	AccessGrants     *[]domain.AccessSubject `json:"accessGrants,omitempty"`
+	Name                 string                  `json:"name"`
+	Slug                 string                  `json:"slug"`
+	Description          string                  `json:"description"`
+	StartAt              *time.Time              `json:"startAt"`
+	EndAt                *time.Time              `json:"endAt"`
+	FreezeAt             *time.Time              `json:"freezeAt"`
+	RegistrationCode     string                  `json:"registrationCode"`
+	RegistrationRequired bool                    `json:"registrationRequired"`
+	Visibility           string                  `json:"visibility"`
+	ScoringMode          string                  `json:"scoringMode"`
+	ChallengeIDs         []uint                  `json:"challengeIds"`
+	Archived             bool                    `json:"archived"`
+	IsActive             bool                    `json:"isActive"`
+	AccessGrants         *[]domain.AccessSubject `json:"accessGrants,omitempty"`
 }
 
 func (s *CompetitionService) Create(ctx context.Context, in CompetitionInput) (*domain.Competition, error) {
-	if strings.TrimSpace(in.Name) == "" {
-		return nil, errors.New("name required")
-	}
-	slug := strings.TrimSpace(in.Slug)
-	if slug == "" {
-		return nil, errors.New("slug required")
+	if err := validateCompetitionInput(in); err != nil {
+		return nil, err
 	}
 	c := &domain.Competition{
-		Name:             strings.TrimSpace(in.Name),
-		Slug:             slug,
-		Description:      in.Description,
-		StartAt:          in.StartAt,
-		EndAt:            in.EndAt,
-		FreezeAt:         in.FreezeAt,
-		RegistrationCode: strings.TrimSpace(in.RegistrationCode),
-		Visibility:       normalizeVisibility(in.Visibility),
-		ScoringMode:      normalizeScoringMode(in.ScoringMode),
-		IsActive:         in.IsActive,
+		Name:                 strings.TrimSpace(in.Name),
+		Slug:                 strings.TrimSpace(in.Slug),
+		Description:          in.Description,
+		StartAt:              in.StartAt,
+		EndAt:                in.EndAt,
+		FreezeAt:             in.FreezeAt,
+		RegistrationCode:     strings.TrimSpace(in.RegistrationCode),
+		RegistrationRequired: in.RegistrationRequired,
+		Visibility:           normalizeVisibility(in.Visibility),
+		ScoringMode:          normalizeScoringMode(in.ScoringMode),
+		IsActive:             in.IsActive,
 	}
 	if err := s.repo.Create(ctx, c); err != nil {
 		return nil, err
@@ -105,6 +116,9 @@ func (s *CompetitionService) Create(ctx context.Context, in CompetitionInput) (*
 }
 
 func (s *CompetitionService) Update(ctx context.Context, id uint, in CompetitionInput) (*domain.Competition, error) {
+	if err := validateCompetitionInput(in); err != nil {
+		return nil, err
+	}
 	c, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -116,6 +130,7 @@ func (s *CompetitionService) Update(ctx context.Context, id uint, in Competition
 	c.EndAt = in.EndAt
 	c.FreezeAt = in.FreezeAt
 	c.RegistrationCode = strings.TrimSpace(in.RegistrationCode)
+	c.RegistrationRequired = in.RegistrationRequired
 	c.Visibility = normalizeVisibility(in.Visibility)
 	c.ScoringMode = normalizeScoringMode(in.ScoringMode)
 	if in.Archived && c.ArchivedAt == nil {
@@ -178,37 +193,10 @@ func (s *CompetitionService) markActive(ctx context.Context, id uint) error {
 // should be held back, or nil when scores are live.
 func (s *CompetitionService) ScoreboardCutoff(ctx context.Context) *time.Time {
 	c, err := s.repo.FindActive(ctx)
-	if err != nil || c == nil || c.FreezeAt == nil {
+	if err != nil {
 		return nil
 	}
-	now := time.Now()
-	if now.Before(*c.FreezeAt) {
-		return nil
-	}
-	if c.EndAt != nil && now.After(*c.EndAt) {
-		return nil
-	}
-	return c.FreezeAt
-}
-
-// IsScoreboardFrozen returns true if there is an active competition whose
-// freeze_at has passed but end_at has not (or no end_at).
-func (s *CompetitionService) IsScoreboardFrozen(ctx context.Context) bool {
-	c, err := s.repo.FindActive(ctx)
-	if err != nil || c == nil {
-		return false
-	}
-	now := time.Now()
-	if c.FreezeAt == nil {
-		return false
-	}
-	if now.Before(*c.FreezeAt) {
-		return false
-	}
-	if c.EndAt != nil && now.After(*c.EndAt) {
-		return false
-	}
-	return true
+	return scoreboardCutoff(c, time.Now())
 }
 
 func intToStr(n int64) string {
@@ -230,6 +218,27 @@ func intToStr(n int64) string {
 		buf = append([]byte{'-'}, buf...)
 	}
 	return string(buf)
+}
+
+func validateCompetitionInput(in CompetitionInput) error {
+	if strings.TrimSpace(in.Name) == "" {
+		return fmt.Errorf("%w: name required", domain.ErrInvalidArgument)
+	}
+	if strings.TrimSpace(in.Slug) == "" {
+		return fmt.Errorf("%w: slug required", domain.ErrInvalidArgument)
+	}
+	if in.StartAt != nil && in.EndAt != nil && !in.StartAt.Before(*in.EndAt) {
+		return fmt.Errorf("%w: start must be before end", domain.ErrInvalidArgument)
+	}
+	if in.FreezeAt != nil {
+		if in.StartAt != nil && in.FreezeAt.Before(*in.StartAt) {
+			return fmt.Errorf("%w: freeze must not be before start", domain.ErrInvalidArgument)
+		}
+		if in.EndAt != nil && in.FreezeAt.After(*in.EndAt) {
+			return fmt.Errorf("%w: freeze must not be after end", domain.ErrInvalidArgument)
+		}
+	}
+	return nil
 }
 
 func normalizeScoringMode(v string) string {
@@ -267,6 +276,7 @@ func (s *CompetitionService) GetAdminFor(ctx context.Context, id, viewerID uint,
 		}
 	}
 	s.filterChallenges(ctx, c, viewerID, includeHidden)
+	s.decorate(ctx, c, viewerID)
 	return c, nil
 }
 
@@ -326,6 +336,7 @@ func (s *CompetitionService) GetVisible(ctx context.Context, id uint, includeHid
 	if !includeHidden && (c.Visibility == "private" || c.ArchivedAt != nil) {
 		return nil, domain.ErrNotFound
 	}
+	s.decorate(ctx, c, 0)
 	return c, nil
 }
 
@@ -349,6 +360,7 @@ func (s *CompetitionService) GetVisibleFor(ctx context.Context, id, viewerID uin
 		}
 	}
 	s.filterChallenges(ctx, c, viewerID, includeHidden)
+	s.decorate(ctx, c, viewerID)
 	return c, nil
 }
 
@@ -362,6 +374,7 @@ func (s *CompetitionService) ListVisibleFor(ctx context.Context, page, pageSize 
 		}
 		for _, c := range items {
 			s.filterChallenges(ctx, c, viewerID, true)
+			s.decorate(ctx, c, viewerID)
 		}
 		return items, total, nil
 	}
@@ -407,6 +420,7 @@ func (s *CompetitionService) ListVisibleFor(ctx context.Context, page, pageSize 
 	items := all[start:end]
 	for _, c := range items {
 		s.filterChallenges(ctx, c, viewerID, false)
+		s.decorate(ctx, c, viewerID)
 	}
 	return items, total, nil
 }
@@ -427,6 +441,7 @@ func (s *CompetitionService) ListManagedFor(ctx context.Context, page, pageSize 
 			continue
 		}
 		s.filterChallenges(ctx, c, userID, false)
+		s.decorate(ctx, c, userID)
 		all = append(all, c)
 	}
 	sort.Slice(all, func(i, j int) bool { return all[i].ID > all[j].ID })
@@ -456,18 +471,223 @@ func (s *CompetitionService) filterChallenges(ctx context.Context, c *domain.Com
 		return
 	}
 	visible := make([]*domain.Challenge, 0, len(c.Challenges))
+	live := competitionIsLive(c)
 	for _, ch := range c.Challenges {
+		revealed := live && competitionBindsChallenge(c, ch.ID)
 		if s.access != nil {
 			ok, err := s.access.CanView(ctx, ch, viewerID, false)
-			if err != nil || !ok {
+			if err != nil || (!ok && !revealed) {
 				continue
 			}
-		} else if !ch.IsPublished {
+		} else if !ch.IsPublished && !revealed {
 			continue
 		}
 		visible = append(visible, ch)
 	}
 	c.Challenges = visible
+}
+
+func (s *CompetitionService) decorate(ctx context.Context, c *domain.Competition, viewerID uint) {
+	c.HasRegistrationCode = c.RegistrationCode != ""
+	c.ScoreboardFrozen = scoreboardCutoff(c, time.Now()) != nil
+	if s.registrations == nil {
+		return
+	}
+	if total, err := s.registrations.CountByCompetition(ctx, c.ID); err == nil {
+		c.RegistrationCount = int(total)
+	}
+	if viewerID > 0 {
+		if _, err := s.registrations.Find(ctx, c.ID, viewerID); err == nil {
+			c.Registered = true
+		}
+	}
+}
+
+func (s *CompetitionService) Register(ctx context.Context, competitionID, userID uint, code string) (*domain.CompetitionRegistration, error) {
+	c, err := s.repo.FindByID(ctx, competitionID)
+	if err != nil {
+		return nil, err
+	}
+	if !s.canViewForRegistration(ctx, c, userID) {
+		return nil, domain.ErrNotFound
+	}
+	if c.ArchivedAt != nil {
+		return nil, fmt.Errorf("%w: competition archived", domain.ErrInvalidArgument)
+	}
+	if c.EndAt != nil && time.Now().After(*c.EndAt) {
+		return nil, fmt.Errorf("%w: competition ended", domain.ErrInvalidArgument)
+	}
+	if c.RegistrationCode != "" {
+		got := []byte(strings.TrimSpace(code))
+		want := []byte(c.RegistrationCode)
+		if len(got) != len(want) || subtle.ConstantTimeCompare(got, want) != 1 {
+			return nil, fmt.Errorf("%w: invalid registration code", domain.ErrForbidden)
+		}
+	}
+	if s.registrations == nil {
+		return nil, fmt.Errorf("%w: registration unavailable", domain.ErrUnavailable)
+	}
+	if reg, err := s.registrations.Find(ctx, competitionID, userID); err == nil {
+		return reg, nil
+	} else if !errors.Is(err, domain.ErrNotFound) {
+		return nil, err
+	}
+	reg := &domain.CompetitionRegistration{CompetitionID: competitionID, UserID: userID}
+	if err := s.registrations.Create(ctx, reg); err != nil {
+		return nil, err
+	}
+	return s.registrations.Find(ctx, competitionID, userID)
+}
+
+func (s *CompetitionService) Unregister(ctx context.Context, competitionID, userID uint) error {
+	c, err := s.repo.FindByID(ctx, competitionID)
+	if err != nil {
+		return err
+	}
+	if !s.canViewForRegistration(ctx, c, userID) {
+		return domain.ErrNotFound
+	}
+	if c.StartAt != nil && time.Now().After(*c.StartAt) {
+		return fmt.Errorf("%w: competition started", domain.ErrInvalidArgument)
+	}
+	if s.registrations == nil {
+		return fmt.Errorf("%w: registration unavailable", domain.ErrUnavailable)
+	}
+	reg, err := s.registrations.Find(ctx, competitionID, userID)
+	if err != nil {
+		return err
+	}
+	if reg.ScoreExcluded {
+		return fmt.Errorf("%w: score excluded", domain.ErrForbidden)
+	}
+	return s.registrations.Delete(ctx, competitionID, userID)
+}
+
+func (s *CompetitionService) canViewForRegistration(ctx context.Context, c *domain.Competition, userID uint) bool {
+	if s.access != nil {
+		ok, err := s.access.CanViewCompetition(ctx, c, userID, false)
+		return err == nil && ok
+	}
+	return c.Visibility != "private" && c.ArchivedAt == nil
+}
+
+func (s *CompetitionService) Registration(ctx context.Context, competitionID, userID uint) (*domain.CompetitionRegistration, error) {
+	if s.registrations == nil {
+		return nil, domain.ErrNotFound
+	}
+	return s.registrations.Find(ctx, competitionID, userID)
+}
+
+func (s *CompetitionService) ListRegistrations(ctx context.Context, competitionID uint, page, pageSize int) ([]*domain.CompetitionRegistration, int64, error) {
+	if s.registrations == nil {
+		return []*domain.CompetitionRegistration{}, 0, nil
+	}
+	return s.registrations.ListByCompetition(ctx, competitionID, page, pageSize)
+}
+
+func (s *CompetitionService) SetScoreExcluded(ctx context.Context, competitionID, userID uint, excluded bool, reason string, actorID uint) (*domain.CompetitionRegistration, error) {
+	if s.registrations == nil {
+		return nil, fmt.Errorf("%w: registration unavailable", domain.ErrUnavailable)
+	}
+	if _, err := s.repo.FindByID(ctx, competitionID); err != nil {
+		return nil, err
+	}
+	reason = strings.TrimSpace(reason)
+	if excluded && reason == "" {
+		reason = "管理员取消成绩"
+	}
+	return s.registrations.SetScoreExcluded(ctx, competitionID, userID, excluded, reason, actorID)
+}
+
+type CompetitionAnnouncementInput struct {
+	Title       string `json:"title"`
+	ContentMD   string `json:"contentMd"`
+	IsPublished bool   `json:"isPublished"`
+}
+
+func (s *CompetitionService) ListAnnouncements(ctx context.Context, competitionID uint, publishedOnly bool, page, pageSize int) ([]*domain.CompetitionAnnouncement, int64, error) {
+	if s.announcements == nil {
+		return []*domain.CompetitionAnnouncement{}, 0, nil
+	}
+	return s.announcements.ListByCompetition(ctx, competitionID, publishedOnly, page, pageSize)
+}
+
+func (s *CompetitionService) CreateAnnouncement(ctx context.Context, competitionID, actorID uint, in CompetitionAnnouncementInput) (*domain.CompetitionAnnouncement, error) {
+	if _, err := s.repo.FindByID(ctx, competitionID); err != nil {
+		return nil, err
+	}
+	title := strings.TrimSpace(in.Title)
+	if title == "" {
+		return nil, fmt.Errorf("%w: title required", domain.ErrInvalidArgument)
+	}
+	a := &domain.CompetitionAnnouncement{
+		CompetitionID: competitionID,
+		Title:         title,
+		ContentMD:     in.ContentMD,
+		IsPublished:   in.IsPublished,
+		CreatedBy:     &actorID,
+	}
+	if s.announcements == nil {
+		return nil, fmt.Errorf("%w: announcements unavailable", domain.ErrUnavailable)
+	}
+	if err := s.announcements.Create(ctx, a); err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+func (s *CompetitionService) UpdateAnnouncement(ctx context.Context, competitionID, id uint, in CompetitionAnnouncementInput) (*domain.CompetitionAnnouncement, error) {
+	if s.announcements == nil {
+		return nil, fmt.Errorf("%w: announcements unavailable", domain.ErrUnavailable)
+	}
+	a, err := s.announcements.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if a.CompetitionID != competitionID {
+		return nil, domain.ErrNotFound
+	}
+	title := strings.TrimSpace(in.Title)
+	if title == "" {
+		return nil, fmt.Errorf("%w: title required", domain.ErrInvalidArgument)
+	}
+	a.Title = title
+	a.ContentMD = in.ContentMD
+	a.IsPublished = in.IsPublished
+	if err := s.announcements.Update(ctx, a); err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+func (s *CompetitionService) DeleteAnnouncement(ctx context.Context, competitionID, id uint) error {
+	if s.announcements == nil {
+		return fmt.Errorf("%w: announcements unavailable", domain.ErrUnavailable)
+	}
+	a, err := s.announcements.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if a.CompetitionID != competitionID {
+		return domain.ErrNotFound
+	}
+	return s.announcements.Delete(ctx, id)
+}
+
+// scoreboardCutoff returns the instant the public scoreboard is frozen at,
+// or nil when results are live. A frozen board still accepts submissions;
+// they become visible when the competition ends.
+func scoreboardCutoff(c *domain.Competition, now time.Time) *time.Time {
+	if c == nil || c.FreezeAt == nil {
+		return nil
+	}
+	if now.Before(*c.FreezeAt) {
+		return nil
+	}
+	if c.EndAt != nil && !now.Before(*c.EndAt) {
+		return nil
+	}
+	return c.FreezeAt
 }
 
 // window resolves the effective [start, end] range for a competition.
@@ -484,18 +704,22 @@ func window(c *domain.Competition) (time.Time, time.Time) {
 }
 
 // TeamScoreboard ranks teams by their members' solves inside the window.
-func (s *CompetitionService) TeamScoreboard(ctx context.Context, id uint, page, pageSize int) ([]*domain.TeamScore, int64, error) {
+func (s *CompetitionService) TeamScoreboard(ctx context.Context, id uint, page, pageSize int, includeFrozen bool) ([]*domain.TeamScore, int64, error) {
 	c, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, 0, err
 	}
 	start, end := window(c)
-	return s.repo.TeamScoreboard(ctx, id, start, end, c.ScoringMode, page, pageSize)
+	cutoff := (*time.Time)(nil)
+	if !includeFrozen {
+		cutoff = scoreboardCutoff(c, time.Now())
+	}
+	return s.repo.TeamScoreboard(ctx, id, start, end, cutoff, page, pageSize)
 }
 
 // Scoreboard ranks users by solves inside the competition window, restricted
 // to the bound challenges when the competition has any.
-func (s *CompetitionService) Scoreboard(ctx context.Context, id uint, page, pageSize int) ([]domain.PublicUser, int64, error) {
+func (s *CompetitionService) Scoreboard(ctx context.Context, id uint, page, pageSize int, includeFrozen bool) ([]domain.PublicUser, int64, error) {
 	c, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, 0, err
@@ -508,7 +732,11 @@ func (s *CompetitionService) Scoreboard(ctx context.Context, id uint, page, page
 	if c.EndAt != nil {
 		end = *c.EndAt
 	}
-	users, total, err := s.repo.Scoreboard(ctx, id, start, end, c.ScoringMode, page, pageSize)
+	cutoff := (*time.Time)(nil)
+	if !includeFrozen {
+		cutoff = scoreboardCutoff(c, time.Now())
+	}
+	users, total, err := s.repo.Scoreboard(ctx, id, start, end, cutoff, page, pageSize)
 	if err != nil {
 		return nil, 0, err
 	}

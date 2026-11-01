@@ -2,13 +2,26 @@ import { apiGet, apiPost, apiPut, apiDelete } from './client';
 import type { Hint, HintView } from '@/types';
 
 /** Public — list hints for a challenge (content masked until unlocked). */
-export function listHints(challengeId: number): Promise<HintView[]> {
-  return apiGet<HintView[]>(`/challenges/${challengeId}/hints`);
+export function listHints(
+  challengeId: number,
+  competitionId?: number,
+): Promise<HintView[]> {
+  return apiGet<HintView[]>(`/challenges/${challengeId}/hints`, {
+    competition_id: competitionId,
+  });
 }
 
 /** Authenticated — unlock a hint for the current user. Idempotent. */
-export function unlockHint(challengeId: number, hintId: number): Promise<{ ok: true }> {
-  return apiPost<{ ok: true }>(`/challenges/${challengeId}/hints/${hintId}/unlock`);
+export function unlockHint(
+  challengeId: number,
+  hintId: number,
+  competitionId?: number,
+): Promise<{ ok: true }> {
+  return apiPost<{ ok: true }>(
+    `/challenges/${challengeId}/hints/${hintId}/unlock`,
+    undefined,
+    competitionId ? { competition_id: competitionId } : undefined,
+  );
 }
 
 /** Admin — list all hints for a challenge with full content. */

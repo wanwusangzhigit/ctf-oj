@@ -102,111 +102,122 @@ func (r *competitionRepo) SetChallenges(ctx context.Context, competitionID uint,
 	})
 }
 
-func (r *competitionRepo) Scoreboard(ctx context.Context, competitionID uint, start, end time.Time, mode string, page, pageSize int) ([]*domain.User, int64, error) {
+func (r *competitionRepo) Scoreboard(ctx context.Context, competitionID uint, start, end time.Time, cutoff *time.Time, page, pageSize int) ([]*domain.User, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
+	compCutoff := ""
+	legacyCutoff := ""
+	if cutoff != nil {
+		compCutoff = " AND cs.solved_at <= ?"
+		legacyCutoff = " AND s.solved_at <= ?"
+	}
 	entries := `WITH entries AS (
 		SELECT cs.user_id, cs.challenge_id, cs.score, cs.solved_at, cs.id
 		FROM competition_solves cs
-		WHERE cs.competition_id = ?
+		WHERE cs.competition_id = ?` + compCutoff + `
+		  AND NOT EXISTS (
+		      SELECT 1 FROM competition_registrations cr
+		      WHERE cr.competition_id = ? AND cr.user_id = cs.user_id AND cr.score_excluded = true
+		  )
 		UNION ALL
 		SELECT s.user_id, s.challenge_id, s.score, s.solved_at, s.id
 		FROM solves s
-		WHERE s.solved_at >= ? AND s.solved_at <= ?
+		WHERE s.solved_at >= ? AND s.solved_at <= ?` + legacyCutoff + `
 		  AND (NOT EXISTS (SELECT 1 FROM competition_challenges cc WHERE cc.competition_id = ?)
 		       OR s.challenge_id IN (SELECT cc.challenge_id FROM competition_challenges cc WHERE cc.competition_id = ?))
 		  AND NOT EXISTS (
 		      SELECT 1 FROM competition_solves cs2
 		      WHERE cs2.competition_id = ? AND cs2.user_id = s.user_id AND cs2.challenge_id = s.challenge_id
 		  )
+		  AND NOT EXISTS (
+		      SELECT 1 FROM competition_registrations cr
+		      WHERE cr.competition_id = ? AND cr.user_id = s.user_id AND cr.score_excluded = true
+		  )
 	)`
-	entryArgs := []interface{}{competitionID, start, end, competitionID, competitionID, competitionID}
+	args := []interface{}{competitionID}
+	if cutoff != nil {
+		args = append(args, *cutoff)
+	}
+	args = append(args, competitionID, start, end)
+	if cutoff != nil {
+		args = append(args, *cutoff)
+	}
+	args = append(args, competitionID, competitionID, competitionID, competitionID)
 
 	var total int64
 	if err := r.db.WithContext(ctx).Raw(entries+`
 		SELECT COUNT(DISTINCT e.user_id)
 		FROM entries e
 		JOIN users u ON u.id = e.user_id
-		WHERE u.score_excluded = false`, entryArgs...).Scan(&total).Error; err != nil {
+		WHERE u.score_excluded = false`, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	var users []*domain.User
-	var err error
-	switch mode {
-	case "fixed":
-		err = r.db.WithContext(ctx).Raw(entries+`
-			SELECT u.id, u.username, u.bio, u.role, u.created_at, u.updated_at,
-			       COALESCE(SUM(c.base_score), 0) AS score
-			FROM entries e
-			JOIN users u ON u.id = e.user_id
-			JOIN challenges c ON c.id = e.challenge_id
-			WHERE u.score_excluded = false
-			GROUP BY u.id
-			ORDER BY score DESC, u.id ASC
-			LIMIT ? OFFSET ?`, append(entryArgs, pageSize, (page-1)*pageSize)...).Scan(&users).Error
-	case "three_blood":
-		err = r.db.WithContext(ctx).Raw(entries+`, ranked AS (
-			SELECT e.*, ROW_NUMBER() OVER (PARTITION BY e.challenge_id ORDER BY e.solved_at ASC, e.id ASC) AS rn
-			FROM entries e
-		)
-			SELECT u.id, u.username, u.bio, u.role, u.created_at, u.updated_at,
-			       COALESCE(SUM(c.base_score + CASE r.rn
-			           WHEN 1 THEN c.base_score * 10 / 100
-			           WHEN 2 THEN c.base_score * 5 / 100
-			           WHEN 3 THEN c.base_score * 2 / 100
-			           ELSE 0 END), 0) AS score
-			FROM ranked r
-			JOIN users u ON u.id = r.user_id
-			JOIN challenges c ON c.id = r.challenge_id
-			WHERE u.score_excluded = false
-			GROUP BY u.id
-			ORDER BY score DESC, u.id ASC
-			LIMIT ? OFFSET ?`, append(entryArgs, pageSize, (page-1)*pageSize)...).Scan(&users).Error
-	default:
-		err = r.db.WithContext(ctx).Raw(entries+`
-			SELECT u.id, u.username, u.bio, u.role, u.created_at, u.updated_at,
-			       COALESCE(SUM(e.score), 0) AS score
-			FROM entries e
-			JOIN users u ON u.id = e.user_id
-			WHERE u.score_excluded = false
-			GROUP BY u.id
-			ORDER BY score DESC, u.id ASC
-			LIMIT ? OFFSET ?`, append(entryArgs, pageSize, (page-1)*pageSize)...).Scan(&users).Error
-	}
+	err := r.db.WithContext(ctx).Raw(entries+`
+		SELECT u.id, u.username, u.bio, u.role, u.created_at, u.updated_at,
+		       COALESCE(SUM(e.score), 0) AS score
+		FROM entries e
+		JOIN users u ON u.id = e.user_id
+		WHERE u.score_excluded = false
+		GROUP BY u.id
+		ORDER BY score DESC, u.id ASC
+		LIMIT ? OFFSET ?`, append(args, pageSize, (page-1)*pageSize)...).Scan(&users).Error
 	if err != nil {
 		return nil, 0, err
 	}
 	return users, total, nil
 }
 
-func (r *competitionRepo) TeamScoreboard(ctx context.Context, competitionID uint, start, end time.Time, mode string, page, pageSize int) ([]*domain.TeamScore, int64, error) {
+func (r *competitionRepo) TeamScoreboard(ctx context.Context, competitionID uint, start, end time.Time, cutoff *time.Time, page, pageSize int) ([]*domain.TeamScore, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
+	compCutoff := ""
+	legacyCutoff := ""
+	if cutoff != nil {
+		compCutoff = " AND cs.solved_at <= ?"
+		legacyCutoff = " AND s.solved_at <= ?"
+	}
 	entries := `WITH entries AS (
 		SELECT cs.user_id, cs.challenge_id, cs.score, cs.solved_at, cs.id
 		FROM competition_solves cs
-		WHERE cs.competition_id = ?
+		WHERE cs.competition_id = ?` + compCutoff + `
+		  AND NOT EXISTS (
+		      SELECT 1 FROM competition_registrations cr
+		      WHERE cr.competition_id = ? AND cr.user_id = cs.user_id AND cr.score_excluded = true
+		  )
 		UNION ALL
 		SELECT s.user_id, s.challenge_id, s.score, s.solved_at, s.id
 		FROM solves s
-		WHERE s.solved_at >= ? AND s.solved_at <= ?
+		WHERE s.solved_at >= ? AND s.solved_at <= ?` + legacyCutoff + `
 		  AND (NOT EXISTS (SELECT 1 FROM competition_challenges cc WHERE cc.competition_id = ?)
 		       OR s.challenge_id IN (SELECT cc.challenge_id FROM competition_challenges cc WHERE cc.competition_id = ?))
 		  AND NOT EXISTS (
 		      SELECT 1 FROM competition_solves cs2
 		      WHERE cs2.competition_id = ? AND cs2.user_id = s.user_id AND cs2.challenge_id = s.challenge_id
 		  )
+		  AND NOT EXISTS (
+		      SELECT 1 FROM competition_registrations cr
+		      WHERE cr.competition_id = ? AND cr.user_id = s.user_id AND cr.score_excluded = true
+		  )
 	)`
-	entryArgs := []interface{}{competitionID, start, end, competitionID, competitionID, competitionID}
+	args := []interface{}{competitionID}
+	if cutoff != nil {
+		args = append(args, *cutoff)
+	}
+	args = append(args, competitionID, start, end)
+	if cutoff != nil {
+		args = append(args, *cutoff)
+	}
+	args = append(args, competitionID, competitionID, competitionID, competitionID)
 
 	var total int64
 	if err := r.db.WithContext(ctx).Raw(entries+`
@@ -215,57 +226,21 @@ func (r *competitionRepo) TeamScoreboard(ctx context.Context, competitionID uint
 		JOIN users u ON u.id = e.user_id
 		JOIN team_members tm ON tm.user_id = e.user_id
 		JOIN teams t ON t.id = tm.team_id
-		WHERE u.score_excluded = false`, entryArgs...).Scan(&total).Error; err != nil {
+		WHERE u.score_excluded = false`, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	var out []*domain.TeamScore
-	var err error
-	switch mode {
-	case "fixed":
-		err = r.db.WithContext(ctx).Raw(entries+`
-			SELECT t.id, t.name, t.slug, COALESCE(SUM(c.base_score), 0) AS score
-			FROM entries e
-			JOIN users u ON u.id = e.user_id
-			JOIN team_members tm ON tm.user_id = e.user_id
-			JOIN teams t ON t.id = tm.team_id
-			JOIN challenges c ON c.id = e.challenge_id
-			WHERE u.score_excluded = false
-			GROUP BY t.id
-			ORDER BY score DESC, t.id ASC
-			LIMIT ? OFFSET ?`, append(entryArgs, pageSize, (page-1)*pageSize)...).Scan(&out).Error
-	case "three_blood":
-		err = r.db.WithContext(ctx).Raw(entries+`, ranked AS (
-			SELECT e.*, ROW_NUMBER() OVER (PARTITION BY e.challenge_id ORDER BY e.solved_at ASC, e.id ASC) AS rn
-			FROM entries e
-		)
-			SELECT t.id, t.name, t.slug,
-			       COALESCE(SUM(c.base_score + CASE r.rn
-			           WHEN 1 THEN c.base_score * 10 / 100
-			           WHEN 2 THEN c.base_score * 5 / 100
-			           WHEN 3 THEN c.base_score * 2 / 100
-			           ELSE 0 END), 0) AS score
-			FROM ranked r
-			JOIN users u ON u.id = r.user_id
-			JOIN team_members tm ON tm.user_id = r.user_id
-			JOIN teams t ON t.id = tm.team_id
-			JOIN challenges c ON c.id = r.challenge_id
-			WHERE u.score_excluded = false
-			GROUP BY t.id
-			ORDER BY score DESC, t.id ASC
-			LIMIT ? OFFSET ?`, append(entryArgs, pageSize, (page-1)*pageSize)...).Scan(&out).Error
-	default:
-		err = r.db.WithContext(ctx).Raw(entries+`
-			SELECT t.id, t.name, t.slug, COALESCE(SUM(e.score), 0) AS score
-			FROM entries e
-			JOIN users u ON u.id = e.user_id
-			JOIN team_members tm ON tm.user_id = e.user_id
-			JOIN teams t ON t.id = tm.team_id
-			WHERE u.score_excluded = false
-			GROUP BY t.id
-			ORDER BY score DESC, t.id ASC
-			LIMIT ? OFFSET ?`, append(entryArgs, pageSize, (page-1)*pageSize)...).Scan(&out).Error
-	}
+	err := r.db.WithContext(ctx).Raw(entries+`
+		SELECT t.id, t.name, t.slug, COALESCE(SUM(e.score), 0) AS score
+		FROM entries e
+		JOIN users u ON u.id = e.user_id
+		JOIN team_members tm ON tm.user_id = e.user_id
+		JOIN teams t ON t.id = tm.team_id
+		WHERE u.score_excluded = false
+		GROUP BY t.id
+		ORDER BY score DESC, t.id ASC
+		LIMIT ? OFFSET ?`, append(args, pageSize, (page-1)*pageSize)...).Scan(&out).Error
 	if err != nil {
 		return nil, 0, err
 	}

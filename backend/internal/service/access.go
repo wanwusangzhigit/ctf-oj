@@ -48,10 +48,31 @@ func (s *ChallengeAccessService) CanView(ctx context.Context, c *domain.Challeng
 	if c.IsPublished && c.Status == domain.ChallengePublished {
 		return true, nil
 	}
-	if c.Status != domain.ChallengeHidden || userID == 0 || s.repo == nil {
+	if c.Status != domain.ChallengeHidden {
+		return false, nil
+	}
+	if s.competitionRevealsChallenge(ctx, c.ID) {
+		return true, nil
+	}
+	if userID == 0 || s.repo == nil {
 		return false, nil
 	}
 	return s.repo.HasAccess(ctx, c.ID, userID, s.TeamIDForUser(ctx, userID))
+}
+
+// competitionRevealsChallenge allows a hidden challenge to be read while its
+// bound competition is live. The competition id comes from the request context
+// so challenge subresources inherit the same visibility rule.
+func (s *ChallengeAccessService) competitionRevealsChallenge(ctx context.Context, challengeID uint) bool {
+	competitionID := domain.CompetitionIDFromContext(ctx)
+	if competitionID == 0 || s.comps == nil {
+		return false
+	}
+	c, err := s.comps.FindByID(ctx, competitionID)
+	if err != nil || !competitionIsLive(c) {
+		return false
+	}
+	return competitionBindsChallenge(c, challengeID)
 }
 
 // CanManageChallenge reports whether the viewer holds an explicit manage grant

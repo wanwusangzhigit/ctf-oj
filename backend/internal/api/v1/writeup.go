@@ -26,7 +26,8 @@ func (h *WriteupHandler) List(c *gin.Context) {
 		return
 	}
 	uid, _ := getUID(c)
-	out, err := h.svc.List(c.Request.Context(), uint(id), uid, middleware.IsAdmin(c))
+	competitionID, _ := strconv.ParseUint(c.Query("competition_id"), 10, 64)
+	out, err := h.svc.List(c.Request.Context(), uint(id), uid, middleware.IsAdmin(c), uint(competitionID))
 	if err != nil {
 		response.Err(c, err)
 		return
@@ -50,7 +51,8 @@ func (h *WriteupHandler) Create(c *gin.Context) {
 		response.Err(c, domain.ErrInvalidArgument)
 		return
 	}
-	out, err := h.svc.Create(c.Request.Context(), uid, uint(id), req, middleware.IsAdmin(c))
+	competitionID, _ := strconv.ParseUint(c.Query("competition_id"), 10, 64)
+	out, err := h.svc.Create(c.Request.Context(), uid, uint(id), req, middleware.IsAdmin(c), uint(competitionID))
 	if err != nil {
 		response.Err(c, err)
 		return

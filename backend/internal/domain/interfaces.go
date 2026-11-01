@@ -277,8 +277,25 @@ type CompetitionRepository interface {
 	Delete(ctx context.Context, id uint) error
 	DeactivateAll(ctx context.Context) error
 	SetChallenges(ctx context.Context, competitionID uint, challengeIDs []uint) error
-	Scoreboard(ctx context.Context, competitionID uint, start, end time.Time, mode string, page, pageSize int) ([]*User, int64, error)
-	TeamScoreboard(ctx context.Context, competitionID uint, start, end time.Time, mode string, page, pageSize int) ([]*TeamScore, int64, error)
+	Scoreboard(ctx context.Context, competitionID uint, start, end time.Time, cutoff *time.Time, page, pageSize int) ([]*User, int64, error)
+	TeamScoreboard(ctx context.Context, competitionID uint, start, end time.Time, cutoff *time.Time, page, pageSize int) ([]*TeamScore, int64, error)
+}
+
+type CompetitionRegistrationRepository interface {
+	Create(ctx context.Context, r *CompetitionRegistration) error
+	Find(ctx context.Context, competitionID, userID uint) (*CompetitionRegistration, error)
+	Delete(ctx context.Context, competitionID, userID uint) error
+	CountByCompetition(ctx context.Context, competitionID uint) (int64, error)
+	ListByCompetition(ctx context.Context, competitionID uint, page, pageSize int) ([]*CompetitionRegistration, int64, error)
+	SetScoreExcluded(ctx context.Context, competitionID, userID uint, excluded bool, reason string, actorID uint) (*CompetitionRegistration, error)
+}
+
+type CompetitionAnnouncementRepository interface {
+	Create(ctx context.Context, a *CompetitionAnnouncement) error
+	FindByID(ctx context.Context, id uint) (*CompetitionAnnouncement, error)
+	ListByCompetition(ctx context.Context, competitionID uint, publishedOnly bool, page, pageSize int) ([]*CompetitionAnnouncement, int64, error)
+	Update(ctx context.Context, a *CompetitionAnnouncement) error
+	Delete(ctx context.Context, id uint) error
 }
 
 type EmailVerificationRepository interface {

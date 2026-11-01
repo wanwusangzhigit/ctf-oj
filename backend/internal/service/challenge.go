@@ -24,6 +24,7 @@ type ChallengeService struct {
 	solves            domain.SolveRepository
 	competitionSolves domain.CompetitionSolveRepository
 	competitions      domain.CompetitionRepository
+	registrations     domain.CompetitionRegistrationRepository
 	users             domain.UserRepository
 	instances         *InstanceService
 	notifier          NotificationDispatcher
@@ -74,6 +75,10 @@ func NewChallengeService(
 		sources:     sources,
 		hints:       hints,
 	}
+}
+
+func (s *ChallengeService) SetCompetitionRegistrationRepository(r domain.CompetitionRegistrationRepository) {
+	s.registrations = r
 }
 
 type ChallengeAdminInput struct {
@@ -379,6 +384,9 @@ func (s *ChallengeService) GetForUser(ctx context.Context, id, userID uint, incl
 	if err != nil {
 		return nil, err
 	}
+	if competitionID > 0 {
+		ctx = domain.WithCompetitionID(ctx, competitionID)
+	}
 	if s.access != nil {
 		ok, err := s.access.CanView(ctx, c, userID, includeUnpublished)
 		if err != nil {
@@ -393,14 +401,23 @@ func (s *ChallengeService) GetForUser(ctx context.Context, id, userID uint, incl
 	view := &ChallengeView{Challenge: c}
 	view.Attachments, _ = s.attachments.ListByChallengeID(ctx, c.ID)
 	view.SolveCount, _ = s.solves.CountByChallenge(ctx, c.ID)
+
+	inCompetition := false
+	if competitionID > 0 && s.competitions != nil {
+		if comp, err := s.competitions.FindByID(ctx, competitionID); err == nil &&
+			competitionIsLive(comp) && competitionCoversChallenge(comp, c.ID) {
+			inCompetition = true
+			cid := competitionID
+			view.CompetitionID = &cid
+		}
+	}
 	if userID > 0 {
 		if sol, err := s.solves.FindByUserAndChallenge(ctx, userID, c.ID); err == nil && sol != nil {
 			view.Solved = true
 			view.UserScore = sol.Score
 		}
-		if competitionID > 0 && s.competitionSolves != nil {
+		if inCompetition && s.competitionSolves != nil {
 			if sol, err := s.competitionSolves.FindByUserAndChallenge(ctx, competitionID, userID, c.ID); err == nil && sol != nil {
-				view.CompetitionID = &competitionID
 				view.CompetitionSolved = true
 				view.CompetitionScore = sol.Score
 			}
@@ -424,6 +441,12 @@ func (s *ChallengeService) ListForUser(ctx context.Context, filter domain.Challe
 	}
 	out := make([]*ChallengeView, 0, len(cs))
 	competitionID := filter.CompetitionID
+	var comp *domain.Competition
+	if competitionID > 0 && s.competitions != nil {
+		if c, err := s.competitions.FindByID(ctx, competitionID); err == nil && competitionIsLive(c) {
+			comp = c
+		}
+	}
 	for _, c := range cs {
 		v := &ChallengeView{Challenge: c}
 		v.SolveCount, _ = s.solves.CountByChallenge(ctx, c.ID)
@@ -432,8 +455,11 @@ func (s *ChallengeService) ListForUser(ctx context.Context, filter domain.Challe
 				v.Solved = true
 				v.UserScore = sol.Score
 			}
-			if competitionID > 0 && s.competitionSolves != nil {
-				v.CompetitionID = &competitionID
+		}
+		if comp != nil && competitionCoversChallenge(comp, c.ID) {
+			cid := competitionID
+			v.CompetitionID = &cid
+			if userID > 0 && s.competitionSolves != nil {
 				if sol, err := s.competitionSolves.FindByUserAndChallenge(ctx, competitionID, userID, c.ID); err == nil && sol != nil {
 					v.CompetitionSolved = true
 					v.CompetitionScore = sol.Score
@@ -477,6 +503,9 @@ func (s *ChallengeService) SubmitFlag(ctx context.Context, userID, challengeID u
 	if err != nil {
 		return nil, err
 	}
+	if competitionID > 0 {
+		ctx = domain.WithCompetitionID(ctx, competitionID)
+	}
 	if s.access != nil {
 		ok, err := s.access.CanView(ctx, c, userID, allowUnpublished)
 		if err != nil {
@@ -497,6 +526,18 @@ func (s *ChallengeService) SubmitFlag(ctx context.Context, userID, challengeID u
 	if comp != nil {
 		id := comp.ID
 		compID = &id
+		if s.registrations != nil {
+			reg, regErr := s.registrations.Find(ctx, comp.ID, userID)
+			if regErr != nil && !errors.Is(regErr, domain.ErrNotFound) {
+				return nil, regErr
+			}
+			if regErr == nil && reg.ScoreExcluded {
+				return nil, fmt.Errorf("%w: competition score excluded", domain.ErrForbidden)
+			}
+			if errors.Is(regErr, domain.ErrNotFound) && comp.RegistrationRequired {
+				return nil, fmt.Errorf("%w: competition registration required", domain.ErrForbidden)
+			}
+		}
 	}
 
 	alreadySolved := false
@@ -559,7 +600,7 @@ func (s *ChallengeService) SubmitFlag(ctx context.Context, userID, challengeID u
 		}, nil
 	}
 
-	score, err := s.computeScore(ctx, c, userID, compID)
+	score, err := s.computeScore(ctx, c, userID, comp)
 	if err != nil {
 		return nil, err
 	}
@@ -637,20 +678,7 @@ func (s *ChallengeService) resolveCompetition(ctx context.Context, requestedID u
 		return nil, nil
 	}
 	if requestedID == 0 {
-		active, err := s.competitions.FindActive(ctx)
-		if err != nil || active == nil {
-			return nil, nil
-		}
-		if !competitionIsLive(active) || !competitionCoversChallenge(active, c.ID) {
-			return nil, nil
-		}
-		if s.access != nil {
-			ok, err := s.access.CanViewCompetition(ctx, active, userID, false)
-			if err != nil || !ok {
-				return nil, nil
-			}
-		}
-		return active, nil
+		return nil, nil
 	}
 
 	comp, err := s.competitions.FindByID(ctx, requestedID)
@@ -699,6 +727,13 @@ func competitionCoversChallenge(c *domain.Competition, challengeID uint) bool {
 	if len(c.Challenges) == 0 {
 		return true
 	}
+	return competitionBindsChallenge(c, challengeID)
+}
+
+func competitionBindsChallenge(c *domain.Competition, challengeID uint) bool {
+	if c == nil {
+		return false
+	}
 	for _, ch := range c.Challenges {
 		if ch.ID == challengeID {
 			return true
@@ -724,8 +759,8 @@ func boolLabel(b bool) string {
 // computeScore applies the dynamic decay formula and then deducts the
 // cumulative cost of hints the user has unlocked on this challenge.
 // Hint cost is a ratio in [0, 1]; final score = base * (1 - sum(ratios)).
-func (s *ChallengeService) computeScore(ctx context.Context, c *domain.Challenge, userID uint, competitionID *uint) (int, error) {
-	raw, err := s.computeRawScore(ctx, c, competitionID)
+func (s *ChallengeService) computeScore(ctx context.Context, c *domain.Challenge, userID uint, comp *domain.Competition) (int, error) {
+	raw, err := s.computeRawScore(ctx, c, comp)
 	if err != nil {
 		return 0, err
 	}
@@ -749,36 +784,60 @@ func (s *ChallengeService) computeScore(ctx context.Context, c *domain.Challenge
 	return final, nil
 }
 
-func (s *ChallengeService) computeRawScore(ctx context.Context, c *domain.Challenge, competitionID *uint) (int, error) {
+func (s *ChallengeService) computeRawScore(ctx context.Context, c *domain.Challenge, comp *domain.Competition) (int, error) {
 	var (
 		count int64
 		err   error
 	)
-	if competitionID != nil && s.competitionSolves != nil {
-		count, err = s.competitionSolves.CountByCompetitionChallenge(ctx, *competitionID, c.ID)
+	if comp != nil && s.competitionSolves != nil {
+		count, err = s.competitionSolves.CountByCompetitionChallenge(ctx, comp.ID, c.ID)
 	} else {
 		count, err = s.solves.CountByChallenge(ctx, c.ID)
 	}
 	if err != nil {
 		return 0, err
 	}
-	if c.MinScore < 0 {
-		c.MinScore = 0
+	mode := ""
+	if comp != nil {
+		mode = comp.ScoringMode
 	}
-	if c.BaseScore <= c.MinScore {
-		return c.BaseScore, nil
+	return rawScoreForMode(c, mode, count), nil
+}
+
+func rawScoreForMode(c *domain.Challenge, mode string, count int64) int {
+	minScore := c.MinScore
+	if minScore < 0 {
+		minScore = 0
+	}
+	switch mode {
+	case "fixed":
+		return c.BaseScore
+	case "three_blood":
+		bonus := 0
+		switch count {
+		case 0:
+			bonus = 10
+		case 1:
+			bonus = 5
+		case 2:
+			bonus = 2
+		}
+		return c.BaseScore + c.BaseScore*bonus/100
+	}
+	if c.BaseScore <= minScore {
+		return c.BaseScore
 	}
 	decay := c.Decay
 	if decay <= 0 {
 		decay = 10
 	}
-	diff := float64(c.BaseScore - c.MinScore)
+	diff := float64(c.BaseScore - minScore)
 	k := math.Exp(-float64(count) / float64(decay))
-	score := int(math.Round(diff*k)) + c.MinScore
-	if score < c.MinScore {
-		score = c.MinScore
+	score := int(math.Round(diff*k)) + minScore
+	if score < minScore {
+		score = minScore
 	}
-	return score, nil
+	return score
 }
 
 func normalize(base, min, decay, diff *int) {

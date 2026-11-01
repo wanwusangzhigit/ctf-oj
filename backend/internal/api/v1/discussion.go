@@ -29,7 +29,7 @@ func discussionGlobalModerate(c *gin.Context, scope domain.DiscussionScope) bool
 	switch scope {
 	case domain.DiscussionScopeChallenge:
 		return middleware.IsAdmin(c)
-	case domain.DiscussionScopeCommunity:
+	case domain.DiscussionScopeCommunity, domain.DiscussionScopeCompetition:
 		return middleware.HasPermission(c, domain.PermDiscussionModerate)
 	default:
 		return false
@@ -42,7 +42,17 @@ func challengeTarget(c *gin.Context) (service.DiscussionTarget, bool) {
 		response.Err(c, domain.ErrInvalidArgument)
 		return service.DiscussionTarget{}, false
 	}
-	return service.DiscussionTarget{Scope: domain.DiscussionScopeChallenge, ID: uint(id)}, true
+	competitionID, _ := strconv.ParseUint(c.Query("competition_id"), 10, 64)
+	return service.DiscussionTarget{Scope: domain.DiscussionScopeChallenge, ID: uint(id), CompetitionID: uint(competitionID)}, true
+}
+
+func competitionTarget(c *gin.Context) (service.DiscussionTarget, bool) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return service.DiscussionTarget{}, false
+	}
+	return service.DiscussionTarget{Scope: domain.DiscussionScopeCompetition, ID: uint(id)}, true
 }
 
 func teamTarget(c *gin.Context) (service.DiscussionTarget, bool) {
@@ -108,6 +118,14 @@ func (h *DiscussionHandler) CommunityGet(c *gin.Context) {
 	response.OK(c, d)
 }
 
+func (h *DiscussionHandler) CompetitionList(c *gin.Context) {
+	target, ok := competitionTarget(c)
+	if !ok {
+		return
+	}
+	h.list(c, target)
+}
+
 func (h *DiscussionHandler) TeamList(c *gin.Context) {
 	target, ok := teamTarget(c)
 	if !ok {
@@ -150,6 +168,14 @@ func (h *DiscussionHandler) Create(c *gin.Context) {
 
 func (h *DiscussionHandler) CommunityCreate(c *gin.Context) {
 	h.create(c, service.DiscussionTarget{Scope: domain.DiscussionScopeCommunity})
+}
+
+func (h *DiscussionHandler) CompetitionCreate(c *gin.Context) {
+	target, ok := competitionTarget(c)
+	if !ok {
+		return
+	}
+	h.create(c, target)
 }
 
 func (h *DiscussionHandler) TeamCreate(c *gin.Context) {
@@ -231,4 +257,8 @@ func (h *DiscussionHandler) CommunityModerate(c *gin.Context) {
 
 func (h *DiscussionHandler) TeamModerate(c *gin.Context) {
 	h.moderate(c, "discussionId", false)
+}
+
+func (h *DiscussionHandler) CompetitionModerate(c *gin.Context) {
+	h.moderate(c, "discussionId", middleware.HasPermission(c, domain.PermDiscussionModerate))
 }

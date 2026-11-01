@@ -52,6 +52,7 @@ func Register(r *gin.Engine, d *Deps) {
 	r.Use(middleware.Logger(d.Logger))
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimit(d.RDB, 600))
+	r.Use(middleware.CompetitionContext())
 	if d.Settings != nil {
 		r.Use(middleware.SettingGate(d.Settings))
 	}
@@ -309,6 +310,14 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 		g.GET("/competitions", middleware.OptionalAuth(d.JWT), optionalActive, compH.List)
 		g.GET("/competitions/:id", middleware.OptionalAuth(d.JWT), optionalActive, compH.Get)
 		g.GET("/competitions/:id/scoreboard", middleware.OptionalAuth(d.JWT), optionalActive, compH.Scoreboard)
+		g.GET("/competitions/:id/announcements", middleware.OptionalAuth(d.JWT), optionalActive, compH.ListAnnouncements)
+		g.GET("/competitions/:id/discussions", middleware.OptionalAuth(d.JWT), optionalActive, discH.CompetitionList)
+		compAuth := g.Group("/competitions/:id")
+		compAuth.Use(middleware.Auth(d.JWT), activeMw)
+		compAuth.POST("/register", compH.Register)
+		compAuth.DELETE("/register", compH.Unregister)
+		compAuth.GET("/registration", compH.RegistrationStatus)
+		compAuth.POST("/discussions", discH.CompetitionCreate)
 	}
 
 	teams := g.Group("/teams")
@@ -387,6 +396,13 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 		compAdmin.PUT("/:id", middleware.RequireCompetitionManage(d.Competition), compH.Update)
 		compAdmin.DELETE("/:id", middleware.RequirePermission(domain.PermCompetitionManage), compH.Delete)
 		compAdmin.GET("/:id/export", middleware.RequirePermission(domain.PermCompetitionManage), compH.Export)
+		compAdmin.GET("/:id/registrations", middleware.RequireCompetitionManage(d.Competition), compH.AdminListRegistrations)
+		compAdmin.PATCH("/:id/registrations/:userId", middleware.RequireCompetitionManage(d.Competition), compH.SetScoreExcluded)
+		compAdmin.GET("/:id/announcements", middleware.RequireCompetitionManage(d.Competition), compH.AdminListAnnouncements)
+		compAdmin.POST("/:id/announcements", middleware.RequireCompetitionManage(d.Competition), compH.CreateAnnouncement)
+		compAdmin.PUT("/:id/announcements/:announcementId", middleware.RequireCompetitionManage(d.Competition), compH.UpdateAnnouncement)
+		compAdmin.DELETE("/:id/announcements/:announcementId", middleware.RequireCompetitionManage(d.Competition), compH.DeleteAnnouncement)
+		compAdmin.PATCH("/:id/discussions/:discussionId", middleware.RequireCompetitionManage(d.Competition), discH.CompetitionModerate)
 		if accessH != nil {
 			compAdmin.GET("/:id/access", middleware.RequirePermission(domain.PermCompetitionManage), accessH.ListCompetitionGrants)
 			compAdmin.PUT("/:id/access", middleware.RequirePermission(domain.PermCompetitionManage), accessH.SetCompetitionGrants)

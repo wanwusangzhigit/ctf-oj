@@ -28,7 +28,12 @@ import type { Discussion } from '@/types';
 import { cn } from '@/lib/utils';
 
 function queryKey(target: DiscussionTarget) {
-  return ['discussions', target.scope, target.id ?? 0] as const;
+  return [
+    'discussions',
+    target.scope,
+    target.id ?? 0,
+    target.competitionId ?? 0,
+  ] as const;
 }
 
 export function DiscussionPanel({
@@ -37,19 +42,21 @@ export function DiscussionPanel({
   canPost,
   canModerate,
   emptyText = '还没有讨论。来发第一条吧。',
+  postDeniedText = '当前仅授权成员可发帖。',
 }: {
   target: DiscussionTarget;
   title?: string;
   canPost?: boolean;
   canModerate?: boolean;
   emptyText?: string;
+  postDeniedText?: string;
 }) {
   const qc = useQueryClient();
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
   const [draft, setDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
-  const isCommunity = target.scope === 'community';
+  const isTopicScope = target.scope === 'community' || target.scope === 'competition';
   const allowPost = canPost ?? !!user;
   const allowModerate = canModerate ?? hasPermission(user, 'discussion.moderate');
 
@@ -65,7 +72,7 @@ export function DiscussionPanel({
         target,
         draft.trim(),
         undefined,
-        isCommunity ? titleDraft.trim() : undefined,
+        isTopicScope ? titleDraft.trim() : undefined,
       ),
     onSuccess: () => {
       setDraft('');
@@ -77,7 +84,7 @@ export function DiscussionPanel({
   });
 
   const submitDisabled =
-    !draft.trim() || (isCommunity && !titleDraft.trim()) || submitMut.isPending;
+    !draft.trim() || (isTopicScope && !titleDraft.trim()) || submitMut.isPending;
 
   return (
     <Card>
@@ -93,7 +100,7 @@ export function DiscussionPanel({
             }}
             className="space-y-2"
           >
-            {isCommunity && (
+            {isTopicScope && (
               <Input
                 value={titleDraft}
                 onChange={(e) => setTitleDraft(e.target.value)}
@@ -118,7 +125,7 @@ export function DiscussionPanel({
             </div>
           </form>
         ) : user ? (
-          <p className="text-sm text-ink-3">当前仅授权成员可发帖。</p>
+          <p className="text-sm text-ink-3">{postDeniedText}</p>
         ) : (
           <p className="text-sm text-ink-3">登录后即可参与讨论。</p>
         )}

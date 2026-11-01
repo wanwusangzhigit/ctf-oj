@@ -1,15 +1,25 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from './client';
 import type { Writeup } from '@/types';
 
-export function listWriteups(challengeId: number): Promise<Writeup[]> {
-  return apiGet<Writeup[]>(`/challenges/${challengeId}/writeups`);
+export function listWriteups(
+  challengeId: number,
+  competitionId?: number,
+): Promise<Writeup[]> {
+  return apiGet<Writeup[]>(`/challenges/${challengeId}/writeups`, {
+    competition_id: competitionId,
+  });
 }
 
 export function createWriteup(
   challengeId: number,
   input: { title: string; contentMd: string; isPublished?: boolean },
+  competitionId?: number,
 ): Promise<Writeup> {
-  return apiPost<Writeup>(`/challenges/${challengeId}/writeups`, input);
+  return apiPost<Writeup>(
+    `/challenges/${challengeId}/writeups`,
+    input,
+    competitionId ? { competition_id: competitionId } : undefined,
+  );
 }
 
 export function updateWriteup(

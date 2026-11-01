@@ -1,16 +1,35 @@
 import { apiGet, apiPost, apiDelete } from './client';
 import type { Instance, StartInstanceResult } from '@/types';
 
-export function startInstance(challengeId: number): Promise<StartInstanceResult> {
-  return apiPost<StartInstanceResult>(`/challenges/${challengeId}/instance`);
+export function startInstance(
+  challengeId: number,
+  competitionId?: number,
+): Promise<StartInstanceResult> {
+  return apiPost<StartInstanceResult>(
+    `/challenges/${challengeId}/instance`,
+    undefined,
+    competitionId ? { competition_id: competitionId } : undefined,
+  );
 }
 
-export function restartInstance(challengeId: number): Promise<StartInstanceResult> {
-  return apiPost<StartInstanceResult>(`/challenges/${challengeId}/instance/restart`);
+export function restartInstance(
+  challengeId: number,
+  competitionId?: number,
+): Promise<StartInstanceResult> {
+  return apiPost<StartInstanceResult>(
+    `/challenges/${challengeId}/instance/restart`,
+    undefined,
+    competitionId ? { competition_id: competitionId } : undefined,
+  );
 }
 
-export function getActiveInstance(challengeId: number): Promise<Instance | null> {
-  return apiGet<Instance>(`/challenges/${challengeId}/instance`);
+export function getActiveInstance(
+  challengeId: number,
+  competitionId?: number,
+): Promise<Instance | null> {
+  return apiGet<Instance>(`/challenges/${challengeId}/instance`, {
+    competition_id: competitionId,
+  });
 }
 
 export function extendInstance(

@@ -91,8 +91,12 @@ export async function apiGet<T>(url: string, params?: Record<string, unknown>): 
   return resp.data.data;
 }
 
-export async function apiPost<T>(url: string, body?: unknown): Promise<T> {
-  const resp = await client.post<ApiResponse<T>>(url, body);
+export async function apiPost<T>(
+  url: string,
+  body?: unknown,
+  params?: Record<string, unknown>,
+): Promise<T> {
+  const resp = await client.post<ApiResponse<T>>(url, body, { params });
   return resp.data.data;
 }
 
