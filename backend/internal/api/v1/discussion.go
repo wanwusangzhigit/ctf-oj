@@ -262,3 +262,66 @@ func (h *DiscussionHandler) TeamModerate(c *gin.Context) {
 func (h *DiscussionHandler) CompetitionModerate(c *gin.Context) {
 	h.moderate(c, "discussionId", middleware.HasPermission(c, domain.PermDiscussionModerate))
 }
+
+// topicCaller resolves the scope-agnostic :id param and the caller for the
+// content and revision routes, which any scope's topic can be edited through.
+func topicCaller(c *gin.Context) (uint, uint, bool) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return 0, 0, false
+	}
+	uid, ok := getUID(c)
+	if !ok {
+		response.Err(c, domain.ErrUnauthorized)
+		return 0, 0, false
+	}
+	return uint(id), uid, true
+}
+
+// GetContent reads a topic for the edit form. It is separate from the scoped GET
+// routes because those increment the view counter, and every save would inflate it.
+func (h *DiscussionHandler) GetContent(c *gin.Context) {
+	id, uid, ok := topicCaller(c)
+	if !ok {
+		return
+	}
+	d, err := h.svc.GetTopicForEdit(c.Request.Context(), id, uid, middleware.HasPermission(c, domain.PermDiscussionModerate))
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.OK(c, d)
+}
+
+func (h *DiscussionHandler) UpdateContent(c *gin.Context) {
+	id, uid, ok := topicCaller(c)
+	if !ok {
+		return
+	}
+	var in service.DiscussionEditInput
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	d, err := h.svc.UpdateTopic(c.Request.Context(), id, uid, in, middleware.HasPermission(c, domain.PermDiscussionModerate))
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.OK(c, d)
+}
+
+func (h *DiscussionHandler) Revisions(c *gin.Context) {
+	id, uid, ok := topicCaller(c)
+	if !ok {
+		return
+	}
+	page, pageSize := parsePaging(c)
+	revs, total, err := h.svc.ListRevisions(c.Request.Context(), id, uid, page, pageSize, middleware.HasPermission(c, domain.PermDiscussionModerate))
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.Paged(c, revs, total, page, pageSize)
+}

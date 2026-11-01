@@ -249,6 +249,9 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 	discussions := g.Group("/discussions")
 	discussions.Use(middleware.Auth(d.JWT), activeMw)
 	{
+		discussions.GET("/:id/content", discH.GetContent)
+		discussions.PATCH("/:id/content", discH.UpdateContent)
+		discussions.GET("/:id/revisions", discH.Revisions)
 		discussions.POST("/:id/like", discH.ToggleLike)
 		discussions.DELETE("/:id", discH.Delete)
 	}
