@@ -34,7 +34,7 @@ type User struct {
 	Email              string       `gorm:"uniqueIndex;size:255;not null" json:"email"`
 	PasswordHash       string       `gorm:"size:255;not null" json:"-"`
 	Bio                string       `gorm:"type:text" json:"bio"`
-	Role               Role         `gorm:"size:16;not null;default:user" json:"role"`
+	Role               Role         `gorm:"size:32;not null;default:user" json:"role"`
 	Score              int          `gorm:"not null;default:0" json:"score"`
 	IsBanned           bool         `gorm:"not null;default:false;index" json:"isBanned"`
 	ScoreExcluded      bool         `gorm:"not null;default:false;index" json:"scoreExcluded"`
