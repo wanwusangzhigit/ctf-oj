@@ -33,6 +33,8 @@ import { StatsPage } from '@/pages/StatsPage';
 import { RealtimeScoreboardPage } from '@/pages/RealtimeScoreboardPage';
 import { TeamsPage } from '@/pages/TeamsPage';
 import { TeamDetailPage, TeamScoreboardPage } from '@/pages/TeamDetailPage';
+import { TeamNewPage } from '@/pages/TeamNewPage';
+import { TeamJoinPage } from '@/pages/TeamJoinPage';
 import { CompetitionsPage } from '@/pages/CompetitionsPage';
 import { CommunityLayout } from '@/pages/community/CommunityLayout';
 import { CommunityListPage } from '@/pages/community/CommunityListPage';
@@ -117,6 +119,8 @@ function AppRoutes() {
           <Route path="discussions" element={<CompetitionDiscussionsPage />} />
         </Route>
         <Route path="/teams" element={<RequireAuth><TeamsPage /></RequireAuth>} />
+        <Route path="/teams/new" element={<RequireAuth><TeamNewPage /></RequireAuth>} />
+        <Route path="/teams/join" element={<RequireAuth><TeamJoinPage /></RequireAuth>} />
         <Route path="/teams/scoreboard" element={<TeamScoreboardPage />} />
         <Route path="/teams/:id" element={<TeamDetailPage />} />
         <Route
