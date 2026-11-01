@@ -30,7 +30,9 @@ export function leaveTeam(): Promise<void> {
 }
 
 export function myTeam(): Promise<Team | null> {
-  return apiGet<Team | null>('/teams/me');
+  // The endpoint omits `data` when there is no membership, and TanStack Query
+  // rejects an undefined result, so normalise before returning.
+  return apiGet<Team | null>('/teams/me').then((t) => t ?? null);
 }
 
 export function disbandTeam(id: number): Promise<void> {

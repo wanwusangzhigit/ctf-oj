@@ -10,7 +10,7 @@ import type {
 } from '@/types';
 
 export function getActiveCompetition(): Promise<Competition | null> {
-  return apiGet<Competition | null>('/competition');
+  return apiGet<Competition | null>('/competition').then((c) => c ?? null);
 }
 
 export function listCompetitions(

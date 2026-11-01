@@ -27,9 +27,9 @@ export function getActiveInstance(
   challengeId: number,
   competitionId?: number,
 ): Promise<Instance | null> {
-  return apiGet<Instance>(`/challenges/${challengeId}/instance`, {
+  return apiGet<Instance | null>(`/challenges/${challengeId}/instance`, {
     competition_id: competitionId,
-  });
+  }).then((i) => i ?? null);
 }
 
 export function extendInstance(
