@@ -17,11 +17,55 @@ const (
 )
 
 type CommunityMeta struct {
-	Visibility  string `json:"visibility"`
-	Posting     string `json:"posting"`
-	CanView     bool   `json:"canView"`
-	CanPost     bool   `json:"canPost"`
-	CanModerate bool   `json:"canModerate"`
+	Visibility  string            `json:"visibility"`
+	Posting     string            `json:"posting"`
+	CanView     bool              `json:"canView"`
+	CanPost     bool              `json:"canPost"`
+	CanModerate bool              `json:"canModerate"`
+	Copy        map[string]string `json:"copy,omitempty"`
+}
+
+const SettingCommunityCopyPrefix = "community.copy."
+
+// CommunityCopyKeys are the board strings an organiser may override. Values are
+// never stored here: the frontend registry holds the defaults and an empty or
+// absent setting means "use the default", so a fresh database renders the same
+// copy as a partially configured one.
+var CommunityCopyKeys = []string{
+	SettingCommunityCopyPrefix + "title",
+	SettingCommunityCopyPrefix + "subtitle",
+	SettingCommunityCopyPrefix + "new_topic",
+	SettingCommunityCopyPrefix + "visibility_public",
+	SettingCommunityCopyPrefix + "visibility_members",
+	SettingCommunityCopyPrefix + "visibility_restricted",
+	SettingCommunityCopyPrefix + "posting_members",
+	SettingCommunityCopyPrefix + "posting_restricted",
+	SettingCommunityCopyPrefix + "guidelines_title",
+	SettingCommunityCopyPrefix + "guidelines_body",
+	SettingCommunityCopyPrefix + "policy_title",
+	SettingCommunityCopyPrefix + "search_placeholder",
+	SettingCommunityCopyPrefix + "empty_filtered",
+	SettingCommunityCopyPrefix + "empty_board",
+	SettingCommunityCopyPrefix + "load_failed",
+	SettingCommunityCopyPrefix + "topic_title_placeholder",
+	SettingCommunityCopyPrefix + "topic_content_placeholder",
+	SettingCommunityCopyPrefix + "compose_hint",
+	SettingCommunityCopyPrefix + "compose_submit",
+	SettingCommunityCopyPrefix + "edit_submit",
+	SettingCommunityCopyPrefix + "edit_hint",
+	SettingCommunityCopyPrefix + "reply_placeholder",
+	SettingCommunityCopyPrefix + "reply_hint",
+	SettingCommunityCopyPrefix + "reply_submit",
+	SettingCommunityCopyPrefix + "locked_notice",
+	SettingCommunityCopyPrefix + "reply_denied_member",
+	SettingCommunityCopyPrefix + "reply_denied_guest",
+	SettingCommunityCopyPrefix + "no_replies",
+	SettingCommunityCopyPrefix + "restricted_title",
+	SettingCommunityCopyPrefix + "restricted_members",
+	SettingCommunityCopyPrefix + "restricted_granted",
+	SettingCommunityCopyPrefix + "history_title",
+	SettingCommunityCopyPrefix + "history_denied",
+	SettingCommunityCopyPrefix + "topic_fallback_title",
 }
 
 type CommunityAccessService struct {
@@ -92,7 +136,26 @@ func (s *CommunityAccessService) Meta(ctx context.Context, userID uint, globalMo
 		CanView:     canView,
 		CanPost:     canPost,
 		CanModerate: globalModerate || level == domain.AccessManage,
+		Copy:        s.copyOverrides(ctx),
 	}, nil
+}
+
+func (s *CommunityAccessService) copyOverrides(ctx context.Context) map[string]string {
+	if s.settings == nil {
+		return nil
+	}
+	var out map[string]string
+	for _, key := range CommunityCopyKeys {
+		value := strings.TrimSpace(s.settings.GetString(ctx, key, ""))
+		if value == "" {
+			continue
+		}
+		if out == nil {
+			out = map[string]string{}
+		}
+		out[key] = value
+	}
+	return out
 }
 
 func (s *CommunityAccessService) CanView(ctx context.Context, userID uint, globalModerate bool) (bool, error) {
@@ -130,6 +193,30 @@ func (s *CommunityAccessService) UpdatePolicy(ctx context.Context, visibility, p
 		SettingCommunityVisibility: visibility,
 		SettingCommunityPosting:    posting,
 	}, updatedBy)
+}
+
+// UpdateCopy stores board string overrides. Keys outside the allowlist are
+// dropped rather than rejected: the editor posts the whole form, and a stale or
+// hand-typed key must not be able to write into another namespace.
+func (s *CommunityAccessService) UpdateCopy(ctx context.Context, copy map[string]string, updatedBy uint) error {
+	if s.settings == nil {
+		return domain.ErrInvalidArgument
+	}
+	allowed := make(map[string]struct{}, len(CommunityCopyKeys))
+	for _, key := range CommunityCopyKeys {
+		allowed[key] = struct{}{}
+	}
+	kv := make(map[string]string, len(copy))
+	for key, value := range copy {
+		if _, ok := allowed[key]; !ok {
+			continue
+		}
+		kv[key] = strings.TrimSpace(value)
+	}
+	if len(kv) == 0 {
+		return nil
+	}
+	return s.settings.UpdateMany(ctx, kv, updatedBy)
 }
 
 func (s *CommunityAccessService) ListGrants(ctx context.Context) ([]domain.AccessSubject, error) {

@@ -49,6 +49,7 @@ func (h *CommunityHandler) AdminGet(c *gin.Context) {
 		"visibility": meta.Visibility,
 		"posting":    meta.Posting,
 		"grants":     grants,
+		"copy":       meta.Copy,
 	})
 }
 
@@ -67,6 +68,27 @@ func (h *CommunityHandler) UpdatePolicy(c *gin.Context) {
 		"visibility": req.Visibility,
 		"posting":    req.Posting,
 	})
+	h.AdminGet(c)
+}
+
+type communityCopyReq struct {
+	Copy map[string]string `json:"copy" binding:"required"`
+}
+
+// UpdateCopy is a separate verb from UpdatePolicy because the policy request
+// requires visibility and posting: saving copy alone would otherwise 400.
+func (h *CommunityHandler) UpdateCopy(c *gin.Context) {
+	var req communityCopyReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	uid, _ := getUID(c)
+	if err := h.svc.UpdateCopy(c.Request.Context(), req.Copy, uid); err != nil {
+		response.Err(c, err)
+		return
+	}
+	recordAudit(c, h.audit, "community.copy", "community", 0, req.Copy)
 	h.AdminGet(c)
 }
 
