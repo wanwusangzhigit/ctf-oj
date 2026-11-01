@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/ctf-oj/backend/internal/domain"
 )
@@ -38,6 +39,14 @@ func (r *teamRepo) FindBySlug(ctx context.Context, slug string) (*domain.Team, e
 		Preload("Owner").
 		Preload("Members.User").
 		Where("slug = ?", slug).First(&t).Error; err != nil {
+		return nil, mapErr(err)
+	}
+	return &t, nil
+}
+
+func (r *teamRepo) FindByName(ctx context.Context, name string) (*domain.Team, error) {
+	var t domain.Team
+	if err := r.db.WithContext(ctx).Where("name = ?", name).First(&t).Error; err != nil {
 		return nil, mapErr(err)
 	}
 	return &t, nil
@@ -97,7 +106,9 @@ func (r *teamRepo) ListScoreboard(ctx context.Context, page, pageSize int) ([]*d
 }
 
 func (r *teamRepo) Update(ctx context.Context, t *domain.Team) error {
-	return mapErr(r.db.WithContext(ctx).Save(t).Error)
+	// Associations must be omitted: FindByID preloads Owner, and Save would
+	// re-derive owner_id from that loaded row, silently reverting a transfer.
+	return mapErr(r.db.WithContext(ctx).Omit(clause.Associations).Save(t).Error)
 }
 
 func (r *teamRepo) Delete(ctx context.Context, id uint) error {

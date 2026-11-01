@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,13 +12,15 @@ import (
 	"github.com/ctf-oj/backend/internal/domain"
 )
 
+// Team failures wrap a domain sentinel so the HTTP layer can pick a semantic
+// status code instead of reporting a 500 for expected rejections.
 var (
-	ErrTeamNameTaken = errors.New("team name already taken")
-	ErrTeamSlugTaken = errors.New("team slug already taken")
-	ErrAlreadyInTeam = errors.New("user already in a team")
-	ErrNotInTeam     = errors.New("user not in team")
-	ErrNotTeamOwner  = errors.New("only owner can perform this action")
-	ErrTeamFull      = errors.New("team is full")
+	ErrTeamNameTaken = fmt.Errorf("team name already taken: %w", domain.ErrConflict)
+	ErrTeamSlugTaken = fmt.Errorf("team slug already taken: %w", domain.ErrConflict)
+	ErrAlreadyInTeam = fmt.Errorf("user already in a team: %w", domain.ErrConflict)
+	ErrNotInTeam     = fmt.Errorf("user not in team: %w", domain.ErrNotFound)
+	ErrNotTeamOwner  = fmt.Errorf("only owner can perform this action: %w", domain.ErrForbidden)
+	ErrTeamFull      = fmt.Errorf("team is full: %w", domain.ErrConflict)
 )
 
 const maxTeamMembers = 10
@@ -43,13 +44,16 @@ func (s *TeamService) Create(ctx context.Context, ownerID uint, in TeamInput) (*
 	in.Name = strings.TrimSpace(in.Name)
 	in.Slug = strings.TrimSpace(in.Slug)
 	if in.Name == "" || in.Slug == "" {
-		return nil, errors.New("name and slug required")
+		return nil, domain.ErrInvalidArgument
 	}
 	if len(in.Name) > 64 || len(in.Slug) > 64 {
-		return nil, errors.New("name or slug too long")
+		return nil, domain.ErrInvalidArgument
 	}
 	if existing, _ := s.repos.FindBySlug(ctx, in.Slug); existing != nil {
 		return nil, ErrTeamSlugTaken
+	}
+	if existing, _ := s.repos.FindByName(ctx, in.Name); existing != nil {
+		return nil, ErrTeamNameTaken
 	}
 	owner, err := s.users.FindByID(ctx, ownerID)
 	if err != nil {
@@ -151,7 +155,7 @@ func (s *TeamService) Scoreboard(ctx context.Context, page, pageSize int, cutoff
 
 func (s *TeamService) JoinByInviteCode(ctx context.Context, userID uint, code string) (*domain.Team, error) {
 	if code == "" {
-		return nil, errors.New("invite code required")
+		return nil, domain.ErrInvalidArgument
 	}
 	if existing, _ := s.repos.FindMembership(ctx, userID); existing != nil {
 		return nil, ErrAlreadyInTeam
@@ -187,7 +191,7 @@ func (s *TeamService) Leave(ctx context.Context, userID uint) error {
 		return err
 	}
 	if t.OwnerID == userID {
-		return errors.New("owner cannot leave; transfer or disband first")
+		return fmt.Errorf("owner cannot leave; transfer or disband first: %w", domain.ErrForbidden)
 	}
 	return s.repos.RemoveMember(ctx, m.TeamID, userID)
 }
@@ -262,7 +266,7 @@ func (s *TeamService) RemoveMember(ctx context.Context, ownerID, teamID, memberU
 		return ErrNotTeamOwner
 	}
 	if ownerID == memberUserID {
-		return errors.New("cannot remove yourself; disband instead")
+		return fmt.Errorf("cannot remove yourself; disband instead: %w", domain.ErrInvalidArgument)
 	}
 	return s.repos.RemoveMember(ctx, teamID, memberUserID)
 }

@@ -228,6 +228,7 @@ type TeamRepository interface {
 	Create(ctx context.Context, t *Team) error
 	FindByID(ctx context.Context, id uint) (*Team, error)
 	FindBySlug(ctx context.Context, slug string) (*Team, error)
+	FindByName(ctx context.Context, name string) (*Team, error)
 	FindByInviteCode(ctx context.Context, code string) (*Team, error)
 	List(ctx context.Context, page, pageSize int) ([]*Team, int64, error)
 	ListScoreboard(ctx context.Context, page, pageSize int) ([]*Team, int64, error)
