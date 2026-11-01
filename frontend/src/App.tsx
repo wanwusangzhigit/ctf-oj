@@ -20,6 +20,11 @@ import { ScoreboardPage } from '@/pages/ScoreboardPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
 import { MyInstancesPage } from '@/pages/MyInstancesPage';
 import { MySubmissionsPage } from '@/pages/MySubmissionsPage';
+import { MeSolvesPage } from '@/pages/MeSolvesPage';
+import { SettingsLayout } from '@/pages/settings/SettingsLayout';
+import { SettingsProfilePage } from '@/pages/settings/SettingsProfilePage';
+import { SettingsPasswordPage } from '@/pages/settings/SettingsPasswordPage';
+import { SettingsSecurityPage } from '@/pages/settings/SettingsSecurityPage';
 import { AnnouncementsPage } from '@/pages/AnnouncementsPage';
 import { SearchPage } from '@/pages/SearchPage';
 import { AnnouncementDetailPage } from '@/pages/AnnouncementDetailPage';
@@ -130,6 +135,26 @@ function AppRoutes() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/me/solves"
+          element={
+            <RequireAuth>
+              <MeSolvesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <RequireAuth>
+              <SettingsLayout />
+            </RequireAuth>
+          }
+        >
+          <Route index element={<SettingsProfilePage />} />
+          <Route path="password" element={<SettingsPasswordPage />} />
+          <Route path="security" element={<SettingsSecurityPage />} />
+        </Route>
         <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/announcements/:id" element={<AnnouncementDetailPage />} />
         <Route

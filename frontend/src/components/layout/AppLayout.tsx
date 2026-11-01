@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Menu, User as UserIcon, X } from 'lucide-react';
+import { LogOut, Menu, Settings, User as UserIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { logout as apiLogout } from '@/api/auth';
@@ -97,6 +97,13 @@ export function AppLayout() {
           {user ? (
             <div className="flex items-center gap-2">
               <NotificationBell />
+              <Link
+                to="/settings"
+                aria-label="账号设置"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-3 hover:bg-paper-2 hover:text-ink transition-colors hover:no-underline border-b-0"
+              >
+                <Settings className="h-4 w-4" />
+              </Link>
               <Link
                 to={`/users/${user.id}`}
                 className="flex items-center gap-2 px-1.5 py-1 rounded-sm hover:bg-paper-2 transition-colors hover:no-underline border-b-0"
