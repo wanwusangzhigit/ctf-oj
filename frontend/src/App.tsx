@@ -29,8 +29,12 @@ import { RealtimeScoreboardPage } from '@/pages/RealtimeScoreboardPage';
 import { TeamsPage } from '@/pages/TeamsPage';
 import { TeamDetailPage, TeamScoreboardPage } from '@/pages/TeamDetailPage';
 import { CompetitionsPage } from '@/pages/CompetitionsPage';
-import { CommunityPage } from '@/pages/CommunityPage';
-import { CommunityTopicPage } from '@/pages/CommunityTopicPage';
+import { CommunityLayout } from '@/pages/community/CommunityLayout';
+import { CommunityListPage } from '@/pages/community/CommunityListPage';
+import { CommunityNewPage } from '@/pages/community/CommunityNewPage';
+import { CommunityTopicPage } from '@/pages/community/CommunityTopicPage';
+import { CommunityEditPage } from '@/pages/community/CommunityEditPage';
+import { CommunityHistoryPage } from '@/pages/community/CommunityHistoryPage';
 import { CompetitionLayout } from '@/pages/competitions/CompetitionLayout';
 import { CompetitionOverviewPage } from '@/pages/competitions/CompetitionOverviewPage';
 import { CompetitionChallengesPage } from '@/pages/competitions/CompetitionChallengesPage';
@@ -87,8 +91,13 @@ function AppRoutes() {
         <Route path="/scoreboard/realtime" element={<RealtimeScoreboardPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/search" element={<SearchPage />} />
-        <Route path="/community" element={<CommunityPage />} />
-        <Route path="/community/:id" element={<CommunityTopicPage />} />
+        <Route path="/community" element={<CommunityLayout />}>
+          <Route index element={<CommunityListPage />} />
+          <Route path="new" element={<RequireAuth><CommunityNewPage /></RequireAuth>} />
+          <Route path=":id" element={<CommunityTopicPage />} />
+          <Route path=":id/edit" element={<RequireAuth><CommunityEditPage /></RequireAuth>} />
+          <Route path=":id/history" element={<RequireAuth><CommunityHistoryPage /></RequireAuth>} />
+        </Route>
         <Route path="/competitions" element={<CompetitionsPage />} />
         <Route path="/competitions/:id" element={<CompetitionLayout />}>
           <Route index element={<CompetitionOverviewPage />} />

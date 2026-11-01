@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiDelete, apiPatch } from './client';
-import type { Discussion, DiscussionScope, Paginated } from '@/types';
+import type { Discussion, DiscussionRevision, DiscussionScope, Paginated } from '@/types';
 
 export type DiscussionTarget = {
   scope: DiscussionScope;
@@ -20,10 +20,12 @@ function targetPath(target: DiscussionTarget): string {
   }
 }
 
+export type TopicSort = 'last_reply' | 'newest' | 'oldest';
+
 export type DiscussionListQuery = {
   page?: number;
   pageSize?: number;
-  sort?: 'last_reply' | 'newest' | 'oldest';
+  sort?: TopicSort;
   tag?: string;
   q?: string;
 };
@@ -89,4 +91,32 @@ export function moderateDiscussion(
     );
   }
   return apiPatch<Discussion>(`/teams/${target.id}/discussions/${id}`, input);
+}
+
+export type DiscussionEditInput = {
+  title?: string;
+  contentMd?: string;
+};
+
+// Reads a topic without touching the view counter, so the edit form can
+// pre-fill from it. Author-or-moderator only: a stranger gets 403.
+export function getDiscussionContent(id: number): Promise<Discussion> {
+  return apiGet<Discussion>(`/discussions/${id}/content`);
+}
+
+export function updateDiscussionContent(
+  id: number,
+  input: DiscussionEditInput,
+): Promise<Discussion> {
+  return apiPatch<Discussion>(`/discussions/${id}/content`, input);
+}
+
+export function listDiscussionRevisions(
+  id: number,
+  query: { page?: number; pageSize?: number } = {},
+): Promise<Paginated<DiscussionRevision>> {
+  return apiGet<Paginated<DiscussionRevision>>(`/discussions/${id}/revisions`, {
+    page: query.page ?? 1,
+    page_size: query.pageSize ?? 50,
+  });
 }

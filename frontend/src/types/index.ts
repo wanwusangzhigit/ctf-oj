@@ -264,11 +264,24 @@ export interface Discussion {
   isPinned: boolean;
   isLocked: boolean;
   tags: string;
+  editedAt?: string;
+  editCount: number;
   createdAt: string;
   updatedAt: string;
-  user?: User;
+  user?: PublicUser;
   replies?: Discussion[];
   liked?: boolean;
+}
+
+export interface DiscussionRevision {
+  id: number;
+  discussionId: number;
+  revision: number;
+  title?: string;
+  contentMd: string;
+  actorId?: number;
+  actor?: PublicUser;
+  createdAt: string;
 }
 
 export type CommunityVisibility = 'public' | 'members' | 'restricted';
@@ -280,6 +293,7 @@ export interface CommunityMeta {
   canView: boolean;
   canPost: boolean;
   canModerate: boolean;
+  copy?: Record<string, string>;
 }
 
 export interface CommunityAdmin {
