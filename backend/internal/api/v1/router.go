@@ -352,6 +352,7 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 	{
 		adminGroup.GET("/announcements", middleware.RequirePermission(domain.PermAnnouncementManage), annH.AdminList)
 		adminGroup.GET("/users", middleware.RequirePermission(domain.PermUserManage), adminUserH.List)
+		adminGroup.GET("/users/:id", middleware.RequirePermission(domain.PermUserManage), adminUserH.Get)
 		adminGroup.PATCH("/users/:id", middleware.RequirePermission(domain.PermUserManage), adminUserH.Update)
 		adminGroup.POST("/users/:id/reset-password", middleware.RequirePermission(domain.PermUserManage), adminUserH.ResetPassword)
 		adminGroup.GET("/instances", middleware.RequirePermission(domain.PermInstanceManage), adminInstH.List)

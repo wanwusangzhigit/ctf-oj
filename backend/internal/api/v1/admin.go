@@ -39,6 +39,20 @@ func (h *AdminUserHandler) List(c *gin.Context) {
 	response.Paged(c, us, total, page, pageSize)
 }
 
+func (h *AdminUserHandler) Get(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	u, err := h.users.FindByID(c.Request.Context(), uint(id))
+	if err != nil {
+		response.Err(c, err)
+		return
+	}
+	response.OK(c, u)
+}
+
 type updateUserReq struct {
 	Role          *string `json:"role"`
 	IsBanned      *bool   `json:"isBanned"`
