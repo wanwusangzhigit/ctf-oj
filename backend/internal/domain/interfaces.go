@@ -190,7 +190,11 @@ type DiscussionRepository interface {
 	ListByScope(ctx context.Context, scope DiscussionScope, targetID uint, opts DiscussionListOptions) ([]*Discussion, int64, error)
 	ListReplies(ctx context.Context, parentID uint) ([]*Discussion, error)
 	ListByUser(ctx context.Context, userID uint, limit int) ([]*Discussion, error)
-	Update(ctx context.Context, d *Discussion) error
+	// UpdateColumns and ApplyEdit are column-scoped: a whole-row Save would
+	// clobber the like/view/reply counters that concurrent statements maintain.
+	UpdateColumns(ctx context.Context, id uint, fields map[string]any) error
+	ApplyEdit(ctx context.Context, id uint, fields map[string]any, actorID uint) (*DiscussionRevision, error)
+	ListRevisions(ctx context.Context, discussionID uint, page, pageSize int) ([]*DiscussionRevision, int64, error)
 	Delete(ctx context.Context, id uint) error
 	IncrLikeCount(ctx context.Context, id uint, delta int) error
 	IncrViewCount(ctx context.Context, id uint) error

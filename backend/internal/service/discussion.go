@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/ctf-oj/backend/internal/domain"
 )
@@ -350,10 +351,10 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 	in.Title = strings.TrimSpace(in.Title)
 	in.ContentMD = strings.TrimSpace(in.ContentMD)
 	if in.ContentMD == "" {
-		return nil, errors.New("content required")
+		return nil, fmt.Errorf("%w: content required", domain.ErrInvalidArgument)
 	}
-	if len(in.ContentMD) > maxContentLen {
-		return nil, errors.New("content too long")
+	if utf8.RuneCountInString(in.ContentMD) > maxContentLen {
+		return nil, fmt.Errorf("%w: content too long", domain.ErrInvalidArgument)
 	}
 	if err := s.canPost(ctx, target, userID, includeUnpublished, globalModerate); err != nil {
 		return nil, err
@@ -365,10 +366,10 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 			return nil, err
 		}
 		if !sameDiscussionTarget(p, target) {
-			return nil, errors.New("parent belongs to a different discussion")
+			return nil, fmt.Errorf("%w: parent belongs to a different discussion", domain.ErrInvalidArgument)
 		}
 		if p.ParentID != nil {
-			return nil, errors.New("only one level of reply is allowed")
+			return nil, fmt.Errorf("%w: only one level of reply is allowed", domain.ErrInvalidArgument)
 		}
 		if p.IsLocked {
 			return nil, domain.ErrForbidden
@@ -376,10 +377,10 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 		parent = p
 	} else if target.Scope == domain.DiscussionScopeCommunity || target.Scope == domain.DiscussionScopeCompetition {
 		if in.Title == "" {
-			return nil, errors.New("title required")
+			return nil, fmt.Errorf("%w: title required", domain.ErrInvalidArgument)
 		}
-		if len(in.Title) > maxTitleLen {
-			return nil, errors.New("title too long")
+		if utf8.RuneCountInString(in.Title) > maxTitleLen {
+			return nil, fmt.Errorf("%w: title too long", domain.ErrInvalidArgument)
 		}
 	}
 	if parent != nil {
@@ -421,7 +422,7 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 		_ = s.discussions.TouchReply(ctx, parent.ID, d.CreatedAt)
 	}
 	if loaded, err := s.discussions.FindByID(ctx, d.ID); err == nil {
-		d.User = loaded.User
+		d.Author = loaded.Author
 	}
 
 	if parent != nil && parent.UserID != userID && s.notifier != nil {
@@ -432,19 +433,132 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 	return d, nil
 }
 
+type DiscussionEditInput struct {
+	Title     *string `json:"title"`
+	ContentMD *string `json:"contentMd"`
+}
+
+func (s *DiscussionService) GetTopicForEdit(ctx context.Context, id, userID uint, globalModerate bool) (*domain.Discussion, error) {
+	d, err := s.discussions.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	// ensureVisible is deliberately skipped: restricting the community must not
+	// strip an author from their own topic.
+	ok, err := s.mayEditTopic(ctx, d, userID, globalModerate)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, domain.ErrForbidden
+	}
+	return d, nil
+}
+
+func (s *DiscussionService) UpdateTopic(ctx context.Context, id, userID uint, in DiscussionEditInput, globalModerate bool) (*domain.Discussion, error) {
+	d, err := s.GetTopicForEdit(ctx, id, userID, globalModerate)
+	if err != nil {
+		return nil, err
+	}
+	fields, err := validateDiscussionEdit(d, in)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := s.discussions.ApplyEdit(ctx, d.ID, fields, userID); err != nil {
+		return nil, err
+	}
+	return s.discussions.FindByID(ctx, d.ID)
+}
+
+func (s *DiscussionService) ListRevisions(ctx context.Context, id, userID uint, page, pageSize int, globalModerate bool) ([]*domain.DiscussionRevision, int64, error) {
+	d, err := s.discussions.FindByID(ctx, id)
+	if err != nil {
+		return nil, 0, err
+	}
+	if userID == 0 {
+		return nil, 0, domain.ErrUnauthorized
+	}
+	ok, err := s.mayManageTopic(ctx, d, userID, globalModerate)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !ok {
+		return nil, 0, domain.ErrForbidden
+	}
+	return s.discussions.ListRevisions(ctx, d.ID, page, pageSize)
+}
+
+// validateDiscussionEdit resolves an edit against the stored topic. A field left
+// out keeps its value, a field given blank is rejected rather than silently
+// wiping the title.
+func validateDiscussionEdit(d *domain.Discussion, in DiscussionEditInput) (map[string]any, error) {
+	fields := map[string]any{}
+	if in.Title != nil {
+		if d.ParentID != nil {
+			return nil, fmt.Errorf("%w: replies have no title", domain.ErrInvalidArgument)
+		}
+		if d.Scope != domain.DiscussionScopeCommunity && d.Scope != domain.DiscussionScopeCompetition {
+			return nil, fmt.Errorf("%w: this discussion has no editable title", domain.ErrInvalidArgument)
+		}
+		title := strings.TrimSpace(*in.Title)
+		if title == "" {
+			return nil, fmt.Errorf("%w: title required", domain.ErrInvalidArgument)
+		}
+		if utf8.RuneCountInString(title) > maxTitleLen {
+			return nil, fmt.Errorf("%w: title too long", domain.ErrInvalidArgument)
+		}
+		fields["title"] = title
+	}
+	if in.ContentMD != nil {
+		content := strings.TrimSpace(*in.ContentMD)
+		if content == "" {
+			return nil, fmt.Errorf("%w: content required", domain.ErrInvalidArgument)
+		}
+		if utf8.RuneCountInString(content) > maxContentLen {
+			return nil, fmt.Errorf("%w: content too long", domain.ErrInvalidArgument)
+		}
+		fields["content_md"] = content
+	}
+	if len(fields) == 0 {
+		return nil, fmt.Errorf("%w: nothing to update", domain.ErrInvalidArgument)
+	}
+	return fields, nil
+}
+
+func (s *DiscussionService) mayManageTopic(ctx context.Context, d *domain.Discussion, userID uint, globalModerate bool) (bool, error) {
+	if userID == 0 {
+		return false, nil
+	}
+	if d.UserID == userID {
+		return true, nil
+	}
+	return s.canModerateDiscussion(ctx, d, userID, globalModerate)
+}
+
+// mayEditTopic differs from mayManageTopic in one place: a locked topic's author
+// is blocked, a moderator is not. Locking exists to stop the author, not to make
+// a topic uncorrectable.
+func (s *DiscussionService) mayEditTopic(ctx context.Context, d *domain.Discussion, userID uint, globalModerate bool) (bool, error) {
+	if userID == 0 {
+		return false, nil
+	}
+	if d.UserID == userID {
+		return !d.IsLocked, nil
+	}
+	return s.canModerateDiscussion(ctx, d, userID, globalModerate)
+}
+
 func (s *DiscussionService) Delete(ctx context.Context, userID uint, id uint, globalModerate bool) error {
 	d, err := s.discussions.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
-	if d.UserID != userID {
-		ok, err := s.canModerateDiscussion(ctx, d, userID, globalModerate)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return domain.ErrForbidden
-		}
+	ok, err := s.mayManageTopic(ctx, d, userID, globalModerate)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return domain.ErrForbidden
 	}
 	if err := s.discussions.Delete(ctx, id); err != nil {
 		return err
@@ -478,16 +592,21 @@ func (s *DiscussionService) Moderate(ctx context.Context, userID, id uint, in Mo
 	if !ok {
 		return nil, domain.ErrForbidden
 	}
+	fields := map[string]any{}
 	if in.IsPinned != nil {
+		fields["is_pinned"] = *in.IsPinned
 		d.IsPinned = *in.IsPinned
 	}
 	if in.IsLocked != nil {
+		fields["is_locked"] = *in.IsLocked
 		d.IsLocked = *in.IsLocked
 	}
 	if in.Tags != nil {
-		d.Tags = strings.TrimSpace(*in.Tags)
+		tags := strings.TrimSpace(*in.Tags)
+		fields["tags"] = tags
+		d.Tags = tags
 	}
-	if err := s.discussions.Update(ctx, d); err != nil {
+	if err := s.discussions.UpdateColumns(ctx, d.ID, fields); err != nil {
 		return nil, err
 	}
 	return d, nil
