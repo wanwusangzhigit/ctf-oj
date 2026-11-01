@@ -1,1 +1,29 @@
+# Agent workspace
 .agents
+
+# Local config and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+backend/tmp/
+backend/ctf-oj-backend
+backend/server
+*.test
+
+# Runtime data
+backend/data/
+uploads/
+*.log
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
