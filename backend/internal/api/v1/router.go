@@ -361,11 +361,11 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 		if settingH != nil {
 			adminGroup.GET("/settings", middleware.RequirePermission(domain.PermSettingsManage), settingH.AdminList)
 			adminGroup.PUT("/settings", middleware.RequirePermission(domain.PermSettingsManage), settingH.AdminUpdate)
+			adminGroup.PUT("/settings/copy", middleware.RequirePermission(domain.PermSettingsManage), settingH.AdminUpdateCopy)
 		}
 		if communityH != nil {
 			adminGroup.GET("/community", middleware.RequirePermission(domain.PermCommunityManage), communityH.AdminGet)
 			adminGroup.PUT("/community", middleware.RequirePermission(domain.PermCommunityManage), communityH.UpdatePolicy)
-			adminGroup.PUT("/community/copy", middleware.RequirePermission(domain.PermCommunityManage), communityH.UpdateCopy)
 			adminGroup.GET("/community/access", middleware.RequirePermission(domain.PermCommunityManage), communityH.ListGrants)
 			adminGroup.PUT("/community/access", middleware.RequirePermission(domain.PermCommunityManage), communityH.SetGrants)
 		}

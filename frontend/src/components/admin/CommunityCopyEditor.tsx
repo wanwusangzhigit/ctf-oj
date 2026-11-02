@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import { Button, Field, Input, Textarea, useToast } from '@/components/ui';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
-import { updateCommunityCopy } from '@/api/community';
+import { adminUpdateCommunityCopy } from '@/api/settings';
 import { ApiClientError } from '@/api/client';
 import {
   COPY_GROUP_LABEL,
@@ -55,10 +55,10 @@ export function CommunityCopyEditor({ overrides }: { overrides?: Record<string, 
         const key = settingKey(entry.key);
         payload[key] = (draft[key] ?? '').trim();
       }
-      return updateCommunityCopy(payload);
+      return adminUpdateCommunityCopy(payload);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-community'] });
+      qc.invalidateQueries({ queryKey: ['admin-settings'] });
       qc.invalidateQueries({ queryKey: ['community-meta'] });
       toast.success('文案已保存');
     },
@@ -67,14 +67,8 @@ export function CommunityCopyEditor({ overrides }: { overrides?: Record<string, 
   });
 
   return (
-    <section className="border border-rule bg-paper-2/40 p-4 space-y-6">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h3 className="text-sm font-medium text-ink">社区文案</h3>
-          <p className="mt-1 text-2xs text-ink-3 max-w-prose">
-            覆盖社区板块显示的文本。留空即使用内置默认，无需重新构建前端。
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-end">
         <Button
           type="button"
           size="sm"
@@ -131,6 +125,6 @@ export function CommunityCopyEditor({ overrides }: { overrides?: Record<string, 
           })}
         </div>
       ))}
-    </section>
+    </div>
   );
 }

@@ -72,6 +72,28 @@ func (h *SettingHandler) AdminUpdate(c *gin.Context) {
 	response.OK(c, gin.H{"ok": true})
 }
 
+// AdminUpdateCopy writes community.copy.* overrides through the allowlist, so a
+// settings payload cannot reach other namespaces. Audit keeps the community.copy
+// action so history written under the old endpoint stays filterable.
+func (h *SettingHandler) AdminUpdateCopy(c *gin.Context) {
+	var req map[string]string
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	if len(req) == 0 {
+		response.Err(c, domain.ErrInvalidArgument)
+		return
+	}
+	uid, _ := getUID(c)
+	if err := h.svc.UpdateCommunityCopy(c.Request.Context(), req, uid); err != nil {
+		response.Err(c, err)
+		return
+	}
+	recordAudit(c, h.auth, "community.copy", "community", 0, req)
+	response.OK(c, gin.H{"ok": true})
+}
+
 // AuditHandler — list audit log entries (admin only).
 type AuditHandler struct {
 	svc *service.AuditService

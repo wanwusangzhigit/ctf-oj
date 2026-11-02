@@ -59,7 +59,12 @@ import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage';
 import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage';
-import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
+import { AdminSettingsLayout } from '@/pages/admin/AdminSettingsLayout';
+import { AdminSettingsBrandPage } from '@/pages/admin/AdminSettingsBrandPage';
+import { AdminSettingsRegistrationPage } from '@/pages/admin/AdminSettingsRegistrationPage';
+import { AdminSettingsMiscPage } from '@/pages/admin/AdminSettingsMiscPage';
+import { AdminSettingsCopyPage } from '@/pages/admin/AdminSettingsCopyPage';
+import { AdminSettingsBroadcastPage } from '@/pages/admin/AdminSettingsBroadcastPage';
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage';
 import { AdminServerPage } from '@/pages/admin/AdminServerPage';
 import { AdminCompetitionsPage } from '@/pages/admin/AdminCompetitionsPage';
@@ -201,7 +206,20 @@ function AppRoutes() {
           <Route path="competitions/:id/edit" element={<RequireCompetitionManage><AdminCompetitionEditPage /></RequireCompetitionManage>} />
           <Route path="competitions/:id/announcements" element={<RequireCompetitionManage><AdminCompetitionAnnouncementsPage /></RequireCompetitionManage>} />
           <Route path="competitions/:id/registrations" element={<RequireCompetitionManage><AdminCompetitionRegistrationsPage /></RequireCompetitionManage>} />
-          <Route path="settings" element={<RequirePermission permission="settings.manage"><AdminSettingsPage /></RequirePermission>} />
+          <Route
+            path="settings"
+            element={
+              <RequirePermission permission="settings.manage">
+                <AdminSettingsLayout />
+              </RequirePermission>
+            }
+          >
+            <Route index element={<AdminSettingsBrandPage />} />
+            <Route path="registration" element={<AdminSettingsRegistrationPage />} />
+            <Route path="misc" element={<AdminSettingsMiscPage />} />
+            <Route path="copy" element={<AdminSettingsCopyPage />} />
+            <Route path="broadcast" element={<AdminSettingsBroadcastPage />} />
+          </Route>
           <Route path="audit" element={<RequirePermission permission="audit.view"><AdminAuditPage /></RequirePermission>} />
           <Route path="server" element={<RequirePermission permission="server.manage"><AdminServerPage /></RequirePermission>} />
         </Route>

@@ -23,7 +23,3 @@ export function listCommunityGrants(): Promise<AccessSubject[]> {
 export function setCommunityGrants(grants: AccessSubject[]): Promise<AccessSubject[]> {
   return apiPut<AccessSubject[]>('/admin/community/access', { grants });
 }
-
-export function updateCommunityCopy(copy: Record<string, string>): Promise<CommunityAdmin> {
-  return apiPut<CommunityAdmin>('/admin/community/copy', { copy });
-}

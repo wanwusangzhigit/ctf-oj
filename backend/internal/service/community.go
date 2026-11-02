@@ -195,30 +195,6 @@ func (s *CommunityAccessService) UpdatePolicy(ctx context.Context, visibility, p
 	}, updatedBy)
 }
 
-// UpdateCopy stores board string overrides. Keys outside the allowlist are
-// dropped rather than rejected: the editor posts the whole form, and a stale or
-// hand-typed key must not be able to write into another namespace.
-func (s *CommunityAccessService) UpdateCopy(ctx context.Context, copy map[string]string, updatedBy uint) error {
-	if s.settings == nil {
-		return domain.ErrInvalidArgument
-	}
-	allowed := make(map[string]struct{}, len(CommunityCopyKeys))
-	for _, key := range CommunityCopyKeys {
-		allowed[key] = struct{}{}
-	}
-	kv := make(map[string]string, len(copy))
-	for key, value := range copy {
-		if _, ok := allowed[key]; !ok {
-			continue
-		}
-		kv[key] = strings.TrimSpace(value)
-	}
-	if len(kv) == 0 {
-		return nil
-	}
-	return s.settings.UpdateMany(ctx, kv, updatedBy)
-}
-
 func (s *CommunityAccessService) ListGrants(ctx context.Context) ([]domain.AccessSubject, error) {
 	if s.repo == nil {
 		return []domain.AccessSubject{}, nil

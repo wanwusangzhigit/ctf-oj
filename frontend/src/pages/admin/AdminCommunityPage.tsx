@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import { Button, Field, Spinner, useToast } from '@/components/ui';
 import { AccessGrantEditor } from '@/components/admin/ChallengeAccessEditor';
-import { CommunityCopyEditor } from '@/components/admin/CommunityCopyEditor';
 import {
   getCommunityAdmin,
   setCommunityGrants,
   updateCommunityPolicy,
 } from '@/api/community';
 import { ApiClientError } from '@/api/client';
+import { hasPermission } from '@/lib/permissions';
+import { useAuthStore } from '@/stores/auth';
 import type { AccessSubject, CommunityPosting, CommunityVisibility } from '@/types';
 
 const SELECT_CLASS =
@@ -101,7 +103,7 @@ export function AdminCommunityPage() {
         groupsLink="/admin/access-groups"
       />
 
-      <CommunityCopyEditor overrides={q.data.copy} />
+      <CommunityCopyMovedLink />
 
       <div className="flex justify-end">
         <Button type="button" variant="primary" loading={saveMut.isPending} onClick={() => saveMut.mutate()}>
@@ -110,5 +112,19 @@ export function AdminCommunityPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * Copy overrides now live with the other site settings; pointing there is only
+ * useful for someone who can save them.
+ */
+function CommunityCopyMovedLink() {
+  const user = useAuthStore((s) => s.user);
+  if (!hasPermission(user, 'settings.manage')) return null;
+  return (
+    <p className="text-2xs">
+      <Link to="/admin/settings/copy">社区文案的编辑入口已移至「站点 › 社区文案」。</Link>
+    </p>
   );
 }

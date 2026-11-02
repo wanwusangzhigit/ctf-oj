@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**阶段**：P1–P5 完成；设计指南差距审计 P1/P2/P3 全部落地，P4 部分落地（计分模式/分组榜/2FA/RBAC/权限细化）；题目/赛事 `view/manage` 分级授权与 delegated 管理、社区/团队讨论区与社区权限管理已上线；社区讨论区已升级为 Luogu 风格主题列表与楼层详情；比赛模式已支持赛事/练习解题分离与重复提交不计分，赛事页标注已通过/比赛已解出/赛事题；赛事报名、独立公告、赛事答疑与取消成绩已上线；封榜已接入公开榜/管理实时榜，计分按提交时存储分数汇总；赛事详情拆分为概览/赛题/赛事榜/公告/答疑独立页面；题目详情拆分为题目/Writeup/讨论独立页面；比赛进行中禁止访问题目 Writeup/讨论（前端隐藏入口并拦截直接 URL，后端校验 `competition_id` 并返回 403，管理员 API 保留 moderation 读取）；`/challenges` 列表保持普通目录且链接不带赛事参数；隐藏赛事题按 `?competition=ID` 显式放行；GHCR 多架构镜像 workflow 已加入
+**阶段**：P1–P5 完成；设计指南差距审计 P1/P2/P3 全部落地，P4 部分落地（计分模式/分组榜/2FA/RBAC/权限细化）；题目/赛事 `view/manage` 分级授权与 delegated 管理、社区/团队讨论区与社区权限管理已上线；社区讨论区已升级为 Luogu 风格主题列表与楼层详情；比赛模式已支持赛事/练习解题分离与重复提交不计分，赛事页标注已通过/比赛已解出/赛事题；赛事报名、独立公告、赛事答疑与取消成绩已上线；封榜已接入公开榜/管理实时榜，计分按提交时存储分数汇总；赛事详情拆分为概览/赛题/赛事榜/公告/答疑独立页面；题目详情拆分为题目/Writeup/讨论独立页面；比赛进行中禁止访问题目 Writeup/讨论（前端隐藏入口并拦截直接 URL，后端校验 `competition_id` 并返回 403，管理员 API 保留 moderation 读取）；`/challenges` 列表保持普通目录且链接不带赛事参数；隐藏赛事题按 `?competition=ID` 显式放行；GHCR 多架构镜像 workflow 已加入；社区主题支持编辑与历史版本、社区文案后台可编辑；站点设置拆为品牌 / 注册与认证 / 其他设置 / 社区文案 / 邮件群发五个可深链分页，社区文案编辑迁入「站点设置 › 社区文案」；后台表单、账号设置与团队创建/加入全面路由化；前台弹窗统一为 `Modal` + `useConfirm`，原生 `window.confirm` 已全部移除
 **最后更新**：2026-11-01
 
 后端 Phase 1–4：站点设置、审计日志、比赛窗口、邮箱验证、密码重置、提示扣分、头像、Prometheus metrics、mailer（console/smtp/off）全部上线并经端到端验证。
@@ -12,6 +12,10 @@
 前端 Phase 5–6：HintsPanel、提交历史页、头像上传 + 编辑资料、邮箱验证页、忘记/重置密码页、注册邀请码字段、Admin 站点设置页、Admin 审计日志页、Admin 赛事 CRUD、所有新路由已接入 App.tsx。
 
 前端补全轮：新增赛事列表/详情、团队详情/团队榜、Admin 内联提示管理、队长转让 UI；补齐站点设置对注册/密码重置入口的门控；修复邮箱 token 走 query 参数的兼容问题。
+
+**2026-11-01 路由化编辑与统一弹窗**：社区主题支持编辑与版本历史（迁移 `000029_discussion_revisions`，`GET/PATCH /discussions/:id/content`、`GET /discussions/:id/revisions`，历史仅作者与版务可读，未登录 401）；`/community` 拆为共享布局下的列表 / 发帖（`/community/new`）/ 编辑（`/community/:id/edit`）/ 历史（`/community/:id/history`）四个路由，富文本统一走 `MarkdownEditor`（本地预览开关，渲染复用 `Markdown` 的 sanitize 管线）。社区名称/简介/规则等文案改为可编辑站点设置（`community.copy.*`，由 `GET /community` meta 下发），`/admin/community` 用注册表驱动编辑器，仅暴露白名单键并写入审计。后台写操作全面路由化：赛事 `/admin/competitions/new|:id/edit|:id/announcements|:id/registrations`、题目 `/admin/challenges/new|:id/edit`、用户详情 `/admin/users/:id`；账号资料/密码/2FA 迁到 `/settings`（`/settings/password`、`/settings/security`），团队创建与加入拆为 `/teams/new`、`/teams/join`。新增弹窗基元 `components/ui/Modal`（portal + `role=dialog`、`aria-labelledby`、Escape 与遮罩关闭、焦点陷阱与还原、滚动锁、`data-autofocus`）与 `ConfirmProvider`/`useConfirm()`（返回 `Promise<boolean>`，默认危险样式）；`AdminOverviewPage` 容器日志与 `AdminAccessGroupsPage` 权限组表单改用 Modal，13 个文件中的 14 处 `window.confirm` 全部替换为 `useConfirm`。浏览器回归 54/54（桌面 23、375px 7、权限组增删与容器清理/群发拦截 13、题目/分类/公告删除文案与取消 11），覆盖焦点陷阱、Escape 与遮罩不触发请求、确认后真实执行删除、Modal 底部按钮提交表单；Go vet/build/test、TypeScript 与生产构建通过；`dangerouslySetInnerHTML`、`window.confirm/alert/prompt`、外部运行时资源与组件内硬编码色值 grep 均为 0；临时测试用户与其数据（含审计记录）已清理。
+
+**2026-11-01 站点设置分页化**：`/admin/settings` 由一页长表单改为共享 `AdminSettingsLayout` 下的五个可深链分页 —— 品牌（index）、`registration`、`misc`、`copy`、`broadcast`，每屏只 `PUT` 自己管辖的键（`changedSettings` 取与当前服务端值的差集；`SettingService.UpdateMany` 走 `UpsertMany` 只增改不删，因此部分提交安全），不再有整页「保存全部」。社区文案编辑从 `/admin/community` 迁入「站点设置 › 社区文案」，写入端点改为 `PUT /admin/settings/copy`（`settings.manage` 把关），白名单过滤下沉为 `service.SettingService.filterCommunityCopy` + `UpdateCommunityCopy`（非 `CommunityCopyKeys` 键丢弃、值 trim、留空即回落内置默认）；删除 `PUT /admin/community/copy` 与 `CommunityAccessService.UpdateCopy`，`GET /admin/community` 不再返回 `copy`，审计动作仍记 `community.copy`。`/admin/community` 只保留可见性/发帖策略/授权，并对持有 `settings.manage` 的用户显示一行跳转链接。权限完全由角色派生且只有 `admin` 同时持有 `settings.manage` 与 `community.manage`，因此文案写权换命名空间不改变实际可编辑人群。浏览器回归 49/49（五分页深链与唯一激活 Tab、品牌/注册分页 PUT 键集、文案覆盖写入后经 `GET /community` meta 生效并清空回落、其他设置空态、社区页无文案区块与跳转链接、群发弹窗 Escape/取消不触发请求、375px 无横向溢出、无 pageerror），另单测其他设置分页对真实行的 PUT 只带自身键；curl 矩阵：admin 200、moderator 403、`site.name`/`community.copy.nope` 等越界键被丢弃、旧路径 404、`competition.active_id` 仍被剥离、审计可见；Go vet/build/test（含新增 `filterCommunityCopy` 表驱动测试）与 TypeScript、生产构建通过；临时测试用户、其审计与设置行已清理，站点设置表恢复原 10 行。
 
 **2026-11-01 比赛交互限制**：比赛进行中（live 且未归档）禁止访问题目 Writeup 与题目讨论。前端在 `ChallengeLayout` 中隐藏 Writeup/讨论导航，直接访问 `/challenges/:id/writeups|discussions?competition=ID` 显示「比赛期间不可用」；后端 Writeup list/create 与 challenge discussion list/create 校验 `competition_id`，非管理员返回 403，管理员保留 API 读取用于 moderation；赛事结束/未开始/非绑定题目仍按练习模式可用。API 回归 14/14，浏览器回归 27/27（比赛拦截、直接 URL、返回题目、练习/已结束回退、移动端无横向溢出、无页面错误），题目页面回归 25/25，赛事页面 28/28，比赛审计 20/20；Go test/vet、TypeScript 与生产构建通过；测试数据已清理。
 
@@ -181,6 +185,10 @@
 - [x] 公告列表 + 详情、通知中心
 - [x] 404 页面
 - [x] 管理后台（分类 CRUD + 题目创建/编辑/删除 + 附件管理 + 公告管理 + 用户管理 + 实例总览 + 导入导出）
+- [x] 社区主题编辑与版本历史、发帖/编辑/历史独立路由、`MarkdownEditor` 本地预览、社区文案后台可编辑（2026-11-01）
+- [x] 后台写操作路由化：赛事表单/公告/报名、题目表单、用户详情；账号 `/settings`；团队 `/teams/new`、`/teams/join`（2026-11-01）
+- [x] 站点设置分页化：`/admin/settings` 品牌 / `registration` / `misc` / `copy` / `broadcast` 五个可深链分页，每屏只写自己的键；社区文案编辑迁入并改由 `PUT /admin/settings/copy` 写入（2026-11-01）
+- [x] 统一弹窗基元 `Modal` + `useConfirm`（焦点陷阱、Escape/遮罩、滚动锁、焦点还原），全站移除 `window.confirm`（2026-11-01）
 
 ### 部署与运维
 - [x] 多阶段 Dockerfile（backend & worker 共用 alpine + docker-cli）
@@ -385,6 +393,12 @@ P1/P2/P3 全部完成。P4 已落地：计分模式（dynamic/fixed/three_blood�
 - **2026-10-27**：delegated 操作复用全局审计，payload 追加 `delegated: true` 与 `grant`；被授权者通过 `/users/me` 的 `delegations` 获得后台入口。
 - **2026-10-29**：比赛解题独立存 `competition_solves`，不复用练习 `solves`；重复正确提交记录 submission 但返回 0 分。未显式指定赛事时按练习模式；隐藏题仅在有 live 赛事上下文时可见；赛事榜 UNION 旧 `solves` 兼容历史成绩。
 - **2026-10-31**：赛事榜以 `competition_solves.score`（及旧 `solves.score`）汇总，不在读取时按当前题目分值重算；封榜只影响公开榜，管理员/赛事管理者始终可看实时榜。
+- **2026-11-01**：主题编辑在事务内先 `SELECT ... FOR UPDATE` 快照旧内容再按列 `Updates`，版本号取 `edit_count + 1`，避免并发编辑撞 `(discussion_id, revision)` 唯一索引；未提交的字段保持原值，空白标题/正文按 400 拒绝而非清空内容。
+- **2026-11-01**：社区文案不建新表，复用站点设置的 `community.copy.*` 前缀并由后端白名单校验；`/admin/community` 按前端注册表渲染可编辑项，仅暴露白名单键，保存写 `community.copy` 审计。
+- **2026-11-01**：后台写操作（赛事/题目/用户/团队/账号设置）从页内弹窗迁到独立路由 —— URL 可分享、可后退、刷新不丢表单；只有只读详情（容器日志）和小型录入表单（权限组）保留 `Modal`。
+- **2026-11-01**：二次确认统一为 `ConfirmProvider` 暴露的 `useConfirm(): Promise<boolean>`，原生 `window.confirm` 无法定制文案、不跟随主题且阻塞事件循环，全部移除；`Modal` 把 `onClose` 存入 ref，避免父组件重渲染时重新挂载焦点还原而抢走焦点。
+- **2026-11-01**：社区文案本质是 `site_settings` 的一个命名空间，因此编辑入口与写端点都并入站点设置（`PUT /admin/settings/copy`，`settings.manage`），`/admin/community` 回到只管策略与授权；白名单过滤留在 service 层并复用原 `community.copy` 审计动作，历史审计筛选不断档。角色是唯一权限来源且只有 `admin` 同时持有两个权限，所以这次改守卫不影响任何人的实际能力。
+- **2026-11-01**：站点设置分页只 `PUT` 与当前服务端值不同的自身键 —— 依赖 `UpsertMany` 只增改不删的语义；若沿用整页提交，一个分页的陈旧行就可能覆盖另一个分页刚写的值。
 
 ## 已知问题
 

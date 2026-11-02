@@ -107,6 +107,32 @@ func (s *SettingService) UpdateMany(ctx context.Context, kv map[string]string, u
 	return s.Refresh(ctx)
 }
 
+// UpdateCommunityCopy stores board string overrides. Keys outside the allowlist
+// are dropped rather than rejected: the editor posts its whole form, and a stale
+// or hand-typed key must not be able to write into another namespace.
+func (s *SettingService) UpdateCommunityCopy(ctx context.Context, copy map[string]string, updatedBy uint) error {
+	kv := filterCommunityCopy(copy)
+	if len(kv) == 0 {
+		return nil
+	}
+	return s.UpdateMany(ctx, kv, updatedBy)
+}
+
+func filterCommunityCopy(copy map[string]string) map[string]string {
+	allowed := make(map[string]struct{}, len(CommunityCopyKeys))
+	for _, key := range CommunityCopyKeys {
+		allowed[key] = struct{}{}
+	}
+	kv := make(map[string]string, len(copy))
+	for key, value := range copy {
+		if _, ok := allowed[key]; !ok {
+			continue
+		}
+		kv[key] = strings.TrimSpace(value)
+	}
+	return kv
+}
+
 // Refresh drops the in-memory cache so the next read repopulates from DB.
 func (s *SettingService) Refresh(ctx context.Context) error {
 	s.mu.Lock()

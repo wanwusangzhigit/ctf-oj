@@ -300,7 +300,6 @@ export interface CommunityAdmin {
   visibility: CommunityVisibility;
   posting: CommunityPosting;
   grants: AccessSubject[];
-  copy?: Record<string, string>;
 }
 
 export interface Writeup {

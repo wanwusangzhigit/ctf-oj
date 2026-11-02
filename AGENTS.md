@@ -80,6 +80,8 @@ frontend/
 - 被授权操作写入审计时，payload 追加 `delegated: true` 与 `grant`（如 `challenge:12:manage`）。
 - 讨论区按 `scope` 分为 `challenge` / `community` / `team` / `competition`；团队讨论仅团队成员可读写，队长可 moderation。
 - 社区讨论列表支持 `sort=last_reply|newest|oldest`、`tag`、`q`；`GET /community/discussions/:id` 返回主题与全部楼层并递增浏览数。
+- 主题正文可编辑并保留历史：`GET/PATCH /discussions/:id/content`（PATCH 仅作者与 `discussion.moderate`，标题/正文按列各自记录版本）、`GET /discussions/:id/revisions`（同权限，其他登录用户 403、未登录 401）；历史版本存于 `discussion_revisions`。
+- 社区文案（板块名/简介/规则等）存于 `site_settings` 的 `community.copy.*`，由 `GET /community` meta 下发（空值不返回，前端回落内置默认）；编辑入口是 `/admin/settings/copy`，写入走 `PUT /admin/settings/copy` —— 权限为 `settings.manage`，键名以 `service.CommunityCopyKeys` 白名单过滤（非白名单键丢弃而非报错），写入记入审计 `community.copy`。`/admin/community` 只管可见性、发帖策略与授权，不再返回 `copy`。
 - 赛事报名由 `registration_required` 控制（默认 false）。报名码非空时必须匹配；赛事结束或归档后不可报名，开赛后不可取消报名。未报名不能提交赛事题或发起赛事答疑；`discussion.moderate` 与赛事管理者免报名。
 - 赛事公告独立于全局公告：公开列表只返回已发布公告，管理端可查看草稿。取消成绩按赛事记录在 `competition_registrations.score_excluded`，排行榜过滤该用户，管理端可恢复；被取消成绩用户不能提交赛事题或发起赛事答疑。
 - 赛事报名/公告/取消成绩 API：`GET /competitions/:id/registration`、`POST/DELETE /competitions/:id/register`、`GET /competitions/:id/announcements`、`GET/POST /competitions/:id/discussions`；管理端 `GET /admin/competitions/:id/registrations`、`PATCH /admin/competitions/:id/registrations/:userId`、`GET/POST/PUT/DELETE /admin/competitions/:id/announcements`、`PATCH /admin/competitions/:id/discussions/:discussionId`。
@@ -95,9 +97,12 @@ frontend/
 
 ## 前端约定
 
-- 路由：`/auth/*`、`/`、`/challenges`、`/challenges/:id`（题目）、`/challenges/:id/writeups`、`/challenges/:id/discussions`、`/competitions`、`/competitions/:id`（概览）、`/competitions/:id/challenges`、`/competitions/:id/scoreboard`、`/competitions/:id/announcements`、`/competitions/:id/discussions`、`/scoreboard`、`/scoreboard/realtime`、`/stats`、`/search`、`/community`、`/community/:id`、`/teams`、`/teams/:id`、`/teams/scoreboard`、`/announcements*`、`/notifications`、`/instances`、`/users/:id`、`/admin/*`。
+- 路由：`/auth/*`、`/`、`/challenges`、`/challenges/:id`（题目）、`/challenges/:id/writeups`、`/challenges/:id/discussions`、`/competitions`、`/competitions/:id`（概览）、`/competitions/:id/challenges`、`/competitions/:id/scoreboard`、`/competitions/:id/announcements`、`/competitions/:id/discussions`、`/scoreboard`、`/scoreboard/realtime`、`/stats`、`/search`、`/community`、`/community/new`、`/community/:id`、`/community/:id/edit`、`/community/:id/history`、`/teams`、`/teams/new`、`/teams/join`、`/teams/:id`、`/teams/scoreboard`、`/settings`（`/settings/password`、`/settings/security`）、`/me/submissions`、`/me/solves`、`/announcements*`、`/notifications`、`/instances`、`/users/:id`、`/admin/settings`（品牌）及其 `registration` / `misc` / `copy` / `broadcast` 分页、`/admin/*`。
 - 公开路由：`/auth/*`、`/`、`/challenges` 列表、`/competitions*`、`/scoreboard*`、`/stats`、`/search`、`/community`、`/community/:id`、`/teams/scoreboard`、`/announcements*`；其余需登录，后台按权限守卫。
 - 后台守卫需同时支持全局权限与 `delegations`：`RequireChallengeManage` / `RequireCompetitionManage` 允许对应资源的管理授权；无资源 id 的列表路由允许任一该类型授权。社区权限页使用 `community.manage`。
+- 后台写操作走独立路由而非页内弹窗：`/admin/challenges/new|:id/edit`、`/admin/competitions/new|:id/edit|:id/announcements|:id/registrations`、`/admin/users/:id`；只读详情（容器日志）与小型录入表单（权限组）才使用 `Modal`。
+- 站点设置按 concern 拆为共享布局下的分页：`/admin/settings`（品牌）、`/admin/settings/registration`、`/admin/settings/misc`、`/admin/settings/copy`、`/admin/settings/broadcast`；每屏只 `PUT` 自己管辖的键，不再有整页「保存全部」。
+- 二次确认统一使用 `ConfirmProvider` 暴露的 `useConfirm()`，返回 `Promise<boolean>`，危险操作默认红色按钮；弹层统一使用 `components/ui/Modal`（portal、`role=dialog` + `aria-labelledby`、Escape 与遮罩关闭、焦点陷阱与还原、滚动锁、`data-autofocus` 指定初始焦点）。禁止 `window.confirm` / `alert` / `prompt`。
 - 全局错误使用 toast，不在页面层处理业务错误细节。
 - 表单使用 `react-hook-form` + `zod` 校验。
 - 数据请求统一走 TanStack Query；本地状态走 Zustand。

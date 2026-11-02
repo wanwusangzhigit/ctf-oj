@@ -15,3 +15,8 @@ export function adminListSettings(): Promise<SiteSetting[]> {
 export function adminUpdateSettings(values: Record<string, string>): Promise<{ ok: true }> {
   return apiPut<{ ok: true }>('/admin/settings', values);
 }
+
+/** Admin: write community.copy.* overrides; keys outside the allowlist are dropped. */
+export function adminUpdateCommunityCopy(values: Record<string, string>): Promise<{ ok: true }> {
+  return apiPut<{ ok: true }>('/admin/settings/copy', values);
+}
