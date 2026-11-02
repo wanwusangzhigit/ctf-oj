@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Cpu, HardDrive, MemoryStick, RefreshCw, Server, Trash2 } from 'lucide-react';
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Spinner, useToast } from '@/components/ui';
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Spinner, useConfirm, useToast } from '@/components/ui';
 import { getServerOverview, pruneServerContainers } from '@/api/admin';
 import { formatBytes, formatTime } from '@/lib/utils';
 
@@ -46,6 +46,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 
 export function AdminServerPage() {
   const toast = useToast();
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ['admin-server'],
@@ -206,10 +207,14 @@ export function AdminServerPage() {
             variant="ghost"
             size="sm"
             disabled={pruneMut.isPending}
-            onClick={() => {
-              if (confirm('清理所有已停止的题目容器？运行中的容器不受影响。')) {
-                pruneMut.mutate();
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: '清理停止容器',
+                description: '所有已停止的题目容器会被删除，运行中的容器不受影响。',
+                confirmText: '清理',
+                danger: false,
+              });
+              if (ok) pruneMut.mutate();
             }}
           >
             <Trash2 className="h-3.5 w-3.5" /> 清理停止容器

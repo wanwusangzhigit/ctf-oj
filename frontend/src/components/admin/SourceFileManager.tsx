@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileCode, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { Button, Field, Input, Textarea, useToast } from '@/components/ui';
+import { Button, Field, Input, Textarea, useConfirm, useToast } from '@/components/ui';
 import {
   deleteSource,
   downloadSourceBlob,
@@ -63,6 +63,7 @@ export function SourceFileManager({
 }) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const [editorPath, setEditorPath] = useState<string>('');
   const [editorContent, setEditorContent] = useState<string>('');
 
@@ -206,8 +207,13 @@ export function SourceFileManager({
                   variant="ghost"
                   size="icon"
                   loading={deleteMut.isPending}
-                  onClick={() => {
-                    if (confirm(`删除「${e.path}」？`)) deleteMut.mutate(e.path);
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: '删除源码文件',
+                      description: `删除「${e.path}」？容器镜像重新构建后不会再包含该文件。`,
+                      confirmText: '删除',
+                    });
+                    if (ok) deleteMut.mutate(e.path);
                   }}
                   aria-label="删除"
                 >

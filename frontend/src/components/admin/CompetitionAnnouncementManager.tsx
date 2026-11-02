@@ -7,6 +7,7 @@ import {
   Field,
   Input,
   Spinner,
+  useConfirm,
   useToast,
 } from '@/components/ui';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
@@ -34,6 +35,7 @@ export function CompetitionAnnouncementManager({
 }) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const [draft, setDraft] = useState(EMPTY);
   const [editing, setEditing] = useState<CompetitionAnnouncement | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -207,10 +209,13 @@ export function CompetitionAnnouncementManager({
                   size="sm"
                   variant="ghost"
                   loading={deleteMut.isPending && deleteMut.variables === a.id}
-                  onClick={() => {
-                    if (confirm(`删除公告「${a.title}」？`)) {
-                      deleteMut.mutate(a.id);
-                    }
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: '删除赛事公告',
+                      description: `公告「${a.title}」将被删除，无法恢复。`,
+                      confirmText: '删除',
+                    });
+                    if (ok) deleteMut.mutate(a.id);
                   }}
                   aria-label={`删除公告 ${a.title}`}
                 >

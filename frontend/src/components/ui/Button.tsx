@@ -41,7 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function button
       className={cn(
         'inline-flex items-center justify-center font-medium select-none',
         'transition-colors duration-120',
-        'focus-visible:outline-none disabled:cursor-not-allowed',
+        'disabled:cursor-not-allowed',
         VARIANT_CLS[variant],
         SIZE_CLS[size],
         className,

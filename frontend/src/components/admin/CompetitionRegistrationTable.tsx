@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Badge, Button, Spinner, useToast } from '@/components/ui';
+import { Badge, Button, Spinner, useConfirm, useToast } from '@/components/ui';
 import {
   listCompetitionRegistrations,
   setCompetitionScoreExcluded,
@@ -21,6 +21,7 @@ export function CompetitionRegistrationTable({
 }) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const listQ = useQuery({
     queryKey: ['admin-competition-registrations', competition.id],
@@ -101,17 +102,23 @@ export function CompetitionRegistrationTable({
                         excludeMut.isPending &&
                         excludeMut.variables?.userId === r.userId
                       }
-                      onClick={() => {
+                      onClick={async () => {
                         const next = !r.scoreExcluded;
-                        if (
-                          confirm(
-                            next
-                              ? `取消 ${name} 的赛事成绩？`
-                              : `恢复 ${name} 的赛事成绩？`,
-                          )
-                        ) {
-                          excludeMut.mutate({ userId: r.userId, excluded: next });
-                        }
+                        const ok = await confirm(
+                          next
+                            ? {
+                                title: '取消成绩',
+                                description: `取消 ${name} 在本赛事的成绩，排行榜将不再显示该用户。`,
+                                confirmText: '取消成绩',
+                              }
+                            : {
+                                title: '恢复成绩',
+                                description: `恢复 ${name} 在本赛事的成绩。`,
+                                confirmText: '恢复成绩',
+                                danger: false,
+                              },
+                        );
+                        if (ok) excludeMut.mutate({ userId: r.userId, excluded: next });
                       }}
                     >
                       {r.scoreExcluded ? '恢复成绩' : '取消成绩'}

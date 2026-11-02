@@ -11,6 +11,7 @@ import {
   Field,
   Input,
   Textarea,
+  useConfirm,
   useToast,
 } from '@/components/ui';
 import {
@@ -25,6 +26,7 @@ import type { Category } from '@/types';
 export function AdminCategoriesPage() {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState({ name: '', slug: '', description: '', sortOrder: 0 });
 
@@ -163,14 +165,13 @@ export function AdminCategoriesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        if (
-                          confirm(
-                            `确认删除分类「${c.name}」？\n若分类下仍有题目，删除会被拒绝。`,
-                          )
-                        ) {
-                          deleteMutation.mutate(c.id);
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: '删除分类',
+                          description: `删除分类「${c.name}」？分类下仍有题目时删除会被拒绝。`,
+                          confirmText: '删除',
+                        });
+                        if (ok) deleteMutation.mutate(c.id);
                       }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />

@@ -8,6 +8,7 @@ import {
   Input,
   Spinner,
   Textarea,
+  useConfirm,
   useToast,
 } from '@/components/ui';
 import { Avatar } from '@/components/layout/Avatar';
@@ -169,6 +170,7 @@ function CommentItem({
 }) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const user = useAuthStore((s) => s.user);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
@@ -288,8 +290,13 @@ function CommentItem({
             {canDelete && (
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm('确认删除这条评论？')) delMut.mutate();
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: '删除评论',
+                    description: '该评论及其子回复都会被删除，无法恢复。',
+                    confirmText: '删除',
+                  });
+                  if (ok) delMut.mutate();
                 }}
                 className="inline-flex items-center gap-1 h-7 px-2 text-2xs rounded-sm text-ink-3 hover:bg-paper-2 hover:text-oxblood transition-colors"
               >

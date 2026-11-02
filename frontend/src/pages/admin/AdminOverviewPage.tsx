@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, FileText, Upload, Trash2, X } from 'lucide-react';
+import { Download, FileText, Upload, Trash2 } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -9,7 +9,9 @@ import {
   CardHeader,
   CardTitle,
   Field,
+  Modal,
   Spinner,
+  useConfirm,
   useToast,
 } from '@/components/ui';
 import {
@@ -28,6 +30,7 @@ const PAGE_SIZE = 50;
 export function AdminOverviewPage() {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [logsTarget, setLogsTarget] = useState<{ id: number; title: string } | null>(null);
@@ -62,11 +65,14 @@ export function AdminOverviewPage() {
       title: inst.challenge?.title ?? `#${inst.challengeId}`,
     });
 
-  const stopInstance = (inst: Instance) => {
+  const stopInstance = async (inst: Instance) => {
     const title = inst.challenge?.title ?? `#${inst.challengeId}`;
-    if (confirm(`强制销毁「${title}」的运行实例？`)) {
-      stopMut.mutate(inst.id);
-    }
+    const ok = await confirm({
+      title: '强制销毁实例',
+      description: `「${title}」的运行容器会被立即停止并删除。`,
+      confirmText: '销毁',
+    });
+    if (ok) stopMut.mutate(inst.id);
   };
 
   const exportMut = useMutation({
@@ -289,52 +295,27 @@ function LogsModal({
   });
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-paper-3/60"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`容器日志 instance #${target.id}`}
+    <Modal
+      open
+      onClose={onClose}
+      title={`容器日志 · ${target.title}`}
+      subtitle={`instance #${target.id} · 最近 500 行`}
+      width="max-w-3xl"
     >
-      <div
-        className="bg-surface border border-rule-strong rounded-sm shadow-popover w-full max-w-3xl max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-rule">
-          <div className="min-w-0">
-            <div className="text-sm font-medium truncate">
-              容器日志 · {target.title}
-            </div>
-            <div className="font-mono text-2xs text-ink-3 tabular-nums mt-0.5">
-              instance #{target.id} · 最近 500 行
-            </div>
-          </div>
-          <button
-            type="button"
-            aria-label="关闭"
-            className="text-ink-3 hover:text-ink transition-colors"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </button>
+      {logsQ.isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Spinner className="h-4 w-4 text-ink-3" />
         </div>
-        <div className="flex-1 overflow-auto p-3">
-          {logsQ.isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner className="h-4 w-4 text-ink-3" />
-            </div>
-          ) : logsQ.isError ? (
-            <div className="py-8 text-center text-sm text-ink-3">
-              无法读取日志 —— 接口返回错误。请稍后重试。
-            </div>
-          ) : (
-            <pre className="font-mono text-2xs whitespace-pre-wrap break-all text-ink bg-paper-2 p-3 rounded-sm border border-rule leading-relaxed">
-              {logsQ.data?.trim() || '（无日志输出 —— 容器可能在日志采集前已终止）'}
-            </pre>
-          )}
+      ) : logsQ.isError ? (
+        <div className="py-8 text-center text-sm text-ink-3">
+          无法读取日志 —— 接口返回错误。请稍后重试。
         </div>
-      </div>
-    </div>
+      ) : (
+        <pre className="font-mono text-2xs whitespace-pre-wrap break-all text-ink bg-paper-2 p-3 rounded-sm border border-rule leading-relaxed">
+          {logsQ.data?.trim() || '（无日志输出 —— 容器可能在日志采集前已终止）'}
+        </pre>
+      )}
+    </Modal>
   );
 }
 

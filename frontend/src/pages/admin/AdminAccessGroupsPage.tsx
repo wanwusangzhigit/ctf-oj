@@ -8,8 +8,10 @@ import {
   CardHeader,
   Field,
   Input,
+  Modal,
   Spinner,
   Textarea,
+  useConfirm,
   useToast,
 } from '@/components/ui';
 import {
@@ -26,6 +28,7 @@ import type { AccessGroup, AccessSubject } from '@/types';
 export function AdminAccessGroupsPage() {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState<AccessGroup | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -88,10 +91,13 @@ export function AdminAccessGroupsPage() {
                     variant="ghost"
                     size="sm"
                     loading={deleteMut.isPending}
-                    onClick={() => {
-                      if (confirm(`删除权限组「${g.name}」？引用该组的题目授权会同时移除。`)) {
-                        deleteMut.mutate(g.id);
-                      }
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: '删除权限组',
+                        description: `权限组「${g.name}」将被删除，引用该组的题目授权也会同时移除。`,
+                        confirmText: '删除',
+                      });
+                      if (ok) deleteMut.mutate(g.id);
                     }}
                     aria-label="删除"
                   >
@@ -123,6 +129,8 @@ export function AdminAccessGroupsPage() {
     </div>
   );
 }
+
+const FORM_ID = 'access-group-form';
 
 function AccessGroupModal({
   initial,
@@ -163,57 +171,48 @@ function AccessGroupModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-paper-3/60 p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <form
-        onSubmit={submit}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-xl overflow-auto rounded-sm border border-rule-strong bg-paper shadow-popover"
-      >
-        <div className="border-b border-rule px-5 py-4">
-          <h3 className="font-semibold text-ink">
-            {initial ? '编辑权限组' : '新建权限组'}
-          </h3>
-          <p className="mt-0.5 text-2xs text-ink-3">组内可包含用户与团队</p>
-        </div>
-        <div className="space-y-4 p-5">
-          <Field label="名称" htmlFor="group-name">
-            <Input
-              id="group-name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </Field>
-          <Field label="说明" htmlFor="group-desc">
-            <Textarea
-              id="group-desc"
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </Field>
-          <Field label="成员">
-            <AccessSubjectPicker
-              value={members}
-              onChange={setMembers}
-              allowGroups={false}
-            />
-          </Field>
-        </div>
-        <div className="flex items-center justify-end gap-2 border-t border-rule px-5 py-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={initial ? '编辑权限组' : '新建权限组'}
+      subtitle="组内可包含用户与团队"
+      width="max-w-xl"
+      footer={
+        <>
           <Button type="button" variant="ghost" onClick={onClose}>
             取消
           </Button>
-          <Button type="submit" variant="primary" loading={pending}>
+          <Button type="submit" form={FORM_ID} variant="primary" loading={pending}>
             {initial ? '保存' : '创建'}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <form id={FORM_ID} onSubmit={submit} className="space-y-4">
+        <Field label="名称" htmlFor="group-name">
+          <Input
+            id="group-name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
+        <Field label="说明" htmlFor="group-desc">
+          <Textarea
+            id="group-desc"
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </Field>
+        <Field label="成员">
+          <AccessSubjectPicker
+            value={members}
+            onChange={setMembers}
+            allowGroups={false}
+          />
+        </Field>
       </form>
-    </div>
+    </Modal>
   );
 }

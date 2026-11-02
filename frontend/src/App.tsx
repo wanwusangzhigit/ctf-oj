@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Spinner, ToastProvider } from '@/components/ui';
+import { ConfirmProvider, Spinner, ToastProvider } from '@/components/ui';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { AdminIndexRedirect, PublicOnly, RequireAdmin, RequireAuth, RequireChallengeManage, RequireCompetitionManage, RequirePermission } from '@/components/Guards';
 import { useBootstrapAuth } from '@/hooks/useBootstrapAuth';
@@ -244,17 +244,19 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <BrowserRouter>
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center min-h-screen">
-                <Spinner className="h-5 w-5 text-muted" />
-              </div>
-            }
-          >
-            <AppRoutes />
-          </Suspense>
-        </BrowserRouter>
+        <ConfirmProvider>
+          <BrowserRouter>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                  <Spinner className="h-5 w-5 text-muted" />
+                </div>
+              }
+            >
+              <AppRoutes />
+            </Suspense>
+          </BrowserRouter>
+        </ConfirmProvider>
       </ToastProvider>
     </QueryClientProvider>
   );

@@ -1,5 +1,5 @@
 import { Download, Paperclip, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button, useConfirm } from '@/components/ui';
 import { attachmentDownloadURL } from '@/api/challenge';
 import { formatBytes } from '@/lib/utils';
 import type { Attachment } from '@/types';
@@ -23,6 +23,8 @@ export function AttachmentManager({
   onUpload: (file: File) => void;
   onDelete: (aid: number) => void;
 }) {
+  const confirm = useConfirm();
+
   return (
     <div className="border border-rule bg-paper-2 p-4 space-y-3 rounded-sm">
       <div className="flex items-center justify-between gap-2">
@@ -70,8 +72,13 @@ export function AttachmentManager({
                 variant="ghost"
                 size="icon"
                 loading={deleting}
-                onClick={() => {
-                  if (confirm(`删除附件「${a.filename}」？`)) onDelete(a.id);
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: '删除附件',
+                    description: `附件「${a.filename}」将被删除，无法恢复。`,
+                    confirmText: '删除',
+                  });
+                  if (ok) onDelete(a.id);
                 }}
                 aria-label="删除附件"
               >

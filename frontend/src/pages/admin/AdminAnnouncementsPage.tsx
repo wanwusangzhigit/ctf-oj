@@ -11,6 +11,7 @@ import {
   Field,
   Input,
   Textarea,
+  useConfirm,
   useToast,
 } from '@/components/ui';
 import {
@@ -26,6 +27,7 @@ import type { Announcement } from '@/types';
 export function AdminAnnouncementsPage() {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState<Announcement | null>(null);
   const [form, setForm] = useState({
     title: '',
@@ -179,8 +181,13 @@ export function AdminAnnouncementsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        if (confirm(`确认删除公告「${a.title}」？`)) deleteMut.mutate(a.id);
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: '删除公告',
+                          description: `删除公告「${a.title}」？删除后前台不再展示，且无法恢复。`,
+                          confirmText: '删除',
+                        });
+                        if (ok) deleteMut.mutate(a.id);
                       }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />

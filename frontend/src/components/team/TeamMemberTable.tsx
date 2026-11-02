@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Crown, Trash2, Users } from 'lucide-react';
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, useToast } from '@/components/ui';
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, useConfirm, useToast } from '@/components/ui';
 import { removeTeamMember, transferTeamOwner } from '@/api/team';
 import { useAuthStore } from '@/stores/auth';
 import { ApiClientError } from '@/api/client';
@@ -13,6 +13,7 @@ import type { Team } from '@/types';
 export function TeamMemberTable({ team }: { team: Team }) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const user = useAuthStore((s) => s.user);
   const isOwner = !!user && user.id === team.ownerId;
 
@@ -74,14 +75,14 @@ export function TeamMemberTable({ team }: { team: Team }) {
                       variant="ghost"
                       size="sm"
                       loading={transferMut.isPending}
-                      onClick={() => {
-                        if (
-                          confirm(
-                            `将队长转让给 ${m.user?.username ?? '该成员'}？转让后你将成为普通成员。`,
-                          )
-                        ) {
-                          transferMut.mutate(m.userId);
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: '转让队长',
+                          description: `将队长转让给 ${m.user?.username ?? '该成员'}？转让后你将成为普通成员。`,
+                          confirmText: '转让队长',
+                          danger: false,
+                        });
+                        if (ok) transferMut.mutate(m.userId);
                       }}
                     >
                       <Crown className="h-3.5 w-3.5" />
@@ -91,8 +92,13 @@ export function TeamMemberTable({ team }: { team: Team }) {
                       variant="ghost"
                       size="icon"
                       aria-label={`移除 ${m.user?.username ?? `#${m.userId}`}`}
-                      onClick={() => {
-                        if (confirm(`确认移除 ${m.user?.username}?`)) removeMut.mutate(m.userId);
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: '移除成员',
+                          description: `确认把 ${m.user?.username ?? '该成员'} 移出团队？`,
+                          confirmText: '移除',
+                        });
+                        if (ok) removeMut.mutate(m.userId);
                       }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />

@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { Badge, Button, Input, Spinner, useToast } from '@/components/ui';
+import { Badge, Button, Input, Spinner, useConfirm, useToast } from '@/components/ui';
 import { deleteChallenge, listChallenges } from '@/api/challenge';
 import { ApiClientError } from '@/api/client';
 import type { ChallengeStatus } from '@/types';
@@ -30,6 +30,7 @@ const PAGE_SIZE = 50;
 export function AdminChallengesPage() {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const canManageAll = hasPermission(user, 'challenge.manage');
@@ -166,10 +167,13 @@ export function AdminChallengesPage() {
                       variant="ghost"
                       size="icon"
                       loading={deleteMut.isPending && deleteMut.variables === c.id}
-                      onClick={() => {
-                        if (confirm(`确认删除题目「${c.title}」？相关提交与解题记录也会被删除。`)) {
-                          deleteMut.mutate(c.id);
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: '删除题目',
+                          description: `删除题目「${c.title}」？相关的提交、解题、提示、附件与讨论记录都会被一并删除，无法恢复。`,
+                          confirmText: '删除题目',
+                        });
+                        if (ok) deleteMut.mutate(c.id);
                       }}
                       aria-label="删除"
                     >

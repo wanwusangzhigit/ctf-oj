@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, Trash2 } from 'lucide-react';
-import { Button, Card, CardBody, Input, Spinner, Textarea, useToast } from '@/components/ui';
+import { Button, Card, CardBody, Input, Spinner, Textarea, useConfirm, useToast } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
 import {
   createWriteup,
@@ -25,6 +25,7 @@ export function WriteupsPanel({
 }) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const user = useAuthStore((s) => s.user);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -142,8 +143,13 @@ export function WriteupsPanel({
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm('删除这篇 Writeup？')) delMut.mutate(w.id);
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: '删除 Writeup',
+                              description: '这篇 Writeup 将被删除，无法恢复。',
+                              confirmText: '删除',
+                            });
+                            if (ok) delMut.mutate(w.id);
                           }}
                           className="inline-flex items-center gap-1 h-7 px-2 text-2xs text-ink-3 hover:text-danger hover:bg-paper-2 rounded-sm"
                         >

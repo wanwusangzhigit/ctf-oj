@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LogOut, Trash2, Users } from 'lucide-react';
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, useToast } from '@/components/ui';
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, useConfirm, useToast } from '@/components/ui';
 import { disbandTeam, leaveTeam, rotateTeamInvite } from '@/api/team';
 import { useAuthStore } from '@/stores/auth';
 import { ApiClientError } from '@/api/client';
@@ -15,6 +15,7 @@ import type { Team } from '@/types';
 export function MyTeamCard({ team }: { team: Team }) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const user = useAuthStore((s) => s.user);
   const isOwner = !!user && user.id === team.ownerId;
 
@@ -79,8 +80,13 @@ export function MyTeamCard({ team }: { team: Team }) {
                   variant="danger"
                   size="sm"
                   loading={disbandMut.isPending}
-                  onClick={() => {
-                    if (confirm('解散后将无法恢复，确认？')) disbandMut.mutate();
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: '解散团队',
+                      description: `解散「${team.name}」后成员关系一并删除，且无法恢复。`,
+                      confirmText: '解散团队',
+                    });
+                    if (ok) disbandMut.mutate();
                   }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -91,8 +97,14 @@ export function MyTeamCard({ team }: { team: Team }) {
                   variant="outline"
                   size="sm"
                   loading={leaveMut.isPending}
-                  onClick={() => {
-                    if (confirm('确认退出该团队？')) leaveMut.mutate();
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: '退出团队',
+                      description: '退出后需要新的邀请码才能重新加入该团队。',
+                      confirmText: '退出',
+                      danger: false,
+                    });
+                    if (ok) leaveMut.mutate();
                   }}
                 >
                   <LogOut className="h-3.5 w-3.5" />

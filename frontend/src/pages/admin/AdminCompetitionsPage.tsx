@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Star, Pencil, Trash2, Megaphone, Users } from 'lucide-react';
-import { Badge, Button, Spinner, useToast } from '@/components/ui';
+import { Badge, Button, Spinner, useConfirm, useToast } from '@/components/ui';
 import { deleteCompetition, exportCompetitionScores } from '@/api/competition';
 import { ApiClientError } from '@/api/client';
 import { formatTime } from '@/lib/utils';
@@ -25,6 +25,7 @@ const ICON_LINK_CLS =
 export function AdminCompetitionsPage() {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const canManageAll = hasPermission(user, 'competition.manage');
@@ -186,10 +187,13 @@ export function AdminCompetitionsPage() {
                     variant="ghost"
                     size="sm"
                     loading={deleteMut.isPending}
-                    onClick={() => {
-                      if (confirm(`删除赛事「${c.name}」？该操作不可撤销。`)) {
-                        deleteMut.mutate(c.id);
-                      }
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: '删除赛事',
+                        description: `删除赛事「${c.name}」？报名记录、赛事题目关联与成绩一并移除，无法恢复。`,
+                        confirmText: '删除赛事',
+                      });
+                      if (ok) deleteMut.mutate(c.id);
                     }}
                     aria-label="删除"
                   >

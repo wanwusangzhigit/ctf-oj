@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { History, Pencil, Pin, Lock } from 'lucide-react';
-import { Button, Input, Spinner, useToast } from '@/components/ui';
+import { Button, Input, Spinner, useConfirm, useToast } from '@/components/ui';
 import { DiscussionFloor } from '@/components/community/DiscussionFloor';
 import { ReplyForm } from '@/components/community/ReplyForm';
 import {
@@ -24,6 +24,7 @@ export function CommunityTopicPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const user = useAuthStore((s) => s.user);
   const { meta, copy } = useCommunityOutlet();
   const [draft, setDraft] = useState('');
@@ -240,8 +241,13 @@ export function CommunityTopicPage() {
         canReply={canReply}
         onLike={() => likeMut.mutate(topic.id)}
         onReply={() => startReply(topic.user?.username ?? '')}
-        onDelete={() => {
-          if (confirm('确认删除这个主题及其全部回复？')) deleteMut.mutate(topic.id);
+        onDelete={async () => {
+          const ok = await confirm({
+            title: '删除主题',
+            description: '该主题及其全部回复都会被删除，无法恢复。',
+            confirmText: '删除',
+          });
+          if (ok) deleteMut.mutate(topic.id);
         }}
       />
 
@@ -256,8 +262,13 @@ export function CommunityTopicPage() {
             canReply={canReply}
             onLike={() => likeMut.mutate(reply.id)}
             onReply={() => startReply(reply.user?.username ?? '')}
-            onDelete={() => {
-              if (confirm('确认删除这条回复？')) deleteMut.mutate(reply.id);
+            onDelete={async () => {
+              const ok = await confirm({
+                title: '删除回复',
+                description: '该回复会被删除，后续楼层序号会重新排列。',
+                confirmText: '删除',
+              });
+              if (ok) deleteMut.mutate(reply.id);
             }}
           />
         ))

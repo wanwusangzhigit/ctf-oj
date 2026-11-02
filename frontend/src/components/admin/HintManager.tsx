@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Lightbulb, Plus, Save, Trash2 } from 'lucide-react';
-import { Button, Input, Spinner, Textarea, useToast } from '@/components/ui';
+import { Button, Input, Spinner, Textarea, useConfirm, useToast } from '@/components/ui';
 import {
   adminCreateHint,
   adminDeleteHint,
@@ -22,6 +22,7 @@ import type { Hint } from '@/types';
 export function HintManager({ challengeId }: { challengeId: number }) {
   const qc = useQueryClient();
   const toast = useToast();
+  const confirm = useConfirm();
   const listQ = useQuery({
     queryKey: ['admin-hints', challengeId],
     queryFn: () => adminListHints(challengeId),
@@ -105,8 +106,13 @@ export function HintManager({ challengeId }: { challengeId: number }) {
                 saving={updateMut.isPending}
                 deleting={deleteMut.isPending}
                 onSave={(input) => updateMut.mutate({ id: h.id, input })}
-                onDelete={() => {
-                  if (confirm(`删除第 ${idx + 1} 条提示？`)) deleteMut.mutate(h.id);
+                onDelete={async () => {
+                  const ok = await confirm({
+                    title: '删除提示',
+                    description: `第 ${idx + 1} 条提示将被删除，无法恢复。`,
+                    confirmText: '删除',
+                  });
+                  if (ok) deleteMut.mutate(h.id);
                 }}
               />
             </li>

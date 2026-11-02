@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
   Spinner,
+  useConfirm,
   useToast,
 } from '@/components/ui';
 import {
@@ -44,6 +45,7 @@ export function DynamicInstancePanel({
   onSolvedRefresh?: () => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const [now, setNow] = useState(Date.now());
   const instanceKey = ['active-instance', challengeId, competitionId ?? 0] as const;
@@ -145,13 +147,22 @@ export function DynamicInstancePanel({
             now={now}
             solved={solved}
             onExtend={() => extendMut.mutate(inst!.id)}
-            onRestart={() => {
-              if (confirm('确认重启实例？旧 Flag 将失效，新 Flag 会自动注入。')) {
-                restartMut.mutate();
-              }
+            onRestart={async () => {
+              const ok = await confirm({
+                title: '重启实例',
+                description: '旧 Flag 将失效，新 Flag 会自动注入。',
+                confirmText: '重启',
+                danger: false,
+              });
+              if (ok) restartMut.mutate();
             }}
-            onStop={() => {
-              if (confirm('确认销毁该实例？未提交的 Flag 将丢失。')) stopMut.mutate(inst!.id);
+            onStop={async () => {
+              const ok = await confirm({
+                title: '销毁实例',
+                description: '容器会立即停止，未提交的 Flag 将丢失。',
+                confirmText: '销毁',
+              });
+              if (ok) stopMut.mutate(inst!.id);
             }}
             extending={extendMut.isPending}
             restarting={restartMut.isPending}
