@@ -1,12 +1,13 @@
-.PHONY: help deploy up down backend-dev frontend-dev build build-backend build-frontend up-prod migrate migrate-all logs psql redis-cli clean fmt vet test backup restore
+.PHONY: help deploy deploy-custom up down backend-dev frontend-dev build build-backend build-frontend up-prod migrate migrate-all logs psql redis-cli clean fmt vet test backup restore
 
 help:
 	@echo "Available targets:"
 	@echo "  up            Start dependency containers (postgres, redis)"
 	@echo "  down          Stop all containers"
-	@echo "  deploy        One-command deploy (secrets + migrations + build + health check)"
+	@echo "  deploy        One-command deploy (secrets + image pull with local build fallback + migrations + health check)"
+	@echo "  deploy-custom Same deploy, interactive wizard (every question has a flag: ./scripts/deploy.sh --help)"
 	@echo "  up-prod       Build and start full stack (backend + frontend + caddy)"
-	@echo "  backend-dev   Run backend with hot reload (air)"
+	@echo "  backend-dev   Run backend on the host (go run, restart manually)"
 	@echo "  frontend-dev  Run frontend dev server (vite)"
 	@echo "  build         Build backend and frontend docker images"
 	@echo "  migrate       Apply pending database migrations (tracked)"
@@ -19,7 +20,10 @@ help:
 	@echo "  test          Run Go tests"
 
 deploy:
-	@./scripts/deploy.sh
+	@./scripts/deploy.sh $(ARGS)
+
+deploy-custom:
+	@./scripts/deploy.sh --custom $(ARGS)
 
 up:
 	docker compose up -d postgres redis
