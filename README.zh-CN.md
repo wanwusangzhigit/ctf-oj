@@ -88,10 +88,27 @@
 前置：Docker 与 Compose v2 插件，Linux 或 macOS。动态题目需要后端能访问一个 Docker
 daemon（compose 文件挂载了 `/var/run/docker.sock`）。
 
-一条命令 —— 生成密钥写入 `.env`、执行迁移、构建镜像并做健康检查：
+### 默认部署
+
+`make deploy` 全程无人值守、一个问题都不问：
+
+1. `.env` 不存在时从 `.env.example` 复制，并 `chmod 600`；
+2. `BACKEND_JWT_SECRET` 与 Postgres 密码仍是内置占位值时随机生成 —— 但只要 `pg-data`
+   卷已存在就不轮换数据库密码，改了密码等于把自己锁在库外面；
+3. 拉取 `backend` 与 `frontend` 镜像，拉不到、或在 `--pull-timeout`（默认 600 秒）内卡死
+   才本地构建；
+4. 启动 postgres 与 redis、执行迁移、启动其余服务；
+5. 轮询 `/api/v1/health` 最多 180 秒，然后打印地址与后续步骤。
 
 ```bash
-make deploy
+make deploy                     # http://localhost:8080
+```
+
+镜像是预构建的，所以一台干净主机不需要本仓库源码也能部署。注意拉到的 `latest` 是 CI
+最后一次构建的产物，不是你当前的工作副本 —— 改过后端代码请改用本地构建：
+
+```bash
+make deploy ARGS="--source build"
 ```
 
 分步执行：
@@ -105,6 +122,48 @@ make up-prod              # 构建并启动 backend、worker、frontend、caddy
 
 访问 <http://localhost:8080>。对外端口是 `${PUBLIC_HTTP_PORT}`（默认 `8080`），后端只在
 容器网络内的 `8081` 监听。
+
+### 自定义部署
+
+```bash
+make deploy-custom                                        # 进向导
+./scripts/deploy.sh --custom --yes --port 9000 --project ctfoj-demo --source build
+./scripts/deploy.sh --custom --dry-run                    # 照问，但只打印、不落地
+```
+
+向导分四组提问：对外端口 / compose 项目名 / 代码来源 → 镜像前缀与 tag / 注册开关 /
+实例公网地址与端口区间 → 密钥处理方式 → 是否现在准备第一个管理员。管理员那一步**只打印
+SQL，绝不代跑**。每个问题都有等价命令行参数，`--custom --yes` 或干脆只给参数就能在 CI
+里跑。所有参数不加 `--custom` 也生效，那就是「非交互地自定义默认部署」。
+
+优先级恒为 **命令行参数 > 向导回答 > env 文件 > 内置默认值**。
+
+| 参数 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--custom`、`-i` | 关 | 进入向导。不加则脚本全程不读 stdin |
+| `--yes`、`-y` | 关 | 全部用默认值回答；无 TTY 时想用 `--custom` 必须带它 |
+| `--lang zh\|en` | 自动检测 | 见下方「语言」 |
+| `--source pull\|build\|auto` | `auto` | `auto` 拉取失败自动本地构建；`pull` 失败即失败、不回退；`build` 完全不拉 |
+| `--pull-timeout N` | `600` | 拉取等待上限（秒），`0` 为不限。仓库读完 manifest 就卡在镜像层时，看起来跟网速慢一模一样，不设上限就永远等不到回退。宿主机没有 `timeout` 命令时会警告一句并按不限处理 |
+| `--port N` | 现有 `PUBLIC_HTTP_PORT`，否则 `8080` | 对外端口；被别的项目占用时会警告 |
+| `--project NAME` | 现有 `COMPOSE_PROJECT_NAME`，否则 `ctfoj` | 卷与网络都按它命名，换名字等于换一套空数据。它会写进 env 文件，因此脚本结尾打印的后续命令落在同一套栈上，而不是旧的那套 |
+| `--registry PREFIX` | `ghcr.io/wanwusangzhigit/ctf-oj` | 指向自建 mirror 或私有仓库 |
+| `--tag TAG` | `latest` | 拉取或构建的 tag |
+| `--register open\|closed` | `open` | `BACKEND_REGISTER_OPEN` |
+| `--instance-host H` | `localhost` | 选手访问实例端口的地址 |
+| `--instance-port-range MIN-MAX` | `30000-40000` | 要求 `MIN` < `MAX` |
+| `--secrets auto\|manual` | `auto` | `manual` 不生成也不覆盖，只在仍是占位值时强警告；向导任何时候都不读取密码 |
+| `--admin USERNAME` | — | 把打印的 SQL 里的 `YOUR_NAME` 换成它，仍然只打印 |
+| `--env-file PATH` | `.env` | 部署第二套实例，不去碰第一套的密钥。注意从 `.env.example` 复制出来的文件项目名仍是 `ctfoj`，必须配合 `--project` 用 —— 否则事后一条 `docker compose -p … down -v` 就会把原来那套连卷删掉；看到这个组合脚本会警告 |
+| `--dry-run` | 关 | 只打印将执行的命令，不改文件、不起容器 |
+| `--no-build` | — | 旧写法，等价 `--source pull` |
+| `--skip-migrate` | — | 跳过 `scripts/migrate.sh` |
+
+### 语言
+
+提示文案与向导都提供中英两套。选择顺序：`--lang zh|en` > `CTF_OJ_LANG` > `LC_ALL` /
+`LANG` 以 `zh` 或 `en` 开头；纯 `C` / `POSIX` 视为检测不到，兜底中文。同一套命令序列在
+`--lang zh` 与 `--lang en` 下逐字节相同，变的只有文案。
 
 ### 开发模式
 
@@ -126,6 +185,9 @@ docker compose exec -T postgres sh -c \
 ```
 
 退出后重新登录，新角色才会写进令牌。分类、题目、赛事、社区板块都在后台创建。
+
+`scripts/deploy.sh` 收尾会把这一步打印出来，env 文件、库名、用户名都已填好（把用户名换成
+自己的，或直接用 `--admin NAME`）。它只打印，绝不代跑。
 
 ## 配置
 
@@ -156,6 +218,9 @@ docker compose exec -T postgres sh -c \
 | `BACKEND_INSTANCE_FLAG_PREFIX` | `flag` | 注入动态 flag 的前缀 |
 | `WORKER_INTERVAL_SECONDS` | `30` | TTL / 清理轮询间隔 |
 | `PUBLIC_HTTP_PORT` | `8080` | 唯一对外暴露的端口 |
+| `COMPOSE_PROJECT_NAME` | `ctfoj` | 这套栈拥有的卷与网络的前缀 |
+| `CTFOJ_IMAGE_PREFIX` | `ghcr.io/wanwusangzhigit/ctf-oj` | `backend` / `frontend` 镜像从哪里拉、本地构建又打成什么名 |
+| `CTFOJ_IMAGE_TAG` | `latest` | 两个服务共用的 tag |
 
 `.env.example` 里没有、但后端会读取的高级变量：
 
@@ -166,8 +231,8 @@ docker compose exec -T postgres sh -c \
 | `BACKEND_MAILER_FROM` / `BACKEND_SMTP_FROM` | `noreply@ctf-oj.local` | 发件人 |
 | `BACKEND_SMTP_HOST` / `BACKEND_SMTP_PORT` | 空 / `587` | |
 | `BACKEND_SMTP_USER` / `BACKEND_SMTP_PASS` / `BACKEND_SMTP_USE_TLS` | 空 / 空 / `true` | |
-| `BACKEND_DOCKER_HOST` | `unix:///var/run/docker.sock` | 编排器连接的 daemon |
-| `BACKEND_DOCKER_NETWORK` | 空 | 把选手实例挂到指定网络 |
+| `BACKEND_DOCKER_HOST` | `unix:///var/run/docker.sock` | 只解析、**从不被读取**：编排器直接 exec 宿主的 `docker` CLI，真正起作用的只有进程自身的 `DOCKER_HOST` |
+| `BACKEND_DOCKER_NETWORK` | 空 | 只解析、**从不被读取**：没有任何地方给 `Instance.NetworkName` 赋值，`docker run` 也不带 `--network`；选手实例靠发布到宿主端口访问，地址由 `BACKEND_INSTANCE_PUBLIC_HOST` 决定 |
 | `BACKEND_CHALLENGE_SOURCE_DIR` | `./data/challenge_sources`（容器内 `/data/challenge_sources`） | Dockerfile / Compose 题目的源码目录 |
 | `BACKEND_CORS_ORIGINS` | `*` | 逗号分隔，生产环境请收紧 |
 
@@ -178,7 +243,8 @@ docker compose exec -T postgres sh -c \
 
 | 目标 | 作用 |
 | --- | --- |
-| `deploy` | `scripts/deploy.sh`：`.env` + 密钥、迁移、构建、健康检查 |
+| `deploy` | `scripts/deploy.sh`：密钥、拉取镜像（拉不到本地构建）、迁移、健康检查 |
+| `deploy-custom` | `scripts/deploy.sh --custom`：同样的事走中英双语向导；`ARGS="--yes --port 9000"` 可脚本化 |
 | `up` | 启动 postgres 与 redis |
 | `down` | 停止服务，保留数据卷 |
 | `migrate` | 执行未应用的迁移并记录到 `schema_migrations` |
@@ -264,6 +330,14 @@ compose 定义六个服务：
 docker pull ghcr.io/wanwusangzhigit/ctf-oj/backend:latest
 docker pull ghcr.io/wanwusangzhigit/ctf-oj/frontend:latest
 ```
+
+`backend`、`worker`、`frontend` 三个服务同时带 `image:` 与 `build:` 两个键，所以同一份
+compose 文件拉取和构建都能用。`worker` 有意复用后端镜像、只换 entrypoint。`--registry`
+把整套栈指向自建 mirror 或私有仓库，它改写的是 `CTFOJ_IMAGE_PREFIX`，拉取与本地构建打的
+标签都读这个值。
+
+同名带来的一个后果：`--source build` 会覆盖本地那份 `ghcr.io/.../backend:latest`，从此
+这个标签不再等于 CI 发布的产物，直到下一次 `--source pull` 把它拉回来。
 
 PR 只构建镜像，不推送。
 
