@@ -253,6 +253,7 @@ export interface Discussion {
   challengeId?: number;
   teamId?: number;
   competitionId?: number;
+  sectionId?: number;
   title?: string;
   userId: number;
   parentId?: number;
@@ -294,6 +295,45 @@ export interface CommunityMeta {
   canPost: boolean;
   canModerate: boolean;
   copy?: Record<string, string>;
+  sections: CommunitySectionView[];
+}
+
+// A board as one caller sees it. Visibility and posting are the effective
+// values; a caller who cannot read the board gets only the name, because the
+// fact that a board was locked down is itself the sensitive part.
+export interface CommunitySectionView {
+  id: number;
+  name: string;
+  blurb?: string;
+  guidelinesMd?: string;
+  visibility?: CommunityVisibility;
+  posting?: CommunityPosting;
+  canView: boolean;
+  canPost: boolean;
+  canManage: boolean;
+}
+
+// The editable row: raw columns, where '' means "inherit the station policy".
+export interface CommunitySectionAdmin {
+  id: number;
+  name: string;
+  blurb: string;
+  guidelinesMd: string;
+  visibility: CommunityVisibility | '';
+  posting: CommunityPosting | '';
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  topicCount: number;
+}
+
+export interface CommunitySectionInput {
+  name: string;
+  blurb: string;
+  guidelinesMd: string;
+  visibility?: CommunityVisibility | '';
+  posting?: CommunityPosting | '';
+  sortOrder?: number;
 }
 
 export interface CommunityAdmin {

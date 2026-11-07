@@ -10,9 +10,11 @@ export function splitTags(tags: string): string[] {
 export function TopicRow({
   discussion: d,
   onTag,
+  sectionName,
 }: {
   discussion: Discussion;
   onTag: (key: string, value: string) => void;
+  sectionName?: string;
 }) {
   const tags = splitTags(d.tags);
   const href = `/community/${d.id}`;
@@ -33,6 +35,14 @@ export function TopicRow({
             {d.title || '(无标题)'}
           </Link>
           {d.isLocked && <Lock className="h-3 w-3 shrink-0 text-ink-3" aria-label="已锁定" />}
+          {sectionName && d.sectionId && (
+            <Link
+              to={`/community?section=${d.sectionId}`}
+              className="hidden md:inline font-mono text-2xs text-ink-3 border border-rule rounded-sm px-1 py-0.5 hover:border-amber hover:text-amber hover:no-underline"
+            >
+              {sectionName}
+            </Link>
+          )}
           {tags.slice(0, 3).map((name) => (
             <button
               key={name}

@@ -49,7 +49,7 @@ export type CommunityCopyEntry = {
 };
 
 export const COPY_GROUP_LABEL: Record<CopyGroup, string> = {
-  board: '板块文案',
+  board: '社区文案',
   composer: '主题表单',
   reply: '回复表单',
   access: '权限与状态',
@@ -63,14 +63,14 @@ export const COPY_GROUP_LABEL: Record<CopyGroup, string> = {
 export const COMMUNITY_COPY: CommunityCopyEntry[] = [
   {
     key: 'title',
-    label: '板块标题',
+    label: '社区标题',
     group: 'board',
     kind: 'text',
     def: '社区',
   },
   {
     key: 'subtitle',
-    label: '板块副标题',
+    label: '社区副标题',
     group: 'board',
     kind: 'textarea',
     def: '技术讨论、Writeup 思路与赛事交流。主题与回复均使用 Markdown。',
@@ -89,7 +89,7 @@ export const COMMUNITY_COPY: CommunityCopyEntry[] = [
   { key: 'empty_filtered', label: '筛选空结果', group: 'board', kind: 'text', def: '没有匹配的主题。' },
   {
     key: 'empty_board',
-    label: '板块空状态',
+    label: '社区空状态',
     group: 'board',
     kind: 'text',
     def: '还没有主题。发布第一个话题吧。',

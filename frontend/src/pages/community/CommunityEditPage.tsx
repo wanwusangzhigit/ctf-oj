@@ -8,7 +8,7 @@ export function CommunityEditPage() {
   const topicId = Number(id);
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { copy } = useCommunityOutlet();
+  const { copy, sections } = useCommunityOutlet();
 
   const back = () => navigate(`/community/${topicId}`);
 
@@ -24,6 +24,7 @@ export function CommunityEditPage() {
         mode="edit"
         topicId={topicId}
         copy={copy}
+        sections={sections}
         onCancel={back}
         onSaved={() => {
           qc.invalidateQueries({ queryKey: ['community-topic', topicId] });

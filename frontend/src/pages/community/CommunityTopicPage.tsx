@@ -26,7 +26,7 @@ export function CommunityTopicPage() {
   const toast = useToast();
   const confirm = useConfirm();
   const user = useAuthStore((s) => s.user);
-  const { meta, copy } = useCommunityOutlet();
+  const { meta, copy, sections } = useCommunityOutlet();
   const [draft, setDraft] = useState('');
   const [quote, setQuote] = useState<string | null>(null);
   const [tagDraft, setTagDraft] = useState('');
@@ -119,19 +119,32 @@ export function CommunityTopicPage() {
   }
 
   const tags = splitTags(topic.tags);
+  const section = sections.find((s) => s.id === topic.sectionId);
   const isAuthor = !!user && user.id === topic.userId;
-  const canDeleteTopic = isAuthor || meta.canModerate;
-  const canReply = meta.canPost && !topic.isLocked;
+  // Board grants cover this topic's own board, so they widen moderation and
+  // replying but nothing station-wide.
+  const canModerateHere = meta.canModerate || !!section?.canManage;
+  const canPostHere = meta.canPost || !!section?.canPost;
+  const canDeleteTopic = isAuthor || canModerateHere;
+  const canReply = canPostHere && !topic.isLocked;
   // A locked topic stops its author editing, not a moderator: locking is the
   // tool used against the author, so it must not make the topic uncorrectable.
-  const canEdit = meta.canModerate || (isAuthor && !topic.isLocked);
-  const canViewHistory = meta.canModerate || isAuthor;
+  const canEdit = canModerateHere || (isAuthor && !topic.isLocked);
+  const canViewHistory = canModerateHere || isAuthor;
 
   return (
     <div className="max-w-3xl mx-auto">
       <header className="border-t-2 border-ink pt-6">
         <div className="flex flex-wrap items-center gap-2 font-mono text-2xs text-ink-3">
           <span>主题 #{topic.id}</span>
+          {section && (
+            <Link
+              to={`/community?section=${section.id}`}
+              className="border border-rule rounded-sm px-1.5 py-0.5 hover:border-amber hover:text-amber hover:no-underline"
+            >
+              {section.name}
+            </Link>
+          )}
           <span aria-hidden>·</span>
           <span>{formatNumber(topic.viewCount)} 浏览</span>
           <span aria-hidden>·</span>
@@ -193,7 +206,7 @@ export function CommunityTopicPage() {
                 {copy.history_title}
               </Button>
             )}
-            {meta.canModerate && (
+            {canModerateHere && (
               <>
                 <Button
                   type="button"
@@ -258,7 +271,7 @@ export function CommunityTopicPage() {
             post={reply}
             floor={index + 2}
             topicAuthorId={topic.userId}
-            canDelete={!!user && (user.id === reply.userId || meta.canModerate)}
+            canDelete={!!user && (user.id === reply.userId || canModerateHere)}
             canReply={canReply}
             onLike={() => likeMut.mutate(reply.id)}
             onReply={() => startReply(reply.user?.username ?? '')}
@@ -280,7 +293,7 @@ export function CommunityTopicPage() {
         <h2 className="text-sm font-medium text-ink mb-3">回复主题</h2>
         {topic.isLocked ? (
           <p className="text-sm text-ink-3">{copy.locked_notice}</p>
-        ) : meta.canPost ? (
+        ) : canPostHere ? (
           <ReplyForm
             copy={copy}
             draft={draft}

@@ -42,6 +42,7 @@ import { CommunityNewPage } from '@/pages/community/CommunityNewPage';
 import { CommunityTopicPage } from '@/pages/community/CommunityTopicPage';
 import { CommunityEditPage } from '@/pages/community/CommunityEditPage';
 import { CommunityHistoryPage } from '@/pages/community/CommunityHistoryPage';
+import { CommunitySectionEditPage } from '@/pages/community/CommunitySectionEditPage';
 import { CompetitionLayout } from '@/pages/competitions/CompetitionLayout';
 import { CompetitionOverviewPage } from '@/pages/competitions/CompetitionOverviewPage';
 import { CompetitionChallengesPage } from '@/pages/competitions/CompetitionChallengesPage';
@@ -73,6 +74,8 @@ import { AdminCompetitionEditPage } from '@/pages/admin/AdminCompetitionEditPage
 import { AdminCompetitionAnnouncementsPage } from '@/pages/admin/AdminCompetitionAnnouncementsPage';
 import { AdminCompetitionRegistrationsPage } from '@/pages/admin/AdminCompetitionRegistrationsPage';
 import { AdminCommunityPage } from '@/pages/admin/AdminCommunityPage';
+import { AdminCommunityLayout } from '@/pages/admin/AdminCommunityLayout';
+import { AdminCommunitySectionsPage } from '@/pages/admin/AdminCommunitySectionsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -114,6 +117,7 @@ function AppRoutes() {
           <Route path=":id" element={<CommunityTopicPage />} />
           <Route path=":id/edit" element={<RequireAuth><CommunityEditPage /></RequireAuth>} />
           <Route path=":id/history" element={<RequireAuth><CommunityHistoryPage /></RequireAuth>} />
+          <Route path="sections/:id/edit" element={<RequireAuth><CommunitySectionEditPage /></RequireAuth>} />
         </Route>
         <Route path="/competitions" element={<CompetitionsPage />} />
         <Route path="/competitions/:id" element={<CompetitionLayout />}>
@@ -198,7 +202,17 @@ function AppRoutes() {
           <Route path="challenges/:id/edit" element={<RequireChallengeManage><AdminChallengeEditPage /></RequireChallengeManage>} />
           <Route path="access-groups" element={<RequirePermission permission="challenge.manage"><AdminAccessGroupsPage /></RequirePermission>} />
           <Route path="announcements" element={<RequirePermission permission="announcement.manage"><AdminAnnouncementsPage /></RequirePermission>} />
-          <Route path="community" element={<RequirePermission permission="community.manage"><AdminCommunityPage /></RequirePermission>} />
+          <Route
+            path="community"
+            element={
+              <RequirePermission permission="community.manage">
+                <AdminCommunityLayout />
+              </RequirePermission>
+            }
+          >
+            <Route index element={<AdminCommunityPage />} />
+            <Route path="sections" element={<AdminCommunitySectionsPage />} />
+          </Route>
           <Route path="users" element={<RequirePermission permission="user.manage"><AdminUsersPage /></RequirePermission>} />
           <Route path="users/:id" element={<RequirePermission permission="user.manage"><AdminUserDetailPage /></RequirePermission>} />
           <Route path="competitions" element={<RequireCompetitionManage><AdminCompetitionsPage /></RequireCompetitionManage>} />

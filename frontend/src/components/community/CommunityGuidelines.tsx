@@ -2,35 +2,44 @@ import { Badge } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
 import { postingLabel, visibilityLabel, type CommunityCopy } from '@/lib/communityCopy';
 import { cn } from '@/lib/utils';
-import type { CommunityMeta } from '@/types';
+import type { CommunityMeta, CommunitySectionView } from '@/types';
 
 export function CommunityGuidelines({
   meta,
   copy,
+  section,
   tagCounts,
   activeTag,
   onTag,
 }: {
   meta: CommunityMeta;
   copy: CommunityCopy;
+  // A board overrides the station rules with its own text; the sidebar keeps
+  // showing something rather than going blank.
+  section?: CommunitySectionView;
   tagCounts: [string, number][];
   activeTag: string;
   onTag: (key: string, value: string) => void;
 }) {
+  const visibility = section?.visibility ?? meta.visibility;
+  const posting = section?.posting ?? meta.posting;
+
   return (
     <aside className="space-y-6 lg:border-l lg:border-rule lg:pl-6">
       <section>
         <h2 className="font-mono text-2xs text-ink-3 mb-2">{copy.guidelines_title}</h2>
-        <Markdown className="text-xs text-ink-2">{copy.guidelines_body}</Markdown>
+        <Markdown className="text-xs text-ink-2">
+          {section?.guidelinesMd || copy.guidelines_body}
+        </Markdown>
       </section>
       <section>
         <h2 className="font-mono text-2xs text-ink-3 mb-2">{copy.policy_title}</h2>
         <div className="flex flex-wrap gap-1.5">
-          <Badge tone={meta.visibility === 'public' ? 'success' : 'neutral'}>
-            {visibilityLabel(copy, meta.visibility)}
+          <Badge tone={visibility === 'public' ? 'success' : 'neutral'}>
+            {visibilityLabel(copy, visibility)}
           </Badge>
-          <Badge tone={meta.posting === 'restricted' ? 'warning' : 'neutral'}>
-            {postingLabel(copy, meta.posting)}
+          <Badge tone={posting === 'restricted' ? 'warning' : 'neutral'}>
+            {postingLabel(copy, posting)}
           </Badge>
         </div>
       </section>

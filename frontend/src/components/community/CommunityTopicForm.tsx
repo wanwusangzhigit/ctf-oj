@@ -12,8 +12,13 @@ import {
 } from '@/api/discussion';
 import { ApiClientError } from '@/api/client';
 import type { CommunityCopy } from '@/lib/communityCopy';
+import type { CommunitySectionView } from '@/types';
+
+const SELECT_CLASS =
+  'w-full h-9 px-3 bg-paper border border-rule rounded-sm text-sm focus:outline-none focus:border-amber';
 
 const schema = z.object({
+  sectionId: z.coerce.number().int().positive('请选择板块'),
   title: z
     .string()
     .trim()
@@ -28,7 +33,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const EMPTY: FormValues = { title: '', contentMd: '' };
+const EMPTY: FormValues = { sectionId: 0, title: '', contentMd: '' };
 
 /**
  * CommunityTopicForm — shared body for /community/new and /community/:id/edit.
@@ -36,11 +41,16 @@ const EMPTY: FormValues = { title: '', contentMd: '' };
  * create → POST then onCreated(id); edit → PATCH /discussions/:id/content
  * after loading the current content without inflating the view counter.
  * Navigation is left to the caller so the two routes can differ.
+ *
+ * A topic's board is chosen on creation and never changed afterwards: there is
+ * no move endpoint, so the edit form only states where the topic lives.
  */
 export function CommunityTopicForm({
   mode,
   topicId,
   copy,
+  sections,
+  defaultSectionId,
   onCreated,
   onSaved,
   onCancel,
@@ -48,12 +58,15 @@ export function CommunityTopicForm({
   mode: 'create' | 'edit';
   topicId?: number;
   copy: CommunityCopy;
+  sections: CommunitySectionView[];
+  defaultSectionId?: number;
   onCreated?: (id: number) => void;
   onSaved?: () => void;
   onCancel?: () => void;
 }) {
   const toast = useToast();
   const isEdit = mode === 'edit';
+  const postable = sections.filter((section) => section.canPost);
 
   const contentQ = useQuery({
     queryKey: ['discussion-content', topicId],
@@ -71,13 +84,14 @@ export function CommunityTopicForm({
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: EMPTY,
+    defaultValues: { ...EMPTY, sectionId: defaultSectionId ?? 0 },
   });
 
   // The edit form must not flash empty fields while the topic loads.
   useEffect(() => {
     if (contentQ.data) {
       reset({
+        sectionId: contentQ.data.sectionId ?? 0,
         title: contentQ.data.title ?? '',
         contentMd: contentQ.data.contentMd,
       });
@@ -87,8 +101,16 @@ export function CommunityTopicForm({
   const mut = useMutation({
     mutationFn: (values: FormValues) =>
       isEdit
-        ? updateDiscussionContent(topicId as number, values)
-        : createDiscussion({ scope: 'community' }, values.contentMd, undefined, values.title),
+        ? updateDiscussionContent(topicId as number, {
+            title: values.title,
+            contentMd: values.contentMd,
+          })
+        : createDiscussion(
+            { scope: 'community', id: values.sectionId },
+            values.contentMd,
+            undefined,
+            values.title,
+          ),
     onSuccess: (d) => {
       toast.success(isEdit ? '修改已保存' : '主题已发布');
       if (isEdit) {
@@ -124,9 +146,42 @@ export function CommunityTopicForm({
   }
 
   const content = watch('contentMd');
+  const editSectionName = isEdit
+    ? sections.find((section) => section.id === watch('sectionId'))?.name
+    : undefined;
+
+  if (!isEdit && postable.length === 0) {
+    return (
+      <div className="border border-rule bg-paper-2/40 p-6">
+        <h2 className="text-sm font-medium text-ink">{copy.restricted_title}</h2>
+        <p className="mt-2 text-sm text-ink-3">{copy.restricted_granted}</p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      {isEdit ? (
+        <p className="text-sm text-ink-3">
+          板块：<span className="text-ink">{editSectionName ?? '—'}</span>
+        </p>
+      ) : (
+        <Field label="板块" htmlFor="topic-section" error={errors.sectionId?.message}>
+          <select
+            id="topic-section"
+            className={SELECT_CLASS}
+            aria-invalid={!!errors.sectionId}
+            {...register('sectionId')}
+          >
+            <option value={0}>请选择板块</option>
+            {postable.map((section) => (
+              <option key={section.id} value={section.id}>
+                {section.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <Field label="主题标题" htmlFor="topic-title" error={errors.title?.message}>
         <Input
           id="topic-title"
@@ -158,7 +213,7 @@ export function CommunityTopicForm({
             type="submit"
             size="sm"
             loading={mut.isPending}
-            disabled={!content || !!errors.title || !!errors.contentMd}
+            disabled={!content || !!errors.sectionId || !!errors.title || !!errors.contentMd}
           >
             {isEdit ? copy.edit_submit : copy.compose_submit}
           </Button>

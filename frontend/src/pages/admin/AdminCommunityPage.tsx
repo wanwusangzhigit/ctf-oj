@@ -64,12 +64,10 @@ export function AdminCommunityPage() {
 
   return (
     <div className="max-w-3xl space-y-8">
-      <header>
-        <h2 className="text-xl font-semibold tracking-tight text-ink">社区权限</h2>
-        <p className="mt-1 text-sm text-ink-3 max-w-prose">
-          控制社区讨论的可见范围与发帖资格。访问授权仅影响社区，不改变题目或赛事权限。
-        </p>
-      </header>
+      <p className="text-2xs text-ink-3 max-w-prose">
+        控制社区讨论的可见范围与发帖资格。访问授权仅影响社区整站，不改变题目或赛事权限；
+        单个板块可以在「板块」分页里覆盖这两项策略。
+      </p>
 
       <section className="border border-rule bg-paper-2/40 p-4 space-y-4">
         <Field label="可见范围" hint="公开：所有人可读；成员：登录用户可读；授权：仅授权对象可读。">
@@ -97,7 +95,7 @@ export function AdminCommunityPage() {
 
       <AccessGrantEditor
         title="社区访问与管理授权"
-        description="只读：受限社区对授权对象可见；管理：允许发帖、置顶、锁定与删除讨论。管理授权隐含只读。"
+        description="只读：受限社区对授权对象可见；管理：允许在全站范围发帖、置顶、锁定与删除讨论。管理授权隐含只读。只想管一个板块，请在「板块」分页授予板块授权。"
         grants={grants}
         onChange={setGrants}
         groupsLink="/admin/access-groups"

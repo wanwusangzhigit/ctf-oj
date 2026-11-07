@@ -41,6 +41,8 @@ export function listDiscussions(
     tag: query.tag,
     q: query.q,
     competition_id: target.competitionId,
+    // For a community target the id is the board, and it narrows the list.
+    section: target.scope === 'community' ? target.id : undefined,
   });
 }
 
@@ -60,6 +62,8 @@ export function createDiscussion(
       title,
       contentMd,
       parentId,
+      // A community topic names its board; replies inherit it server-side.
+      sectionId: target.scope === 'community' && !parentId ? target.id : undefined,
     },
     target.competitionId ? { competition_id: target.competitionId } : undefined,
   );

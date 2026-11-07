@@ -1,12 +1,19 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CommunityTopicForm } from '@/components/community/CommunityTopicForm';
 import { useCommunityOutlet } from './CommunityLayout';
 
 export function CommunityNewPage() {
   const navigate = useNavigate();
-  const { meta, copy } = useCommunityOutlet();
+  const [params] = useSearchParams();
+  const { meta, copy, sections } = useCommunityOutlet();
+  // ?section= from a board tab or a board's "发起讨论" link preselects the
+  // board, but only when the caller may actually post there — a value the
+  // select cannot render would silently submit a board that answers 403.
+  const requested = Number(params.get('section')) || 0;
+  const defaultSectionId = sections.find((s) => s.id === requested && s.canPost)?.id;
+  const canPostAnywhere = meta.canPost || sections.some((section) => section.canPost);
 
-  if (!meta.canPost) {
+  if (!canPostAnywhere) {
     return (
       <div className="max-w-3xl mx-auto">
         <div className="border border-rule bg-paper-2/40 p-6">
@@ -28,6 +35,8 @@ export function CommunityNewPage() {
       <CommunityTopicForm
         mode="create"
         copy={copy}
+        sections={sections}
+        defaultSectionId={defaultSectionId}
         onCreated={(id) => navigate(`/community/${id}`, { replace: true })}
         onCancel={() => navigate('/community')}
       />

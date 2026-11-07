@@ -1,7 +1,7 @@
 import { Spinner } from '@/components/ui';
 import { TopicRow } from './TopicRow';
 import type { CommunityCopy } from '@/lib/communityCopy';
-import type { Discussion } from '@/types';
+import type { CommunitySectionView, Discussion } from '@/types';
 
 export function CommunityTopicList({
   topics,
@@ -9,6 +9,7 @@ export function CommunityTopicList({
   isError,
   copy,
   filtered,
+  sections,
   page,
   totalPages,
   onParam,
@@ -19,11 +20,15 @@ export function CommunityTopicList({
   isError: boolean;
   copy: CommunityCopy;
   filtered: boolean;
+  // Boards worth labelling on a row: empty once the list is already narrowed
+  // to one board, where every row would repeat the same chip.
+  sections: CommunitySectionView[];
   page: number;
   totalPages: number;
   onParam: (key: string, value: string) => void;
   onClearFilters: () => void;
 }) {
+  const sectionNames = new Map(sections.map((s) => [s.id, s.name]));
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -62,7 +67,12 @@ export function CommunityTopicList({
       </div>
       <div className="border-b border-rule">
         {topics.map((d) => (
-          <TopicRow key={d.id} discussion={d} onTag={onParam} />
+          <TopicRow
+            key={d.id}
+            discussion={d}
+            onTag={onParam}
+            sectionName={d.sectionId ? sectionNames.get(d.sectionId) : undefined}
+          />
         ))}
       </div>
       {totalPages > 1 && (

@@ -4,14 +4,24 @@
 
 ## 当前状态
 
-**阶段**：P1–P5 完成；设计指南差距审计 P1/P2/P3 全部落地，P4 部分落地（计分模式/分组榜/2FA/RBAC/权限细化）；题目/赛事 `view/manage` 分级授权与 delegated 管理、社区/团队讨论区与社区权限管理已上线；社区讨论区已升级为 Luogu 风格主题列表与楼层详情；比赛模式已支持赛事/练习解题分离与重复提交不计分，赛事页标注已通过/比赛已解出/赛事题；赛事报名、独立公告、赛事答疑与取消成绩已上线；封榜已接入公开榜/管理实时榜，计分按提交时存储分数汇总；赛事详情拆分为概览/赛题/赛事榜/公告/答疑独立页面；题目详情拆分为题目/Writeup/讨论独立页面；比赛进行中禁止访问题目 Writeup/讨论（前端隐藏入口并拦截直接 URL，后端校验 `competition_id` 并返回 403，管理员 API 保留 moderation 读取）；`/challenges` 列表保持普通目录且链接不带赛事参数；隐藏赛事题按 `?competition=ID` 显式放行；GHCR 多架构镜像 workflow 已加入；社区主题支持编辑与历史版本、社区文案后台可编辑；站点设置拆为品牌 / 注册与认证 / 其他设置 / 社区文案 / 邮件群发五个可深链分页，社区文案编辑迁入「站点设置 › 社区文案」；后台表单、账号设置与团队创建/加入全面路由化；前台弹窗统一为 `Modal` + `useConfirm`，原生 `window.confirm` 已全部移除
-**最后更新**：2026-11-01
+**阶段**：P1–P5 完成；设计指南差距审计 P1/P2/P3 全部落地，P4 部分落地（计分模式/分组榜/2FA/RBAC/权限细化）；题目/赛事 `view/manage` 分级授权与 delegated 管理、社区/团队讨论区与社区权限管理已上线；社区讨论区已升级为 Luogu 风格主题列表与楼层详情；比赛模式已支持赛事/练习解题分离与重复提交不计分，赛事页标注已通过/比赛已解出/赛事题；赛事报名、独立公告、赛事答疑与取消成绩已上线；封榜已接入公开榜/管理实时榜，计分按提交时存储分数汇总；赛事详情拆分为概览/赛题/赛事榜/公告/答疑独立页面；题目详情拆分为题目/Writeup/讨论独立页面；比赛进行中禁止访问题目 Writeup/讨论（前端隐藏入口并拦截直接 URL，后端校验 `competition_id` 并返回 403，管理员 API 保留 moderation 读取）；`/challenges` 列表保持普通目录且链接不带赛事参数；隐藏赛事题按 `?competition=ID` 显式放行；GHCR 多架构镜像 workflow 已加入；社区主题支持编辑与历史版本、社区文案后台可编辑；站点设置拆为品牌 / 注册与认证 / 其他设置 / 社区文案 / 邮件群发五个可深链分页，社区文案编辑迁入「站点设置 › 社区文案」；后台表单、账号设置与团队创建/加入全面路由化；前台弹窗统一为 `Modal` + `useConfirm`，原生 `window.confirm` 已全部移除；社区讨论区改为数据驱动的**板块**制 —— 默认站务版/求助版/灌水版/讨论交流版四块可增删，每块板块有自己的文案、策略覆盖与 `view/manage` 授权，发帖必须选择板块
+**最后更新**：2026-11-07
 
 后端 Phase 1–4：站点设置、审计日志、比赛窗口、邮箱验证、密码重置、提示扣分、头像、Prometheus metrics、mailer（console/smtp/off）全部上线并经端到端验证。
 
 前端 Phase 5–6：HintsPanel、提交历史页、头像上传 + 编辑资料、邮箱验证页、忘记/重置密码页、注册邀请码字段、Admin 站点设置页、Admin 审计日志页、Admin 赛事 CRUD、所有新路由已接入 App.tsx。
 
 前端补全轮：新增赛事列表/详情、团队详情/团队榜、Admin 内联提示管理、队长转让 UI；补齐站点设置对注册/密码重置入口的门控；修复邮箱 token 走 query 参数的兼容问题。
+
+**2026-11-07 社区板块**：新增迁移 `000031_community_sections` —— `community_sections`（`name` 唯一、`blurb`、`guidelines_md`、`visibility`/`posting` 以空串表示「沿用全站」、`sort_order`）与 `community_section_grants`（主键 `(section_id, subject_type, subject_id)` + `view|manage`，形状照 `000024_scoped_access`，因此可直接复用泛型 `accessRepo.accessLevel` 的 user→team→group 展开）；同一迁移内 seed 站务版/求助版/灌水版/讨论交流版四个默认板块（结构默认值，删光不复活，AGENTS.md 规则 1 已开例外），并把 `discussions.section_id` 纳入 `discussions_target_check`：community 必填、其余三个 scope 必须为 NULL，存量主题 id=62 按 `name='站务版'` 回填、回复按父帖回填，顺序是 seed → 回填 → 最后才加约束。删除板块为 `ON DELETE RESTRICT`，配合 `mapErr` 把 23503/23505 映射为 `ErrConflict`，重名与「板块下仍有主题」天然 409，不需要服务层预检查；后台列表附 `topicCount` 供运维自查。
+
+服务端把决策收敛为纯函数（`resolveSectionPolicy` / `decideAccess` / `normalizeSectionInput`，`internal/service/community_section.go`），并用 72 组合矩阵测试证明「板块制」在 `section == station` 且策略取全局值时与原 `Meta()` 语义逐位等价；`Views` 恒定三次查询（板块 List + 全站 level（团队只解析一次）+ 批量 `SectionGrantLevels`），没有按板块循环。`DiscussionService` 用既有的 `DiscussionTarget.ID` 承载板块 id（不加新字段），`Get` 对 community 主题改按主题**真实**板块判可见性 —— `/community/discussions/:id`、like、content、revisions 这些 URL 里没有板块；`Create` 顶层帖缺板块 → 400、未知板块 → 404、回复忽略客户端传来的板块并继承父帖；`ensureVisible` / `canPost` / `canModerateDiscussion` 三处 community 分支按板块决策，一处改动即覆盖置顶/锁定/标签/删除/历史/正文编辑。`middleware.RequireCommunitySectionManage` 抄 `RequireCompetitionManage`，delegated 写入审计 `community_section.copy` 时带 `delegated:true` 与 `grant:"community_section:<id>:manage"`。
+
+API 形态：`GET /community` meta 保留全部既有键并新增恒为数组的 `sections`，其中 `visibility`/`posting` 是**生效值**、`canView/canPost/canManage` 由服务端算好；无权板块返回只含 `id`/`name`/`canView:false` 的脱敏桩而非隐藏（削掉策略，因为「某板块被设成 restricted」本身敏感），这样发帖下拉不会少选项，同时深链该板块的列表/主题仍是 403，前端复用全站受限文案、不新增 12 个板块级键。`GET /community/discussions?section=ID` 筛选（不可解析的值按「全部」处理，与 `competition_id` 同款宽容）；`POST /community/discussions` 接受 `sectionId`；`PATCH /community/sections/:id` 是板块管理员唯一写入口（只有 name/blurb/guidelinesMd，够不到策略与排序）；管理端 `GET/POST /admin/community/sections`、`PUT/DELETE /admin/community/sections/:id`、`GET/PUT /admin/community/sections/:id/access` 全部限 `community.manage`，且返回原始列（`''` 即沿用全站）供后台表单回填。
+
+前端：`CommunityLayout` 的 tab 行由 `sections` 渲染（「全部」+ 每板块，用 `?section=ID` 而非路径段；react-router 的 `NavLink` 不比较 query string，激活态手算且只在 `/community` 上算，切板块沿用 `setParam` 自动清 `page`）；列表页头部换成板块 `name`/`blurb` 与生效策略徽章，无权板块渲染受限卡片且**不发**那次列表请求；主题页显示板块 chip 并能跳回筛选；发帖表单必选板块（zod `sectionId` 必须为正整数，下拉只列 `canPost` 的板块，`?section=` 预填且仅当可发才采纳），编辑态只显示静态「板块：X」—— 没有移动主题到别的板块的端点，给下拉就是幻觉式展示，且延续「作者即使读不到该板块仍能改自己主题」的既有契约；新增 `/community/sections/:id/edit` 承接板块管理员的文案编辑（上限与后端按 rune 对齐，保存后失效 `community-meta`/`community-topics`/`community-topic`）；`/admin/community` 拆为共享布局下「策略与授权 | 板块」两分页，板块页左表单右列表、板块授权用内联 `AccessGrantEditor`、保存走 `PUT section` + `PUT access` 两步、删除用 `useConfirm` 并预告「板块下仍有主题时删除会被拒绝」；全站文案编辑器只改标签措辞（`板块文案`→`社区文案`、`板块标题`→`社区标题`、`板块副标题`→`社区副标题`、`板块空状态`→`社区空状态`），键与分组不动。
+
+验证：Go vet/build/`gofmt`/`test -count=1` 全绿（新增 `community_section_test.go` 的 5 组表驱动测试与等价矩阵、`discussion_test.go` 的 `communitySectionForPost`/`sameDiscussionTarget`/`targetOf` 用例）；curl 矩阵 83 项（缺板块 400、`sectionId=999` 404、回复采纳父板块、`?section=` 与 `q/tag/page` 组合、无权板块列表与详情 403、板块管理员改自己文案 200 而越界与 admin 路由 403、置顶本板块 200 / 他板块 403、`moderator` 角色不受板块授权影响、重名 409、非空板块删除 409、空板块 204、授权对象 view 只读不可发、`/users/me` 的 `delegations` 不含板块、题目/赛事/团队讨论与 `?competition_id=` 行为不变）；浏览器回归 45/45（游客 / 普通成员 / 板块管理员 / 全站管理员四套身份，tab 与深链、分页复位、必选板块与下拉过滤与提交禁用、发帖落对板块、chip 跳转、受限卡片、板块文案改写后前台立即生效且全站文案不受影响、越界进不了编辑页、后台新建→重名→策略覆盖→删除全流程、375px 无横向溢出、无 pageerror 与外部请求）。迁移已在本地容器库执行，测试主题/板块/授权与对应审计行已全部清理，板块恢复 seed 值。注意 `scripts/migrate.sh --baseline-existing` 会把 `000031` 记为已应用而**不执行**，既有库必须走正常迁移流程。
 
 **2026-11-01 路由化编辑与统一弹窗**：社区主题支持编辑与版本历史（迁移 `000029_discussion_revisions`，`GET/PATCH /discussions/:id/content`、`GET /discussions/:id/revisions`，历史仅作者与版务可读，未登录 401）；`/community` 拆为共享布局下的列表 / 发帖（`/community/new`）/ 编辑（`/community/:id/edit`）/ 历史（`/community/:id/history`）四个路由，富文本统一走 `MarkdownEditor`（本地预览开关，渲染复用 `Markdown` 的 sanitize 管线）。社区名称/简介/规则等文案改为可编辑站点设置（`community.copy.*`，由 `GET /community` meta 下发），`/admin/community` 用注册表驱动编辑器，仅暴露白名单键并写入审计。后台写操作全面路由化：赛事 `/admin/competitions/new|:id/edit|:id/announcements|:id/registrations`、题目 `/admin/challenges/new|:id/edit`、用户详情 `/admin/users/:id`；账号资料/密码/2FA 迁到 `/settings`（`/settings/password`、`/settings/security`），团队创建与加入拆为 `/teams/new`、`/teams/join`。新增弹窗基元 `components/ui/Modal`（portal + `role=dialog`、`aria-labelledby`、Escape 与遮罩关闭、焦点陷阱与还原、滚动锁、`data-autofocus`）与 `ConfirmProvider`/`useConfirm()`（返回 `Promise<boolean>`，默认危险样式）；`AdminOverviewPage` 容器日志与 `AdminAccessGroupsPage` 权限组表单改用 Modal，13 个文件中的 14 处 `window.confirm` 全部替换为 `useConfirm`。浏览器回归 54/54（桌面 23、375px 7、权限组增删与容器清理/群发拦截 13、题目/分类/公告删除文案与取消 11），覆盖焦点陷阱、Escape 与遮罩不触发请求、确认后真实执行删除、Modal 底部按钮提交表单；Go vet/build/test、TypeScript 与生产构建通过；`dangerouslySetInnerHTML`、`window.confirm/alert/prompt`、外部运行时资源与组件内硬编码色值 grep 均为 0；临时测试用户与其数据（含审计记录）已清理。
 
@@ -92,6 +102,12 @@
   - API：`GET /community`、`GET /admin/community`、`PUT /admin/community`、`GET/PUT /admin/community/access`
   - 前端：`/community` 讨论页、`/admin/community` 权限与策略管理
   - 团队讨论仅成员可读写，队长可置顶/锁定/删除
+- [x] 社区板块：`community_sections` + `community_section_grants`（迁移 `000031_community_sections`）
+  - 默认站务版 / 求助版 / 灌水版 / 讨论交流版由迁移 seed；可新增、改名、排序、删除（有主题时 409）
+  - 每块板块有自己的文案（`name`/`blurb`/`guidelines_md`）与可选策略覆盖（`''` = 沿用全站）
+  - 板块授权 `view` / `manage`（用户/团队/权限组）：`manage` = 编辑本板块文案 + moderation 本板块帖子 + 隐含可发帖；板块增删/排序/策略/授权仍限 `community.manage`
+  - API：`PATCH /community/sections/:id`（板块管理员）、`GET/POST /admin/community/sections`、`PUT/DELETE /admin/community/sections/:id`、`GET/PUT /admin/community/sections/:id/access`、`?section=` 列表筛选、`sectionId` 发帖必填
+  - 前端：`/community` tab 行与板块头部、`/community/new` 必选板块、`/community/sections/:id/edit` 板块文案页、`/admin/community/sections` 板块管理（含内联授权面板）
 - [x] Markdown 渲染：`react-markdown` + `remark-gfm` + `rehype-sanitize`
   - 服务端只存原文 `content_md`，前端渲染避免存储型 XSS
   - 题目描述、公告、讨论均使用 Markdown
@@ -399,6 +415,10 @@ P1/P2/P3 全部完成。P4 已落地：计分模式（dynamic/fixed/three_blood�
 - **2026-11-01**：二次确认统一为 `ConfirmProvider` 暴露的 `useConfirm(): Promise<boolean>`，原生 `window.confirm` 无法定制文案、不跟随主题且阻塞事件循环，全部移除；`Modal` 把 `onClose` 存入 ref，避免父组件重渲染时重新挂载焦点还原而抢走焦点。
 - **2026-11-01**：社区文案本质是 `site_settings` 的一个命名空间，因此编辑入口与写端点都并入站点设置（`PUT /admin/settings/copy`，`settings.manage`），`/admin/community` 回到只管策略与授权；白名单过滤留在 service 层并复用原 `community.copy` 审计动作，历史审计筛选不断档。角色是唯一权限来源且只有 `admin` 同时持有两个权限，所以这次改守卫不影响任何人的实际能力。
 - **2026-11-01**：站点设置分页只 `PUT` 与当前服务端值不同的自身键 —— 依赖 `UpsertMany` 只增改不删的语义；若沿用整页提交，一个分页的陈旧行就可能覆盖另一个分页刚写的值。
+- **2026-11-07**：四个默认板块走迁移内 seed（与 `000009` 给 `site_settings` 打默认值同族，属结构默认值而非示例数据），不在服务层自动补齐 —— 服务层补齐会让「删光板块」在下次重启后复活，等于用户删不掉的东西。
+- **2026-11-07**：板块文案落在 `community_sections` 的列而不是 `site_settings.community.copy.*` —— 键名要带板块 id 就会撞 `site_settings.key` 的 VARCHAR(64)，而板块管理员根本没有 `settings.manage`，只有把文案放在板块行上才能让 `PATCH /community/sections/:id` 由板块授权把关。策略继承用 `''` 而不是 NULL，与仓库既有「空即回落默认」语义一致，实体保持 `string` 不引入 `*string` 管道。
+- **2026-11-07**：板块授权不进 `delegations`，入口挂公开侧 `/community/sections/:id/edit` —— 代价是 `canAccessAdmin` / `AdminIndexRedirect` / 守卫零改动；收益是板块管理员不必进后台，也解释清楚了「板块管理权不等于后台入口」。
+- **2026-11-07**：板块在 URL 里用 `?section=ID` 而不是路径段 —— 复用列表页已有的 searchParams 契约（切板块自动复位 `page`），不必给板块引入第二套标识（slug）也不必让 `targetPath` 与 `:id` 处理非数字；`discussions.section_id` 必须是指针，普通 `uint` 会给 challenge 行写 0 并被 CHECK 以 23514 拒绝变成 500。
 
 ## 已知问题
 
