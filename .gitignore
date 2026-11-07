@@ -1,5 +1,9 @@
-# Agent workspace
-.agents
+# Agent workspace (local tooling, not part of the product)
+/AGENTS.md
+/memory.md
+/skills-lock.json
+.agents/
+.qoder/
 
 # Local config and secrets
 .env
@@ -8,12 +12,16 @@
 
 # Dependencies
 node_modules/
+.pnpm-store/
 
 # Build output
 frontend/dist/
+frontend/.vite/
+frontend/coverage/
 frontend/tsconfig.tsbuildinfo
 backend/tmp/
 backend/ctf-oj-backend
+backend/coverage.out
 backend/server
 *.test
 
@@ -22,8 +30,17 @@ backend/data/
 uploads/
 *.log
 
+# Database dumps produced by `make backup`
+backups/
+*.dump
+
 # Editor and OS
 .vscode/
 .idea/
+*.iml
 .DS_Store
+Thumbs.db
+desktop.ini
 *.swp
+*.swo
+*~
