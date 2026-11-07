@@ -23,6 +23,9 @@ type CommunityMeta struct {
 	CanPost     bool              `json:"canPost"`
 	CanModerate bool              `json:"canModerate"`
 	Copy        map[string]string `json:"copy,omitempty"`
+	// Sections is filled by the handler from CommunitySectionService.Views: the
+	// station service must not know about boards, only the other way round.
+	Sections []CommunitySectionView `json:"sections"`
 }
 
 const SettingCommunityCopyPrefix = "community.copy."
@@ -114,10 +117,16 @@ func (s *CommunityAccessService) TeamIDForUser(ctx context.Context, userID uint)
 }
 
 func (s *CommunityAccessService) Level(ctx context.Context, userID uint) (domain.AccessPermission, error) {
+	return s.levelWithTeam(ctx, userID, s.TeamIDForUser(ctx, userID))
+}
+
+// levelWithTeam exists so a caller that already resolved the team can read both
+// grant tables without looking the membership up twice.
+func (s *CommunityAccessService) levelWithTeam(ctx context.Context, userID, teamID uint) (domain.AccessPermission, error) {
 	if userID == 0 || s.repo == nil {
 		return "", nil
 	}
-	return s.repo.CommunityAccessLevel(ctx, userID, s.TeamIDForUser(ctx, userID))
+	return s.repo.CommunityAccessLevel(ctx, userID, teamID)
 }
 
 func (s *CommunityAccessService) Meta(ctx context.Context, userID uint, globalModerate bool) (CommunityMeta, error) {
@@ -126,18 +135,29 @@ func (s *CommunityAccessService) Meta(ctx context.Context, userID uint, globalMo
 	if err != nil {
 		return CommunityMeta{}, err
 	}
-	canView := globalModerate || visibility == CommunityVisibilityPublic ||
-		(visibility == CommunityVisibilityMembers && userID > 0) ||
-		(visibility == CommunityVisibilityRestricted && level != "")
-	canPost := globalModerate || (canView && userID > 0 && (posting == CommunityPostingMembers || level == domain.AccessManage))
+	canView, canPost, canModerate := decideStationAccess(globalModerate, userID, level, visibility, posting)
 	return CommunityMeta{
 		Visibility:  visibility,
 		Posting:     posting,
 		CanView:     canView,
 		CanPost:     canPost,
-		CanModerate: globalModerate || level == domain.AccessManage,
+		CanModerate: canModerate,
 		Copy:        s.copyOverrides(ctx),
+		Sections:    []CommunitySectionView{},
 	}, nil
+}
+
+// decideStationAccess is the station-wide half of the community permission
+// lattice, with no I/O. With an empty board grant and the station policy,
+// decideAccess must agree with it bit for bit; TestSectionAccessReducesToStationMeta
+// keeps the two formulas from drifting apart.
+func decideStationAccess(globalModerate bool, userID uint, station domain.AccessPermission, visibility, posting string) (canView, canPost, canModerate bool) {
+	canView = globalModerate || visibility == CommunityVisibilityPublic ||
+		(visibility == CommunityVisibilityMembers && userID > 0) ||
+		(visibility == CommunityVisibilityRestricted && station != "")
+	canPost = globalModerate || (canView && userID > 0 && (posting == CommunityPostingMembers || station == domain.AccessManage))
+	canModerate = globalModerate || station == domain.AccessManage
+	return canView, canPost, canModerate
 }
 
 func (s *CommunityAccessService) copyOverrides(ctx context.Context) map[string]string {
@@ -216,15 +236,34 @@ func (s *CommunityAccessService) SetGrants(ctx context.Context, subjects []domai
 	if s.repo == nil {
 		return domain.ErrInvalidArgument
 	}
+	normalized, err := s.normalizeSubjects(ctx, subjects)
+	if err != nil {
+		return err
+	}
+	grants := make([]domain.CommunityAccessGrant, 0, len(normalized))
+	for _, sub := range normalized {
+		grants = append(grants, domain.CommunityAccessGrant{
+			SubjectType: domain.AccessSubjectType(sub.Type),
+			SubjectID:   sub.ID,
+			Permission:  sub.Permission,
+		})
+	}
+	return s.repo.ReplaceCommunityGrants(ctx, grants)
+}
+
+// normalizeSubjects validates and de-duplicates a grant list. Station grants and
+// board grants share it: the subject space (user/team/group) is identical, only
+// the resource being granted differs.
+func (s *CommunityAccessService) normalizeSubjects(ctx context.Context, subjects []domain.AccessSubject) ([]domain.AccessSubject, error) {
+	out := make([]domain.AccessSubject, 0, len(subjects))
 	seen := make(map[string]bool, len(subjects))
-	grants := make([]domain.CommunityAccessGrant, 0, len(subjects))
 	for _, sub := range subjects {
 		t := domain.AccessSubjectType(strings.TrimSpace(sub.Type))
 		if t != domain.SubjectUser && t != domain.SubjectTeam && t != domain.SubjectGroup {
-			return domain.ErrInvalidArgument
+			return nil, domain.ErrInvalidArgument
 		}
 		if sub.ID == 0 {
-			return domain.ErrInvalidArgument
+			return nil, domain.ErrInvalidArgument
 		}
 		key := fmt.Sprintf("%s:%d", t, sub.ID)
 		if seen[key] {
@@ -232,19 +271,16 @@ func (s *CommunityAccessService) SetGrants(ctx context.Context, subjects []domai
 		}
 		seen[key] = true
 		if err := s.validateSubject(ctx, t, sub.ID); err != nil {
-			return err
+			return nil, err
 		}
 		perm, err := normalizeAccessPermission(sub.Permission)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		grants = append(grants, domain.CommunityAccessGrant{
-			SubjectType: t,
-			SubjectID:   sub.ID,
-			Permission:  perm,
-		})
+		sub.Type, sub.Permission = string(t), perm
+		out = append(out, sub)
 	}
-	return s.repo.ReplaceCommunityGrants(ctx, grants)
+	return out, nil
 }
 
 func (s *CommunityAccessService) validateSubject(ctx context.Context, t domain.AccessSubjectType, id uint) error {

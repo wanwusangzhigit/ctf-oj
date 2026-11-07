@@ -10,20 +10,30 @@ import (
 )
 
 type CommunityHandler struct {
-	svc   *service.CommunityAccessService
-	audit *service.AuditService
+	svc      *service.CommunityAccessService
+	sections *service.CommunitySectionService
+	audit    *service.AuditService
 }
 
-func NewCommunityHandler(s *service.CommunityAccessService, audit *service.AuditService) *CommunityHandler {
-	return &CommunityHandler{svc: s, audit: audit}
+func NewCommunityHandler(s *service.CommunityAccessService, sections *service.CommunitySectionService, audit *service.AuditService) *CommunityHandler {
+	return &CommunityHandler{svc: s, sections: sections, audit: audit}
 }
 
 func (h *CommunityHandler) Meta(c *gin.Context) {
 	uid, _ := getUID(c)
-	meta, err := h.svc.Meta(c.Request.Context(), uid, middleware.HasPermission(c, domain.PermDiscussionModerate))
+	globalModerate := middleware.HasPermission(c, domain.PermDiscussionModerate)
+	meta, err := h.svc.Meta(c.Request.Context(), uid, globalModerate)
 	if err != nil {
 		response.Err(c, err)
 		return
+	}
+	if h.sections != nil {
+		sections, err := h.sections.Views(c.Request.Context(), uid, globalModerate)
+		if err != nil {
+			response.Err(c, err)
+			return
+		}
+		meta.Sections = sections
 	}
 	response.OK(c, meta)
 }

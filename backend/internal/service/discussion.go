@@ -21,6 +21,7 @@ type DiscussionService struct {
 	access        *ChallengeAccessService
 	teams         domain.TeamRepository
 	community     *CommunityAccessService
+	sections      *CommunitySectionService
 }
 
 func NewDiscussionService(
@@ -44,6 +45,12 @@ func (s *DiscussionService) SetCommunityAccessService(c *CommunityAccessService)
 	s.community = c
 }
 
+func (s *DiscussionService) SetCommunitySectionService(c *CommunitySectionService) {
+	s.sections = c
+}
+
+// DiscussionTarget names the resource a discussion belongs to. For community it
+// is the board: ID is a community_sections id, and 0 means the whole board list.
 type DiscussionTarget struct {
 	Scope         domain.DiscussionScope
 	ID            uint
@@ -134,6 +141,12 @@ func (s *DiscussionService) Get(ctx context.Context, target DiscussionTarget, id
 	}
 	if d.ParentID != nil || !sameDiscussionTarget(d, target) {
 		return nil, domain.ErrNotFound
+	}
+	if d.Scope == domain.DiscussionScopeCommunity {
+		// The URL carries no board, so the topic's own board decides visibility.
+		// Only community re-derives: targetOf drops CompetitionID, which the
+		// challenge branch needs to keep for its live-competition guard.
+		target = targetOf(d)
 	}
 	if err := s.ensureVisible(ctx, target, userID, includeUnpublished, globalModerate); err != nil {
 		return nil, err
@@ -232,6 +245,16 @@ func (s *DiscussionService) ensureVisible(ctx context.Context, target Discussion
 		if s.community == nil {
 			return domain.ErrForbidden
 		}
+		if s.sections != nil && target.ID > 0 {
+			ok, err := s.sections.CanViewSection(ctx, target.ID, userID, globalModerate)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return domain.ErrForbidden
+			}
+			return nil
+		}
 		ok, err := s.community.CanView(ctx, userID, globalModerate)
 		if err != nil {
 			return err
@@ -320,6 +343,16 @@ func (s *DiscussionService) canPost(ctx context.Context, target DiscussionTarget
 		if s.community == nil {
 			return domain.ErrForbidden
 		}
+		if s.sections != nil && target.ID > 0 {
+			ok, err := s.sections.CanPostSection(ctx, target.ID, userID, globalModerate)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return domain.ErrForbidden
+			}
+			return nil
+		}
 		ok, err := s.community.CanPost(ctx, userID, globalModerate)
 		if err != nil {
 			return err
@@ -356,26 +389,33 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 	if utf8.RuneCountInString(in.ContentMD) > maxContentLen {
 		return nil, fmt.Errorf("%w: content too long", domain.ErrInvalidArgument)
 	}
-	if err := s.canPost(ctx, target, userID, includeUnpublished, globalModerate); err != nil {
-		return nil, err
-	}
 	var parent *domain.Discussion
-	if in.ParentID != nil && *in.ParentID > 0 {
-		p, err := s.discussions.FindByID(ctx, *in.ParentID)
+	var err error
+	if target.Scope == domain.DiscussionScopeCommunity {
+		// A reply lands on its parent's board whatever the request asked for, so
+		// the parent is read before the posting check that consults that board.
+		parent, err = s.replyParent(ctx, in.ParentID, DiscussionTarget{Scope: target.Scope})
 		if err != nil {
 			return nil, err
 		}
-		if !sameDiscussionTarget(p, target) {
-			return nil, fmt.Errorf("%w: parent belongs to a different discussion", domain.ErrInvalidArgument)
+		sectionID, sectionErr := communitySectionForPost(target, parent)
+		if sectionErr != nil {
+			return nil, sectionErr
 		}
-		if p.ParentID != nil {
-			return nil, fmt.Errorf("%w: only one level of reply is allowed", domain.ErrInvalidArgument)
+		target.ID = sectionID
+	}
+	if err := s.canPost(ctx, target, userID, includeUnpublished, globalModerate); err != nil {
+		return nil, err
+	}
+	if parent == nil {
+		if parent, err = s.replyParent(ctx, in.ParentID, target); err != nil {
+			return nil, err
 		}
-		if p.IsLocked {
-			return nil, domain.ErrForbidden
-		}
-		parent = p
-	} else if target.Scope == domain.DiscussionScopeCommunity || target.Scope == domain.DiscussionScopeCompetition {
+	}
+	if parent != nil && parent.IsLocked {
+		return nil, domain.ErrForbidden
+	}
+	if parent == nil && (target.Scope == domain.DiscussionScopeCommunity || target.Scope == domain.DiscussionScopeCompetition) {
 		if in.Title == "" {
 			return nil, fmt.Errorf("%w: title required", domain.ErrInvalidArgument)
 		}
@@ -414,6 +454,9 @@ func (s *DiscussionService) Create(ctx context.Context, userID uint, target Disc
 	case domain.DiscussionScopeCompetition:
 		id := target.ID
 		d.CompetitionID = &id
+	case domain.DiscussionScopeCommunity:
+		id := target.ID
+		d.SectionID = &id
 	}
 	if err := s.discussions.Create(ctx, d); err != nil {
 		return nil, err
@@ -631,6 +674,11 @@ func (s *DiscussionService) canModerateDiscussion(ctx context.Context, d *domain
 		if s.community == nil {
 			return false, nil
 		}
+		// A row without a board can only predate the migration; the station
+		// grant still governs it.
+		if s.sections != nil && d.SectionID != nil && *d.SectionID > 0 {
+			return s.sections.CanManageSection(ctx, *d.SectionID, userID, false)
+		}
 		return s.community.CanModerate(ctx, userID, false)
 	case domain.DiscussionScopeTeam:
 		if d.TeamID == nil || s.teams == nil {
@@ -667,6 +715,39 @@ func (s *DiscussionService) isTeamMember(ctx context.Context, teamID, userID uin
 	return m.TeamID == teamID, nil
 }
 
+// replyParent loads the topic a reply targets and checks it belongs to the same
+// discussion. The board is not part of that check for community: Create adopts
+// the parent's board instead.
+func (s *DiscussionService) replyParent(ctx context.Context, parentID *uint, target DiscussionTarget) (*domain.Discussion, error) {
+	if parentID == nil || *parentID == 0 {
+		return nil, nil
+	}
+	p, err := s.discussions.FindByID(ctx, *parentID)
+	if err != nil {
+		return nil, err
+	}
+	if !sameDiscussionTarget(p, target) {
+		return nil, fmt.Errorf("%w: parent belongs to a different discussion", domain.ErrInvalidArgument)
+	}
+	if p.ParentID != nil {
+		return nil, fmt.Errorf("%w: only one level of reply is allowed", domain.ErrInvalidArgument)
+	}
+	return p, nil
+}
+
+// communitySectionForPost resolves the board a community post lands on. A reply
+// inherits from its parent; a topic has to name one, because a boardless
+// community post could only be found by nobody's board filter.
+func communitySectionForPost(target DiscussionTarget, parent *domain.Discussion) (uint, error) {
+	if parent != nil && parent.SectionID != nil {
+		return *parent.SectionID, nil
+	}
+	if target.ID == 0 {
+		return 0, fmt.Errorf("%w: section required", domain.ErrInvalidArgument)
+	}
+	return target.ID, nil
+}
+
 func sameDiscussionTarget(d *domain.Discussion, target DiscussionTarget) bool {
 	if d.Scope != target.Scope {
 		return false
@@ -679,7 +760,8 @@ func sameDiscussionTarget(d *domain.Discussion, target DiscussionTarget) bool {
 	case domain.DiscussionScopeCompetition:
 		return d.CompetitionID != nil && *d.CompetitionID == target.ID
 	case domain.DiscussionScopeCommunity:
-		return true
+		// ID is the board; 0 asks about the community as a whole.
+		return target.ID == 0 || (d.SectionID != nil && *d.SectionID == target.ID)
 	default:
 		return false
 	}
@@ -698,6 +780,10 @@ func targetOf(d *domain.Discussion) DiscussionTarget {
 	case domain.DiscussionScopeCompetition:
 		if d.CompetitionID != nil {
 			return DiscussionTarget{Scope: d.Scope, ID: *d.CompetitionID}
+		}
+	case domain.DiscussionScopeCommunity:
+		if d.SectionID != nil {
+			return DiscussionTarget{Scope: d.Scope, ID: *d.SectionID}
 		}
 	}
 	return DiscussionTarget{Scope: d.Scope}

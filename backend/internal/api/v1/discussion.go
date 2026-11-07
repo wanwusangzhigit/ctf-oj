@@ -23,6 +23,7 @@ type discussionReq struct {
 	Title     string `json:"title"`
 	ContentMD string `json:"contentMd" binding:"required"`
 	ParentID  *uint  `json:"parentId"`
+	SectionID *uint  `json:"sectionId"`
 }
 
 func discussionGlobalModerate(c *gin.Context, scope domain.DiscussionScope) bool {
@@ -93,7 +94,14 @@ func (h *DiscussionHandler) List(c *gin.Context) {
 }
 
 func (h *DiscussionHandler) CommunityList(c *gin.Context) {
-	h.list(c, service.DiscussionTarget{Scope: domain.DiscussionScopeCommunity})
+	target := service.DiscussionTarget{Scope: domain.DiscussionScopeCommunity}
+	// ?section= narrows the list to one board. An unparsable value is ignored
+	// rather than rejected, the way competition_id is: these ids come straight
+	// out of a URL a person may have edited.
+	if id, err := strconv.ParseUint(c.Query("section"), 10, 64); err == nil && id > 0 {
+		target.ID = uint(id)
+	}
+	h.list(c, target)
 }
 
 func (h *DiscussionHandler) CommunityGet(c *gin.Context) {
@@ -146,6 +154,9 @@ func (h *DiscussionHandler) create(c *gin.Context, target service.DiscussionTarg
 		return
 	}
 	includeUnpublished := target.Scope == domain.DiscussionScopeChallenge && middleware.IsAdmin(c)
+	if target.Scope == domain.DiscussionScopeCommunity && req.SectionID != nil {
+		target.ID = *req.SectionID
+	}
 	d, err := h.svc.Create(c.Request.Context(), uid, target, service.DiscussionInput{
 		Title:     req.Title,
 		ContentMD: req.ContentMD,

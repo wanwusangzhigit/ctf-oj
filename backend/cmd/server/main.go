@@ -90,6 +90,7 @@ func main() {
 	compAnnRepo := repository.NewCompetitionAnnouncementRepo(gormDB)
 	accessRepo := repository.NewChallengeAccessRepository(gormDB)
 	communityRepo := repository.NewCommunityAccessRepository(gormDB)
+	communitySectionRepo := repository.NewCommunitySectionRepository(gormDB)
 
 	// services
 	jwtSvc := service.NewJWTService(cfg.JWT)
@@ -126,10 +127,13 @@ func main() {
 	instSvc.SetAccessService(accessSvc)
 	annSvc := service.NewAnnouncementService(annRepo)
 	communitySvc := service.NewCommunityAccessService(communityRepo, userRepo, teamRepo, settingSvc)
+	sectionSvc := service.NewCommunitySectionService(communitySectionRepo, communityRepo, communitySvc)
 	discSvc := service.NewDiscussionService(discRepo, likeRepo, chalRepo, notifSvc)
 	discSvc.SetAccessService(accessSvc)
 	discSvc.SetTeamRepository(teamRepo)
 	discSvc.SetCommunityAccessService(communitySvc)
+	discSvc.SetCommunitySectionService(sectionSvc)
+	sectionSvc.SetDiscussionRepository(discRepo)
 	discSvc.SetCompetitionRepository(compRepo)
 	discSvc.SetRegistrationRepository(compRegRepo)
 	writeupSvc := service.NewWriteupService(writeupRepo, chalRepo, solveRepo)
@@ -179,6 +183,7 @@ func main() {
 		Server:        serverSvc,
 		Access:        accessSvc,
 		Community:     communitySvc,
+		Sections:      sectionSvc,
 		AvatarStorage: storageBackend,
 		Metrics:       metrics.Handler,
 	})

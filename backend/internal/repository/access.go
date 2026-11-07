@@ -224,6 +224,73 @@ func (r *accessRepo) ReplaceCommunityGrants(ctx context.Context, grants []domain
 	})
 }
 
+func (r *accessRepo) CommunitySectionAccessLevel(ctx context.Context, sectionID, userID, teamID uint) (domain.AccessPermission, error) {
+	return r.accessLevel(ctx, "community_section_grants", "section_id", sectionID, userID, teamID)
+}
+
+// SectionGrantLevels resolves the caller's level on every board in one query so
+// the board view loop stays constant-time in the number of sections.
+func (r *accessRepo) SectionGrantLevels(ctx context.Context, userID, teamID uint) (map[uint]domain.AccessPermission, error) {
+	levels := make(map[uint]domain.AccessPermission)
+	if userID == 0 && teamID == 0 {
+		return levels, nil
+	}
+	var rows []struct {
+		SectionID  uint
+		Permission string
+	}
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT g.section_id, g.permission FROM community_section_grants g
+		WHERE (
+			(g.subject_type = 'user' AND g.subject_id = ?)
+			OR (g.subject_type = 'team' AND g.subject_id = ?)
+			OR (g.subject_type = 'group' AND g.subject_id IN (
+				SELECT m.group_id FROM challenge_group_members m
+				WHERE (m.subject_type = 'user' AND m.subject_id = ?)
+				   OR (m.subject_type = 'team' AND m.subject_id = ?)
+			))
+		)`, userID, teamID, userID, teamID).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		if domain.AccessPermission(row.Permission) == domain.AccessManage {
+			levels[row.SectionID] = domain.AccessManage
+			continue
+		}
+		if levels[row.SectionID] != domain.AccessManage {
+			levels[row.SectionID] = domain.AccessView
+		}
+	}
+	return levels, nil
+}
+
+func (r *accessRepo) ListCommunitySectionGrants(ctx context.Context, sectionID uint) ([]*domain.CommunitySectionAccessGrant, error) {
+	var gs []*domain.CommunitySectionAccessGrant
+	if err := r.db.WithContext(ctx).
+		Where("section_id = ?", sectionID).
+		Order("subject_type ASC, subject_id ASC").
+		Find(&gs).Error; err != nil {
+		return nil, err
+	}
+	return gs, nil
+}
+
+func (r *accessRepo) ReplaceCommunitySectionGrants(ctx context.Context, sectionID uint, grants []domain.CommunitySectionAccessGrant) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("section_id = ?", sectionID).Delete(&domain.CommunitySectionAccessGrant{}).Error; err != nil {
+			return err
+		}
+		for _, g := range grants {
+			g.SectionID = sectionID
+			if err := tx.Create(&g).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (r *accessRepo) ListCompetitionGrants(ctx context.Context, competitionID uint) ([]*domain.CompetitionAccessGrant, error) {
 	var gs []*domain.CompetitionAccessGrant
 	if err := r.db.WithContext(ctx).

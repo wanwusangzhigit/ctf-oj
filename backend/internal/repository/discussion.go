@@ -77,6 +77,11 @@ func (r *discussionRepo) ListByScope(ctx context.Context, scope domain.Discussio
 		q = q.Where("team_id = ?", targetID)
 	case domain.DiscussionScopeCompetition:
 		q = q.Where("competition_id = ?", targetID)
+	case domain.DiscussionScopeCommunity:
+		// targetID is the section here, and 0 means the whole board.
+		if targetID > 0 {
+			q = q.Where("section_id = ?", targetID)
+		}
 	}
 	if tag := strings.TrimSpace(opts.Tag); tag != "" {
 		q = q.Where("tags ILIKE ?", "%"+tag+"%")
@@ -298,4 +303,26 @@ func (r *discussionRepo) CountReplies(ctx context.Context, parentID uint) (int64
 		return 0, err
 	}
 	return n, nil
+}
+
+// CountTopicsBySection feeds the admin board list: deleting a board with topics
+// is rejected by the foreign key, so the operator needs to see the count first.
+func (r *discussionRepo) CountTopicsBySection(ctx context.Context) (map[uint]int64, error) {
+	var rows []struct {
+		SectionID uint
+		Total     int64
+	}
+	err := r.db.WithContext(ctx).Model(&domain.Discussion{}).
+		Select("section_id, COUNT(*) AS total").
+		Where("scope = ? AND parent_id IS NULL AND section_id IS NOT NULL", domain.DiscussionScopeCommunity).
+		Group("section_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[uint]int64, len(rows))
+	for _, row := range rows {
+		out[row.SectionID] = row.Total
+	}
+	return out, nil
 }

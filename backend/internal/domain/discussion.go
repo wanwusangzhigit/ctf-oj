@@ -17,6 +17,7 @@ type Discussion struct {
 	ChallengeID   *uint           `gorm:"index" json:"challengeId,omitempty"`
 	TeamID        *uint           `gorm:"index" json:"teamId,omitempty"`
 	CompetitionID *uint           `gorm:"index" json:"competitionId,omitempty"`
+	SectionID     *uint           `gorm:"index;column:section_id" json:"sectionId,omitempty"`
 	UserID        uint            `gorm:"index;not null" json:"userId"`
 	ParentID      *uint           `gorm:"index" json:"parentId,omitempty"`
 	Title         string          `gorm:"size:160;not null;default:''" json:"title,omitempty"`

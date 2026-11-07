@@ -201,6 +201,15 @@ type DiscussionRepository interface {
 	TouchReply(ctx context.Context, parentID uint, at time.Time) error
 	RefreshReplyStats(ctx context.Context, parentID uint) error
 	CountReplies(ctx context.Context, parentID uint) (int64, error)
+	CountTopicsBySection(ctx context.Context) (map[uint]int64, error)
+}
+
+type CommunitySectionRepository interface {
+	Create(ctx context.Context, s *CommunitySection) error
+	FindByID(ctx context.Context, id uint) (*CommunitySection, error)
+	List(ctx context.Context) ([]*CommunitySection, error)
+	Update(ctx context.Context, s *CommunitySection) error
+	Delete(ctx context.Context, id uint) error
 }
 
 type CommunityAccessRepository interface {
@@ -208,6 +217,12 @@ type CommunityAccessRepository interface {
 	ListCommunityGrants(ctx context.Context) ([]*CommunityAccessGrant, error)
 	ReplaceCommunityGrants(ctx context.Context, grants []CommunityAccessGrant) error
 	FindGroupByID(ctx context.Context, id uint) (*ChallengeGroup, error)
+	CommunitySectionAccessLevel(ctx context.Context, sectionID, userID, teamID uint) (AccessPermission, error)
+	// SectionGrantLevels is one query for every board: section-level checks must
+	// not scale with the number of sections.
+	SectionGrantLevels(ctx context.Context, userID, teamID uint) (map[uint]AccessPermission, error)
+	ListCommunitySectionGrants(ctx context.Context, sectionID uint) ([]*CommunitySectionAccessGrant, error)
+	ReplaceCommunitySectionGrants(ctx context.Context, sectionID uint, grants []CommunitySectionAccessGrant) error
 }
 
 type DiscussionLikeRepository interface {

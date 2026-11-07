@@ -43,6 +43,7 @@ type Deps struct {
 	Server        *service.ServerService
 	Access        *service.ChallengeAccessService
 	Community     *service.CommunityAccessService
+	Sections      *service.CommunitySectionService
 	AvatarStorage domain.Storage
 	Metrics       gin.HandlerFunc
 }
@@ -84,7 +85,11 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 	discH := NewDiscussionHandler(d.Discussion)
 	var communityH *CommunityHandler
 	if d.Community != nil {
-		communityH = NewCommunityHandler(d.Community, d.Audit)
+		communityH = NewCommunityHandler(d.Community, d.Sections, d.Audit)
+	}
+	var sectionH *CommunitySectionHandler
+	if d.Sections != nil {
+		sectionH = NewCommunitySectionHandler(d.Sections, d.Audit)
 	}
 	writeupH := NewWriteupHandler(d.Writeup)
 	broadcastH := NewBroadcastHandler(d.Broadcast, d.Audit)
@@ -209,6 +214,10 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 		community.GET("/discussions/:id", middleware.OptionalAuth(d.JWT), optionalActive, discH.CommunityGet)
 		community.POST("/discussions", middleware.Auth(d.JWT), activeMw, discH.CommunityCreate)
 		community.PATCH("/discussions/:id", middleware.Auth(d.JWT), activeMw, discH.CommunityModerate)
+		if sectionH != nil {
+			community.PATCH("/sections/:id", middleware.Auth(d.JWT), activeMw,
+				middleware.RequireCommunitySectionManage(d.Sections), sectionH.UpdateCopy)
+		}
 	}
 
 	// Hint admin CRUD — separate from /challenges so we don't collide with
@@ -368,6 +377,14 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 			adminGroup.PUT("/community", middleware.RequirePermission(domain.PermCommunityManage), communityH.UpdatePolicy)
 			adminGroup.GET("/community/access", middleware.RequirePermission(domain.PermCommunityManage), communityH.ListGrants)
 			adminGroup.PUT("/community/access", middleware.RequirePermission(domain.PermCommunityManage), communityH.SetGrants)
+		}
+		if sectionH != nil {
+			adminGroup.GET("/community/sections", middleware.RequirePermission(domain.PermCommunityManage), sectionH.ListAdmin)
+			adminGroup.POST("/community/sections", middleware.RequirePermission(domain.PermCommunityManage), sectionH.Create)
+			adminGroup.PUT("/community/sections/:id", middleware.RequirePermission(domain.PermCommunityManage), sectionH.Update)
+			adminGroup.DELETE("/community/sections/:id", middleware.RequirePermission(domain.PermCommunityManage), sectionH.Delete)
+			adminGroup.GET("/community/sections/:id/access", middleware.RequirePermission(domain.PermCommunityManage), sectionH.ListGrants)
+			adminGroup.PUT("/community/sections/:id/access", middleware.RequirePermission(domain.PermCommunityManage), sectionH.SetGrants)
 		}
 		if auditH != nil {
 			adminGroup.GET("/audit", middleware.RequirePermission(domain.PermAuditView), auditH.List)

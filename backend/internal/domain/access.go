@@ -63,6 +63,16 @@ type CommunityAccessGrant struct {
 
 func (CommunityAccessGrant) TableName() string { return "community_access_grants" }
 
+type CommunitySectionAccessGrant struct {
+	SectionID   uint              `gorm:"primaryKey" json:"sectionId"`
+	SubjectType AccessSubjectType `gorm:"primaryKey;size:16;not null" json:"subjectType"`
+	SubjectID   uint              `gorm:"primaryKey" json:"subjectId"`
+	Permission  AccessPermission  `gorm:"size:16;not null;default:view" json:"permission"`
+	CreatedAt   time.Time         `json:"createdAt"`
+}
+
+func (CommunitySectionAccessGrant) TableName() string { return "community_section_grants" }
+
 // AccessSubject is a resolved grant/member target for the admin UI.
 type AccessSubject struct {
 	Type       string           `json:"type"`

@@ -242,6 +242,38 @@ func RequireCompetitionManage(comp *service.CompetitionService) gin.HandlerFunc 
 	}
 }
 
+// RequireCommunitySectionManage lets a board manager edit that board's own copy.
+// Station-level community managers pass without a delegation; a grant on the
+// board in :id is recorded so the audit row says which board authorized them.
+func RequireCommunitySectionManage(sections *service.CommunitySectionService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if HasPermission(c, domain.PermCommunityManage) || HasPermission(c, domain.PermDiscussionModerate) {
+			c.Next()
+			return
+		}
+		uid, ok := CurrentUserID(c)
+		if !ok || sections == nil {
+			response.Err(c, domain.ErrForbidden)
+			c.Abort()
+			return
+		}
+		id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+		if err != nil || id == 0 {
+			response.Err(c, domain.ErrForbidden)
+			c.Abort()
+			return
+		}
+		allowed, err := sections.CanManageSection(c.Request.Context(), uint(id), uid, false)
+		if err != nil || !allowed {
+			response.Err(c, domain.ErrForbidden)
+			c.Abort()
+			return
+		}
+		c.Set(CtxDelegation, fmt.Sprintf("community_section:%d:manage", id))
+		c.Next()
+	}
+}
+
 func CurrentUserID(c *gin.Context) (uint, bool) {
 	v, ok := c.Get(CtxUserID)
 	if !ok {
