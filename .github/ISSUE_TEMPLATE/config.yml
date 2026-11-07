@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability
+    url: https://github.com/wanwusangzhigit/ctf-oj/security/advisories/new
+    about: >-
+      Private disclosure. Read SECURITY.md first — the backend mounts the Docker
+      socket, so some findings are deployment issues rather than code issues.
+  - name: Deployment and usage questions
+    url: https://github.com/wanwusangzhigit/ctf-oj/blob/main/README.md
+    about: >-
+      Quick start, the configuration reference, the first-administrator procedure and
+      the published images are all in the README (English and 简体中文).
+  - name: Architecture and design questions
+    url: https://github.com/wanwusangzhigit/ctf-oj/blob/main/.github/CONTRIBUTING.md
+    about: >-
+      Layering, migration policy, API envelope, frontend conventions and the checks a
+      pull request has to pass.

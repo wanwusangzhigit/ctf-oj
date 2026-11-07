@@ -1,0 +1,77 @@
+name: Feature request
+description: Propose something new, or a change to how an existing feature behaves.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests that describe a problem first get answered faster than ones
+        that describe an implementation. Roughly half of what ships here was built for
+        a self-hosted operator's own contest, so concrete constraints are welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: |
+        What cannot be done today, and what you do instead. Include the role you were
+        acting as (player, captain, moderator, admin) and the contest setup that makes
+        this matter.
+      placeholder: |
+        As an organizer I cannot hand a running competition to a co-organizer without
+        promoting them to full admin, which also grants site settings and pruning.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Expected behaviour
+      description: What should the product do? UI changes, API shape, permission rules.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds, configuration, or a smaller version of the same idea.
+    validations:
+      required: false
+  - type: checkboxes
+    id: area
+    attributes:
+      label: Area
+      description: Pick every area this touches.
+      options:
+        - label: auth (registration, login, 2FA, sessions)
+          required: false
+        - label: challenges (catalog, flags, scoring, attachments)
+          required: false
+        - label: containers (dynamic challenges, instances, TTL)
+          required: false
+        - label: competitions (registration, scoring modes, freeze, results)
+          required: false
+        - label: community (sections, topics, revisions, moderation)
+          required: false
+        - label: teams (rosters, invite codes, team board)
+          required: false
+        - label: admin (settings, grants, audit, broadcast, import/export)
+          required: false
+        - label: stats (scoreboards, charts, activity, notifications)
+          required: false
+        - label: deploy (compose, migrations, images, Caddy)
+          required: false
+  - type: textarea
+    id: data
+    attributes:
+      label: Data and permission impact
+      description: |
+        Does this need a new table or column, a new grant type, or a migration that
+        backfills existing rows? Say so — it changes how the work gets scheduled.
+    validations:
+      required: false
+  - type: checkboxes
+    id: pr
+    attributes:
+      label: Willing to work on it
+      options:
+        - label: I would like to open a pull request for this
+          required: false

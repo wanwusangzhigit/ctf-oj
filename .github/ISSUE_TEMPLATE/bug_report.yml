@@ -1,0 +1,108 @@
+name: Bug report
+description: Something does not behave as documented or as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the details. Fill in as much as you can — a bug report we cannot
+        reproduce usually cannot be fixed.
+
+        **Do not report security issues here.** See
+        [`SECURITY.md`](../SECURITY.md).
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken, in one or two sentences.
+      placeholder: Submitting a correct flag on a regex challenge returns 500.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Numbered steps, starting from a clean browser session. Include the account role
+        (anonymous, player, team captain, moderator, admin) and whether the resource had
+        an explicit access grant.
+      value: |
+        1. Go to '…'
+        2. Click on '…'
+        3. Submit '…'
+      placeholder: A minimal, concrete path is worth more than a long description.
+    validations:
+      required: true
+      minLength: 40
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+      description: What should have happened, and what happened instead.
+      placeholder: |
+        Expected: `{"code":0,...}` with `correct: true`.
+        Actual: HTTP 500, `{"code":50000,"message":"internal server error"}`.
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      description: How is the instance you are reporting against run?
+      options:
+        - Docker Compose (production, `make up-prod` / `make deploy`)
+        - Source (dev, `make backend-dev` + `make frontend-dev`)
+        - A hosted instance I do not operate
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Output of `git rev-parse --short HEAD`, or the image tag you pulled.
+      placeholder: 7b5f7b6 or ghcr.io/…/backend:sha-1a2b3c4
+    validations:
+      required: true
+  - type: dropdown
+    id: migration
+    attributes:
+      label: Is a migration involved?
+      description: |
+        Bugs that appear right after `make migrate` usually come from a schema mismatch.
+        Say so here.
+      options:
+        - "No"
+        - "Yes — pending migrations were applied"
+        - "Yes — `--baseline-existing` was used"
+        - "Not sure"
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Browser, OS and device
+      placeholder: Chrome 130 on Linux; viewport 1440x900
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        Backend log lines, browser console output, or the network response body.
+        Redact `BACKEND_JWT_SECRET`, session cookies, flags and instance access tokens
+        before pasting.
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues, including closed ones
+          required: true
+        - label: I redacted secrets, tokens and flags from anything I pasted
+          required: true
+        - label: This is not a security vulnerability (see SECURITY.md)
+          required: true
