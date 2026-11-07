@@ -27,10 +27,17 @@ make frontend-dev          # http://localhost:5173, proxies /api to 8081
 For the packaged stack instead:
 
 ```bash
-make deploy                # secrets + migrations + image build + health check
-# or
-make up-prod               # rebuild and start everything behind Caddy on :8080
+make deploy                # pull the CI images (local build only if the pull fails),
+                           # migrate, start everything, wait for health
+make deploy ARGS="--source build"   # build from this working tree — do this after any
+                           # backend change, a pulled `latest` is what CI last published
+make deploy-custom         # the same settings through a wizard; --dry-run prints, changes nothing
 ```
+
+Anything that edits `docker-compose.yml` or `scripts/deploy.sh` should be checked with
+`./scripts/deploy.sh --dry-run` first, and against an isolated project rather than the
+one you are serving — `--env-file .env.test --project ctfoj-test --port 8091` gives you a
+separate set of volumes, network and credentials. Both are documented in the README.
 
 The first registered account is an ordinary user. Promote it with the SQL in the
 README's "First administrator" section; there is no built-in account and there will not

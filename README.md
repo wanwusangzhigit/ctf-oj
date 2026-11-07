@@ -98,11 +98,29 @@ Requirements: Docker with the Compose v2 plugin, Linux or macOS. Dynamic challen
 need a Docker daemon reachable by the backend (the compose file mounts
 `/var/run/docker.sock`).
 
-One command — generates secrets into `.env`, runs migrations, builds both images and
-waits for health:
+### Default deploy
+
+`make deploy` runs unattended and asks nothing:
+
+1. create `.env` from `.env.example` when it is missing, and `chmod 600` it;
+2. generate `BACKEND_JWT_SECRET` and the Postgres passwords when they are still the
+   shipped placeholders — an existing `pg-data` volume blocks the password rotation,
+   because changing them would lock the stack out of its own database;
+3. pull the `backend` and `frontend` images, and build locally only if the pull fails
+   or stalls past `--pull-timeout` (default 600 seconds);
+4. start postgres and redis, apply migrations, start the remaining services;
+5. poll `/api/v1/health` for up to 180 seconds, then print the URLs and next steps.
 
 ```bash
-make deploy
+make deploy                     # http://localhost:8080
+```
+
+Prebuilt images mean a fresh host does not need this repository's source tree to
+deploy. A pulled `latest` is whatever CI last built, not your working copy — after
+changing backend code, deploy the local build instead:
+
+```bash
+make deploy ARGS="--source build"
 ```
 
 Or step by step:
@@ -116,6 +134,52 @@ make up-prod              # build + start backend, worker, frontend, caddy
 
 Open <http://localhost:8080>. The published port is `${PUBLIC_HTTP_PORT}` (default
 `8080`); the backend listens on `8081` inside the network only.
+
+### Custom deploy
+
+```bash
+make deploy-custom                                        # the wizard
+./scripts/deploy.sh --custom --yes --port 9000 --project ctfoj-demo --source build
+./scripts/deploy.sh --custom --dry-run                    # ask, print, change nothing
+```
+
+The wizard asks four groups: exposed port / compose project name / code source → image
+prefix and tag / registration / instance host and port range → how secrets are handled →
+whether to prepare the first administrator. It prints the SQL for the administrator and
+never runs it. Each question has an equivalent flag, so `--custom --yes` or a full set
+of flags is usable from CI. Every flag also works without `--custom`, which is how the
+default mode is customised non-interactively.
+
+Precedence is always **flag > wizard answer > env file > built-in default**.
+
+| Flag | Default | Notes |
+| --- | --- | --- |
+| `--custom`, `-i` | off | Enter the wizard. Without it the script never reads stdin |
+| `--yes`, `-y` | off | Answer every question with its default; required for `--custom` without a TTY |
+| `--lang zh\|en` | detected | See [Languages](#languages) |
+| `--source pull\|build\|auto` | `auto` | `auto` pulls and falls back to a local build; `pull` fails instead of falling back; `build` never pulls |
+| `--pull-timeout N` | `600` | Seconds to wait for the pull, `0` for no limit. A registry that answers the manifest and then stalls on the blobs is otherwise indistinguishable from a slow link, and the fallback would never fire. Hosts without the `timeout` command warn and pull unbounded |
+| `--port N` | existing `PUBLIC_HTTP_PORT`, else `8080` | Published port; warns when another project already holds it |
+| `--project NAME` | existing `COMPOSE_PROJECT_NAME`, else `ctfoj` | Volumes and networks are named after it — a new name starts empty. Written into the env file, so the follow-up commands the script prints hit the same stack instead of the old one |
+| `--registry PREFIX` | `ghcr.io/wanwusangzhigit/ctf-oj` | Point at a mirror or your own registry |
+| `--tag TAG` | `latest` | Image tag to pull or build |
+| `--register open\|closed` | `open` | `BACKEND_REGISTER_OPEN` |
+| `--instance-host H` | `localhost` | Host players reach instance ports on |
+| `--instance-port-range MIN-MAX` | `30000-40000` | `MIN` must be lower than `MAX` |
+| `--secrets auto\|manual` | `auto` | `manual` generates nothing and warns about placeholders; the wizard never asks for a secret value |
+| `--admin USERNAME` | — | Substituted into the printed SQL (default `YOUR_NAME`); still only printed |
+| `--env-file PATH` | `.env` | Deploy a second instance without touching the first one's credentials. A file copied from `.env.example` still says `COMPOSE_PROJECT_NAME=ctfoj`, so pair it with `--project` — otherwise `docker compose -p … down -v` against it destroys the original stack, and the script warns when it sees this combination |
+| `--dry-run` | off | Print every command; no file is written, no container starts |
+| `--no-build` | — | Legacy spelling of `--source pull` |
+| `--skip-migrate` | — | Skip `scripts/migrate.sh` |
+
+### Languages
+
+Both messages and the wizard are available in Chinese and English. The language is
+chosen by `--lang zh|en`, then `CTF_OJ_LANG`, then `LC_ALL` / `LANG` when it starts with
+`zh` or `en`; a bare `C` / `POSIX` locale counts as undetectable and falls back to
+Chinese. `--lang en` on a zh host changes only the text — the command sequence is
+byte-identical.
 
 ### Development loop
 
@@ -140,6 +204,10 @@ docker compose exec -T postgres sh -c \
 Log out and back in so the new role lands in your token. Everything else —
 categories, challenges, competitions, community boards — is created in the admin
 console.
+
+`scripts/deploy.sh` prints this as its last step, with the env file, database name and
+user already filled in (substitute your username, or pass `--admin NAME`). It prints the
+command and never runs it.
 
 ## Configuration
 
@@ -170,6 +238,9 @@ secrets and `chmod 600` on it. Defaults below are the shipped ones.
 | `BACKEND_INSTANCE_FLAG_PREFIX` | `flag` | Prefix of injected dynamic flags |
 | `WORKER_INTERVAL_SECONDS` | `30` | TTL / cleanup sweep interval |
 | `PUBLIC_HTTP_PORT` | `8080` | The only published port |
+| `COMPOSE_PROJECT_NAME` | `ctfoj` | Prefix of the volumes and networks this stack owns |
+| `CTFOJ_IMAGE_PREFIX` | `ghcr.io/wanwusangzhigit/ctf-oj` | Where `backend` / `frontend` images are pulled from and tagged |
+| `CTFOJ_IMAGE_TAG` | `latest` | Image tag used by both services |
 
 Advanced variables that are not in `.env.example` but are honoured by the backend:
 
@@ -180,8 +251,8 @@ Advanced variables that are not in `.env.example` but are honoured by the backen
 | `BACKEND_MAILER_FROM` / `BACKEND_SMTP_FROM` | `noreply@ctf-oj.local` | Sender address |
 | `BACKEND_SMTP_HOST` / `BACKEND_SMTP_PORT` | empty / `587` | |
 | `BACKEND_SMTP_USER` / `BACKEND_SMTP_PASS` / `BACKEND_SMTP_USE_TLS` | empty / empty / `true` | |
-| `BACKEND_DOCKER_HOST` | `unix:///var/run/docker.sock` | Where the orchestrator talks to |
-| `BACKEND_DOCKER_NETWORK` | empty | Attach player instances to an existing network |
+| `BACKEND_DOCKER_HOST` | `unix:///var/run/docker.sock` | Parsed but **never read**: the orchestrator shells out to the `docker` CLI, so only the process's own `DOCKER_HOST` has any effect |
+| `BACKEND_DOCKER_NETWORK` | empty | Parsed but **never read** — nothing assigns `Instance.NetworkName`, and `docker run` is invoked without `--network`; player instances publish into the host port range and are reached through `BACKEND_INSTANCE_PUBLIC_HOST` |
 | `BACKEND_CHALLENGE_SOURCE_DIR` | `./data/challenge_sources` (`/data/challenge_sources` in containers) | Source store for Dockerfile/Compose challenges |
 | `BACKEND_CORS_ORIGINS` | `*` | Comma-separated list; tighten for production |
 
@@ -192,7 +263,8 @@ default `console` driver those messages go to the backend log instead of the net
 
 | Target | What it does |
 | --- | --- |
-| `deploy` | `scripts/deploy.sh`: `.env` + secrets, migrations, build, health check |
+| `deploy` | `scripts/deploy.sh`: secrets, image pull (local build on failure), migrations, health check |
+| `deploy-custom` | `scripts/deploy.sh --custom`: the same through a bilingual wizard; pass `ARGS="--yes --port 9000"` to script it |
 | `up` | Start postgres and redis |
 | `down` | Stop the stack, keep volumes |
 | `migrate` | Apply pending migrations and record them in `schema_migrations` |
@@ -283,6 +355,16 @@ Prebuilt images are published for `linux/amd64` and `linux/arm64`:
 docker pull ghcr.io/wanwusangzhigit/ctf-oj/backend:latest
 docker pull ghcr.io/wanwusangzhigit/ctf-oj/frontend:latest
 ```
+
+`backend`, `worker` and `frontend` each carry both an `image:` and a `build:` key, so
+the same compose file works pulled or built. `worker` intentionally reuses the backend
+image with a different entrypoint. `--registry` points the whole stack at a mirror or
+your own registry — it rewrites `CTFOJ_IMAGE_PREFIX`, which both the pull and the local
+build tag read.
+
+One consequence of the shared name: `--source build` overwrites the local copy of
+`ghcr.io/.../backend:latest`, so after that the tag no longer matches what CI published
+until the next `--source pull`.
 
 Pull requests build the images but do not push them.
 

@@ -45,6 +45,7 @@ services:
       retries: 10
 
   backend:
+    image: ${CTFOJ_IMAGE_PREFIX:-ghcr.io/wanwusangzhigit/ctf-oj}/backend:${CTFOJ_IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -87,6 +88,7 @@ services:
       - ctfoj-net
 
   worker:
+    image: ${CTFOJ_IMAGE_PREFIX:-ghcr.io/wanwusangzhigit/ctf-oj}/backend:${CTFOJ_IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -114,6 +116,7 @@ services:
       - ctfoj-net
 
   frontend:
+    image: ${CTFOJ_IMAGE_PREFIX:-ghcr.io/wanwusangzhigit/ctf-oj}/frontend:${CTFOJ_IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
