@@ -82,13 +82,29 @@ one `docker compose` file.
 - Health endpoint, Prometheus metrics at `/metrics`, WebSocket stream at `/api/v1/realtime`.
 - Structured logging with a configurable level, Redis-backed rate limiting and caching.
 
+### Internationalization
+- Chinese / English UI with a header switch. The preference is stored in
+  `localStorage`; otherwise the browser language decides (Chinese locales get
+  Chinese, everything else gets English).
+- Dictionaries live in `frontend/src/locales/` and are bundled at build time —
+  no CDN and no runtime translation fetch. `i18next` / `react-i18next` are MIT
+  licensed and pinned to exact versions.
+- Dates, relative times and duration units follow the active locale.
+- User-authored content (challenge titles, announcements, board copy, site rules)
+  is data, not UI chrome, and is not translated at runtime.
+- The switcher sits in the page header; switching reloads the page so that
+  module-level labels are re-evaluated under the new language.
+- To add UI copy, add the Chinese text as a key to both
+  `frontend/src/locales/zh/natural.ts` and `en/natural.ts`, then call
+  `i18n.t('中文')`. `npm run typecheck` catches any missing key.
+
 ## Tech stack
 
 | Layer | Choice |
 | --- | --- |
 | Backend | Go 1.22, Gin, GORM, `database/sql`-free, JWT (access + refresh) |
 | Data | PostgreSQL 16, Redis 7 |
-| Frontend | React 18, TypeScript 5.6 (strict), Vite 5, Tailwind CSS, TanStack Query, Zustand, react-router 6 |
+| Frontend | React 18, TypeScript 5.6 (strict), Vite 5, Tailwind CSS, TanStack Query, Zustand, react-router 6, i18next / react-i18next |
 | Infra | Docker Compose, Caddy reverse proxy, GHCR images (`linux/amd64` + `linux/arm64`) |
 | Rich text | react-markdown + rehype-sanitize (no `dangerouslySetInnerHTML`) |
 
@@ -179,7 +195,8 @@ Both messages and the wizard are available in Chinese and English. The language 
 chosen by `--lang zh|en`, then `CTF_OJ_LANG`, then `LC_ALL` / `LANG` when it starts with
 `zh` or `en`; a bare `C` / `POSIX` locale counts as undetectable and falls back to
 Chinese. `--lang en` on a zh host changes only the text — the command sequence is
-byte-identical.
+byte-identical. This controls the deploy script's own output only; the web UI
+language is chosen independently in the browser (see Internationalization).
 
 ### Development loop
 
@@ -314,6 +331,7 @@ frontend/
   src/pages             route pages (public + admin)
   src/components        business components, ui/ primitives
   src/hooks src/stores src/lib src/types src/styles
+  src/locales            zh/en dictionaries, i18n init, browser-language detection
 deploy/caddy/Caddyfile  reverse proxy config
 scripts/                deploy.sh, migrate.sh
 .github/                issue forms, PR template, workflows, screenshot assets
@@ -386,12 +404,14 @@ name to confirm.
 - **P3** Containerized challenges: orchestration, dynamic flags, instance lifecycle, TTL worker ✅
 - **P4** Community: announcements, threaded discussions, Markdown, notification centre ✅
 - **P5** Admin console and advanced features: realtime scoreboard, statistics, import/export ✅ (ongoing polish)
+- **P6** Internationalization: full Chinese/English UI, locally bundled dictionaries,
+  browser-language detection ✅
 
 Known gaps, stated plainly:
 
 - No frontend unit test framework.
 - No OpenAPI or generated contract documentation; the handlers are the specification.
-- The UI is Chinese-only and the strings are hardcoded — there is no i18n layer.
+- Runtime translation covers UI chrome only; site-authored content and built-in community copy defaults stay in the language they were written in.
 - CI builds images but does not run the test suites.
 - `local` is the only storage driver; there is no S3-compatible backend.
 - Deleting a community board with topics in it is refused rather than archived.

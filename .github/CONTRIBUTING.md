@@ -103,6 +103,20 @@ implementation, and cross-service wiring happens in `cmd/server/main.go`.
 
 ## Frontend conventions
 
+```
+frontend/src/
+  api/          one module per resource
+  components/   business components, ui/ primitives
+  hooks/        custom hooks
+  locales/      zh/en dictionaries (Chinese source text as key), i18n init,
+                browser-language detection
+  pages/        route pages (public + admin)
+  stores/       Zustand stores
+  lib/          helpers (formatting follows the active locale)
+  types/        global types + i18next key augmentation
+  styles/       design tokens
+```
+
 - Strict TypeScript. Prefer `type` over `interface` unless the type is merged. No `any`;
   use `unknown` at boundaries.
 - Colors, radii and spacing come from `src/styles/tokens.css` and the Tailwind preset.
@@ -111,6 +125,21 @@ implementation, and cross-service wiring happens in `cmd/server/main.go`.
   No CDN, no Google Fonts, no remote scripts or images.
 - Rich text renders through the `Markdown` component (react-markdown +
   rehype-sanitize). `dangerouslySetInnerHTML` is not acceptable.
+- UI copy goes through `i18n.t(...)`; dictionaries live in
+  `src/locales/{zh,en}/` and use the Chinese source text as the key. Never
+  hardcode Chinese in components. Dictionaries are bundled locally, so the
+  production bundle never fetches translations from a third-party origin.
+  Keep the `zh` and `en` key sets identical — the TypeScript augmentation in
+  `src/types/i18next.d.ts` makes a missing key a compile error.
+- Adding UI copy: add the Chinese text as a key to both
+  `src/locales/zh/natural.ts` and `src/locales/en/natural.ts` (the English value
+  is the translation), then use `i18n.t('中文')` in the component. Interpolate with
+  `i18n.t('共 {{v0}} 项', { v0: count })` instead of concatenating fragments.
+  `npm run typecheck` rejects any key missing from the dictionaries.
+- New frontend dependencies must be installed with `npm i --save-exact` and
+  committed together with `package-lock.json`. They must be GPL-3.0 compatible
+  (MIT/Apache/BSD), have no known advisories, and never require a CDN or remote
+  runtime asset. Third-party license texts live in `frontend/public/licenses/`.
 - Overlays use `components/ui/Modal`; destructive confirmations use `useConfirm()`.
   `window.confirm`, `alert` and `prompt` are banned.
 - Forms use `react-hook-form` + `zod`, with the same limits as the backend validator.

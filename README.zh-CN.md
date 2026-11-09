@@ -73,13 +73,21 @@
 - 健康检查、`/metrics` 暴露 Prometheus 指标、`/api/v1/realtime` WebSocket 推送。
 - 结构化日志可调级别，限流与缓存走 Redis。
 
+### 国际化
+- 中英双语界面，页头可切换；偏好写入 `localStorage`，未设置时跟随浏览器语言（中文环境用中文，其余用英文）。
+- 字典位于 `frontend/src/locales/`，随构建本地打包，不依赖 CDN 或运行时远端拉取；`i18next` / `react-i18next` 为 MIT 许可并固定精确版本。
+- 日期、相对时间与时长单位随当前语言变化。
+- 用户创建的内容（题目标题、公告、板块文案、站点规则）属于数据层，不做运行时翻译。
+- 切换器位于页头；切换会整页刷新，让模块级常量也按新语言重新求值。
+- 新增文案时，把中文原文作为 key 同时写入 `frontend/src/locales/zh/natural.ts` 与 `en/natural.ts`，组件里调用 `i18n.t('中文原文')`；漏 key 会被 `npm run typecheck` 拦下。
+
 ## 技术栈
 
 | 层 | 选型 |
 | --- | --- |
 | 后端 | Go 1.22、Gin、GORM、JWT（access + refresh 双令牌） |
 | 数据 | PostgreSQL 16、Redis 7 |
-| 前端 | React 18、TypeScript 5.6（strict）、Vite 5、Tailwind CSS、TanStack Query、Zustand、react-router 6 |
+| 前端 | React 18、TypeScript 5.6（strict）、Vite 5、Tailwind CSS、TanStack Query、Zustand、react-router 6、i18next / react-i18next |
 | 基础设施 | Docker Compose、Caddy 反向代理、GHCR 镜像（`linux/amd64` + `linux/arm64`） |
 | 富文本 | react-markdown + rehype-sanitize（不使用 `dangerouslySetInnerHTML`） |
 
@@ -163,7 +171,7 @@ SQL，绝不代跑**。每个问题都有等价命令行参数，`--custom --yes
 
 提示文案与向导都提供中英两套。选择顺序：`--lang zh|en` > `CTF_OJ_LANG` > `LC_ALL` /
 `LANG` 以 `zh` 或 `en` 开头；纯 `C` / `POSIX` 视为检测不到，兜底中文。同一套命令序列在
-`--lang zh` 与 `--lang en` 下逐字节相同，变的只有文案。
+`--lang zh` 与 `--lang en` 下逐字节相同，变的只有文案。这里只控制部署脚本自身的输出；网页界面语言在浏览器里独立选择（见「国际化」）。
 
 ### 开发模式
 
@@ -292,6 +300,7 @@ frontend/
   src/pages             路由页面（公开侧 + 后台）
   src/components        业务组件，ui/ 是基础组件
   src/hooks src/stores src/lib src/types src/styles
+  src/locales            zh/en 字典、i18n 初始化、浏览器语言检测
 deploy/caddy/Caddyfile  反向代理配置
 scripts/                deploy.sh、migrate.sh
 .github/                issue 表单、PR 模板、workflow、截图资源
@@ -358,12 +367,13 @@ make restore FILE=backups/ctfoj-20260101T120000Z.dump
 - **P3 容器化题目**：容器编排、动态 flag、实例生命周期、TTL worker ✅
 - **P4 社区**：公告、嵌套讨论、Markdown、通知中心 ✅
 - **P5 后台与高级特性**：实时记分板、统计图表、导入导出 ✅（持续打磨）
+- **P6 国际化**：全站中英双语、字典本地打包、浏览器语言检测 ✅
 
 明确写出的缺口：
 
 - 没有前端单测框架。
 - 没有 OpenAPI 或契约文档，handler 就是规格。
-- 界面只有中文且文案硬编码，没有 i18n 层。
+- 运行时翻译仅覆盖界面文案；站点内容与社区文案内置默认值保持撰写时的语言。
 - CI 只构建镜像，不跑测试。
 - 存储只有 `local` driver，没有 S3 兼容后端。
 - 板块下仍有主题时删除会被拒绝，没有归档状态。
