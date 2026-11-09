@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useMemo, useState } from 'react';
 import { Field, Input, Textarea } from '@/components/ui';
 import { Section, SaveBar } from '@/components/admin/SettingsSection';
@@ -38,15 +39,15 @@ export function AdminSettingsBrandPage() {
 
   return (
     <div className="space-y-8">
-      <Section title="品牌">
-        <Field label="站点名称" htmlFor="siteName" hint="将出现在顶部导航与首页">
+      <Section title={i18n.t('品牌')}>
+        <Field label={i18n.t('站点名称')} htmlFor="siteName" hint={i18n.t('将出现在顶部导航与首页')}>
           <Input
             id="siteName"
             value={draft.name}
             onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
           />
         </Field>
-        <Field label="标语" htmlFor="tagline" hint="首页副标题">
+        <Field label={i18n.t('标语')} htmlFor="tagline" hint={i18n.t('首页副标题')}>
           <Input
             id="tagline"
             value={draft.tagline}
@@ -54,9 +55,9 @@ export function AdminSettingsBrandPage() {
           />
         </Field>
         <Field
-          label="站点规则（Markdown）"
+          label={i18n.t('站点规则（Markdown）')}
           htmlFor="rules"
-          hint="注册页 / 公告页可引用此片段"
+          hint={i18n.t('注册页 / 公告页可引用此片段')}
         >
           <Textarea
             id="rules"

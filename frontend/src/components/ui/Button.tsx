@@ -1,4 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
@@ -55,13 +56,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function button
 });
 
 export function Spinner({ className }: { className?: string }) {
+  const { t } = useTranslation();
   return (
     <svg
       className={cn('animate-spin', className)}
       viewBox="0 0 24 24"
       fill="none"
       role="img"
-      aria-label="loading"
+      aria-label={t('a11y.loading')}
     >
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
       <path

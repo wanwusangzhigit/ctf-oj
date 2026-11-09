@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Spinner, useConfirm, useToast } from '@/components/ui';
@@ -35,10 +36,10 @@ export function CompetitionRegistrationTable({
         competition.id,
         userId,
         excluded,
-        excluded ? '管理员取消成绩' : undefined,
+        excluded ? i18n.t('管理员取消成绩') : undefined,
       ),
     onSuccess: (_data, variables) => {
-      toast.success(variables.excluded ? '成绩已取消' : '成绩已恢复');
+      toast.success(variables.excluded ? i18n.t('成绩已取消') : i18n.t('成绩已恢复'));
       qc.invalidateQueries({
         queryKey: ['admin-competition-registrations', competition.id],
       });
@@ -48,7 +49,7 @@ export function CompetitionRegistrationTable({
       });
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   const items = listQ.data?.items ?? [];
@@ -60,17 +61,17 @@ export function CompetitionRegistrationTable({
           <Spinner className="h-5 w-5 text-ink-3" />
         </div>
       ) : listQ.isError ? (
-        <p className="text-sm text-ink-3">无法加载报名名单。</p>
+        <p className="text-sm text-ink-3">{i18n.t('无法加载报名名单。')}</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-ink-3">暂无报名用户。</p>
+        <p className="text-sm text-ink-3">{i18n.t('暂无报名用户。')}</p>
       ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="text-2xs uppercase text-ink-3 border-b border-rule">
-              <th className="text-left py-2 font-medium">用户</th>
-              <th className="text-left py-2 font-medium">报名时间</th>
-              <th className="text-left py-2 font-medium">状态</th>
-              <th className="text-right py-2 font-medium">操作</th>
+              <th className="text-left py-2 font-medium">{i18n.t('用户')}</th>
+              <th className="text-left py-2 font-medium">{i18n.t('报名时间')}</th>
+              <th className="text-left py-2 font-medium">{i18n.t('状态')}</th>
+              <th className="text-right py-2 font-medium">{i18n.t('操作')}</th>
             </tr>
           </thead>
           <tbody>
@@ -88,9 +89,9 @@ export function CompetitionRegistrationTable({
                   </td>
                   <td className="py-2">
                     {r.scoreExcluded ? (
-                      <Badge tone="danger">成绩已取消</Badge>
+                      <Badge tone="danger">{i18n.t('成绩已取消')}</Badge>
                     ) : (
-                      <Badge tone="success">正常</Badge>
+                      <Badge tone="success">{i18n.t('正常')}</Badge>
                     )}
                   </td>
                   <td className="py-2 text-right">
@@ -107,21 +108,21 @@ export function CompetitionRegistrationTable({
                         const ok = await confirm(
                           next
                             ? {
-                                title: '取消成绩',
-                                description: `取消 ${name} 在本赛事的成绩，排行榜将不再显示该用户。`,
-                                confirmText: '取消成绩',
+                                title: i18n.t('取消成绩'),
+                                description: i18n.t('取消 {{v0}} 在本赛事的成绩，排行榜将不再显示该用户。', { v0: name }),
+                                confirmText: i18n.t('取消成绩'),
                               }
                             : {
-                                title: '恢复成绩',
-                                description: `恢复 ${name} 在本赛事的成绩。`,
-                                confirmText: '恢复成绩',
+                                title: i18n.t('恢复成绩'),
+                                description: i18n.t('恢复 {{v0}} 在本赛事的成绩。', { v0: name }),
+                                confirmText: i18n.t('恢复成绩'),
                                 danger: false,
                               },
                         );
                         if (ok) excludeMut.mutate({ userId: r.userId, excluded: next });
                       }}
                     >
-                      {r.scoreExcluded ? '恢复成绩' : '取消成绩'}
+                      {r.scoreExcluded ? i18n.t('恢复成绩') : i18n.t('取消成绩')}
                     </Button>
                   </td>
                 </tr>

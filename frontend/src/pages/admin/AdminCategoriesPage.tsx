@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Pencil } from 'lucide-react';
@@ -40,12 +41,12 @@ export function AdminCategoriesPage() {
       return createCategory(form);
     },
     onSuccess: () => {
-      toast.success(editing ? '已更新' : '已创建');
+      toast.success(editing ? i18n.t('已更新') : i18n.t('已创建'));
       qc.invalidateQueries({ queryKey: ['categories'] });
       reset();
     },
     onError: (err) => {
-      const msg = err instanceof ApiClientError ? err.message : '操作失败';
+      const msg = err instanceof ApiClientError ? err.message : i18n.t('操作失败');
       toast.error(msg);
     },
   });
@@ -53,11 +54,11 @@ export function AdminCategoriesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteCategory(id),
     onSuccess: () => {
-      toast.success('已删除');
+      toast.success(i18n.t('已删除'));
       qc.invalidateQueries({ queryKey: ['categories'] });
     },
     onError: (err) => {
-      const msg = err instanceof ApiClientError ? err.message : '删除失败';
+      const msg = err instanceof ApiClientError ? err.message : i18n.t('删除失败');
       toast.error(msg);
     },
   });
@@ -81,7 +82,7 @@ export function AdminCategoriesPage() {
     <div className="grid gap-6 lg:grid-cols-3">
       <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle>{editing ? '编辑分类' : '新建分类'}</CardTitle>
+          <CardTitle>{editing ? i18n.t('编辑分类') : i18n.t('新建分类')}</CardTitle>
         </CardHeader>
         <CardBody>
           <form
@@ -91,7 +92,7 @@ export function AdminCategoriesPage() {
             }}
             className="space-y-4"
           >
-            <Field label="名称">
+            <Field label={i18n.t('名称')}>
               <Input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -99,7 +100,7 @@ export function AdminCategoriesPage() {
                 required
               />
             </Field>
-            <Field label="Slug" hint="用于 URL 的小写标识">
+            <Field label="Slug" hint={i18n.t('用于 URL 的小写标识')}>
               <Input
                 value={form.slug}
                 onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
@@ -107,14 +108,14 @@ export function AdminCategoriesPage() {
                 required
               />
             </Field>
-            <Field label="描述">
+            <Field label={i18n.t('描述')}>
               <Textarea
                 rows={3}
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               />
             </Field>
-            <Field label="排序权重">
+            <Field label={i18n.t('排序权重')}>
               <Input
                 type="number"
                 value={form.sortOrder}
@@ -125,11 +126,11 @@ export function AdminCategoriesPage() {
             </Field>
             <div className="flex gap-2">
               <Button type="submit" loading={saveMutation.isPending} className="flex-1">
-                {editing ? '保存修改' : '创建'}
+                {editing ? i18n.t('保存修改') : i18n.t('创建')}
               </Button>
               {editing && (
                 <Button type="button" variant="outline" onClick={reset}>
-                  取消
+                  {i18n.t('取消')}
                 </Button>
               )}
             </div>
@@ -139,11 +140,11 @@ export function AdminCategoriesPage() {
 
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle>已有分类（{list.data?.length ?? 0}）</CardTitle>
+          <CardTitle>{i18n.t('已有分类（{{v0}}）', { v0: list.data?.length ?? 0 })}</CardTitle>
         </CardHeader>
         <CardBody className="p-0">
           {list.isLoading ? (
-            <div className="py-10 text-center text-sm text-muted">加载中...</div>
+            <div className="py-10 text-center text-sm text-muted">{i18n.t('加载中...')}</div>
           ) : list.data?.length ? (
             <ul className="divide-y divide-border">
               {list.data.map((c) => (
@@ -167,9 +168,9 @@ export function AdminCategoriesPage() {
                       size="icon"
                       onClick={async () => {
                         const ok = await confirm({
-                          title: '删除分类',
-                          description: `删除分类「${c.name}」？分类下仍有题目时删除会被拒绝。`,
-                          confirmText: '删除',
+                          title: i18n.t('删除分类'),
+                          description: i18n.t('删除分类「{{v0}}」？分类下仍有题目时删除会被拒绝。', { v0: c.name }),
+                          confirmText: i18n.t('删除'),
                         });
                         if (ok) deleteMutation.mutate(c.id);
                       }}
@@ -182,7 +183,7 @@ export function AdminCategoriesPage() {
             </ul>
           ) : (
             <div className="py-10 text-center text-sm text-muted">
-              还没有任何分类，使用左侧表单创建第一个。
+              {i18n.t('还没有任何分类，使用左侧表单创建第一个。')}
             </div>
           )}
         </CardBody>

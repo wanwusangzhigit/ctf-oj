@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Star, Pencil, Trash2, Megaphone, Users } from 'lucide-react';
@@ -34,19 +35,19 @@ export function AdminCompetitionsPage() {
 
   const exportMut = useMutation({
     mutationFn: (c: Competition) => exportCompetitionScores(c.id, 'user', c.slug),
-    onSuccess: () => toast.success('成绩已导出'),
+    onSuccess: () => toast.success(i18n.t('成绩已导出')),
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '导出失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('导出失败')),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteCompetition(id),
     onSuccess: () => {
-      toast.success('已删除');
+      toast.success(i18n.t('已删除'));
       qc.invalidateQueries({ queryKey: ['admin-competitions'] });
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
   });
 
   return (
@@ -57,12 +58,12 @@ export function AdminCompetitionsPage() {
             $ sudo admin --competitions
           </p>
           <h2 className="text-2xl font-semibold tracking-tight text-ink">
-            赛事
+            {i18n.t('赛事')}
           </h2>
           <p className="mt-1 text-sm text-ink-3 max-w-prose">
             {canManageAll
-              ? '比赛窗口、记分板冻结窗口的元数据。同时只有一个赛事处于激活状态。'
-              : '你被授予了这些赛事的修改权限，可编辑赛事元数据。'}
+              ? i18n.t('比赛窗口、记分板冻结窗口的元数据。同时只有一个赛事处于激活状态。')
+              : i18n.t('你被授予了这些赛事的修改权限，可编辑赛事元数据。')}
           </p>
         </div>
         {canManageAll && (
@@ -71,7 +72,7 @@ export function AdminCompetitionsPage() {
             className="shrink-0 whitespace-nowrap"
             onClick={() => navigate('/admin/competitions/new')}
           >
-            <Plus className="h-3.5 w-3.5" /> 新建赛事
+            <Plus className="h-3.5 w-3.5" /> {i18n.t('新建赛事')}
           </Button>
         )}
       </header>
@@ -82,11 +83,11 @@ export function AdminCompetitionsPage() {
         </div>
       ) : listQ.isError ? (
         <div className="py-10 text-center text-sm text-ink-3">
-          无法加载赛事列表。
+          {i18n.t('无法加载赛事列表。')}
         </div>
       ) : (listQ.data?.items?.length ?? 0) === 0 ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          {canManageAll ? '尚未创建任何赛事。' : '没有可管理的赛事。'}
+          {canManageAll ? i18n.t('尚未创建任何赛事。') : i18n.t('没有可管理的赛事。')}
         </div>
       ) : (
         <ul className="border-t border-ink">
@@ -101,10 +102,10 @@ export function AdminCompetitionsPage() {
                   {c.isActive && (
                     <Badge tone="accent">
                       <Star className="h-3 w-3" />
-                      当前赛事
+                      {i18n.t('当前赛事')}
                     </Badge>
                   )}
-                  {c.registrationRequired && <Badge tone="warning">需报名</Badge>}
+                  {c.registrationRequired && <Badge tone="warning">{i18n.t('需报名')}</Badge>}
                 </div>
                 <div className="font-mono text-2xs text-ink-3 mt-0.5 tabular-nums">
                   {c.startAt ? formatTime(c.startAt) : '—'} →{' '}
@@ -117,18 +118,18 @@ export function AdminCompetitionsPage() {
                   </p>
                 )}
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-2xs text-ink-3">
-                  <span className="font-mono">{c.challenges?.length ?? 0} 道题</span>
+                  <span className="font-mono">{i18n.t('{{v0}} 道题', { v0: c.challenges?.length ?? 0 })}</span>
                   {(c.challenges?.filter((ch) => ch.status === 'hidden').length ?? 0) >
                     0 && (
                     <Badge tone="warning">
-                      {c.challenges!.filter((ch) => ch.status === 'hidden').length} 隐藏
+                      {i18n.t('{{v0}} 隐藏', { v0: c.challenges!.filter((ch) => ch.status === 'hidden').length })}
                     </Badge>
                   )}
                 </div>
                 {c.challenges && c.challenges.length > 0 ? (
                   <details className="mt-1 text-2xs text-ink-3">
                     <summary className="cursor-pointer select-none hover:text-ink">
-                      查看题目列表
+                      {i18n.t('查看题目列表')}
                     </summary>
                     <ul className="mt-1.5 space-y-1 border-l border-rule pl-3">
                       {c.challenges.map((ch) => (
@@ -145,7 +146,7 @@ export function AdminCompetitionsPage() {
                   </details>
                 ) : (
                   <p className="mt-1 text-2xs text-ink-3">
-                    未绑定题目，计分覆盖全部公开题目。
+                    {i18n.t('未绑定题目，计分覆盖全部公开题目。')}
                   </p>
                 )}
               </div>
@@ -156,7 +157,7 @@ export function AdminCompetitionsPage() {
                     size="sm"
                     loading={exportMut.isPending && exportMut.variables?.id === c.id}
                     onClick={() => exportMut.mutate(c)}
-                    aria-label="导出成绩"
+                    aria-label={i18n.t('导出成绩')}
                   >
                     <Download className="h-3.5 w-3.5" />
                   </Button>
@@ -164,21 +165,21 @@ export function AdminCompetitionsPage() {
                 <Link
                   to={`/admin/competitions/${c.id}/announcements`}
                   className={ICON_LINK_CLS}
-                  aria-label="比赛公告"
+                  aria-label={i18n.t('比赛公告')}
                 >
                   <Megaphone className="h-3.5 w-3.5" />
                 </Link>
                 <Link
                   to={`/admin/competitions/${c.id}/registrations`}
                   className={ICON_LINK_CLS}
-                  aria-label="报名与成绩"
+                  aria-label={i18n.t('报名与成绩')}
                 >
                   <Users className="h-3.5 w-3.5" />
                 </Link>
                 <Link
                   to={`/admin/competitions/${c.id}/edit`}
                   className={ICON_LINK_CLS}
-                  aria-label="编辑"
+                  aria-label={i18n.t('编辑')}
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </Link>
@@ -189,13 +190,13 @@ export function AdminCompetitionsPage() {
                     loading={deleteMut.isPending}
                     onClick={async () => {
                       const ok = await confirm({
-                        title: '删除赛事',
-                        description: `删除赛事「${c.name}」？报名记录、赛事题目关联与成绩一并移除，无法恢复。`,
-                        confirmText: '删除赛事',
+                        title: i18n.t('删除赛事'),
+                        description: i18n.t('删除赛事「{{v0}}」？报名记录、赛事题目关联与成绩一并移除，无法恢复。', { v0: c.name }),
+                        confirmText: i18n.t('删除赛事'),
                       });
                       if (ok) deleteMut.mutate(c.id);
                     }}
-                    aria-label="删除"
+                    aria-label={i18n.t('删除')}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

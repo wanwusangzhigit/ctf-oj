@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button, Field, Input, Textarea, useConfirm, useToast } from '@/components/ui';
@@ -17,32 +18,32 @@ export function AdminSettingsBroadcastPage() {
 
   const send = async () => {
     const ok = await confirm({
-      title: '群发邮件',
-      description: '所有注册用户都会收到这封邮件，发出后无法撤回。',
-      confirmText: '立即发送',
+      title: i18n.t('群发邮件'),
+      description: i18n.t('所有注册用户都会收到这封邮件，发出后无法撤回。'),
+      confirmText: i18n.t('立即发送'),
     });
     if (!ok) return;
     broadcastMut.mutate(
       { subject, body },
       {
         onSuccess: (res) => {
-          toast.success(`发送完成：成功 ${res.sent}，失败 ${res.failed}`);
+          toast.success(i18n.t('发送完成：成功 {{v0}}，失败 {{v1}}', { v0: res.sent, v1: res.failed }));
           setSubject('');
           setBody('');
         },
         onError: (err) =>
-          toast.error(err instanceof ApiClientError ? err.message : '发送失败'),
+          toast.error(err instanceof ApiClientError ? err.message : i18n.t('发送失败')),
       },
     );
   };
 
   return (
     <div className="space-y-8">
-      <Section title="邮件群发">
+      <Section title={i18n.t('邮件群发')}>
         <p className="text-2xs text-ink-3">
-          向所有未封禁用户发送纯文本邮件。请谨慎使用。
+          {i18n.t('向所有未封禁用户发送纯文本邮件。请谨慎使用。')}
         </p>
-        <Field label="主题" htmlFor="mailSubject">
+        <Field label={i18n.t('主题')} htmlFor="mailSubject">
           <Input
             id="mailSubject"
             value={subject}
@@ -50,7 +51,7 @@ export function AdminSettingsBroadcastPage() {
             onChange={(e) => setSubject(e.target.value)}
           />
         </Field>
-        <Field label="正文" htmlFor="mailBody">
+        <Field label={i18n.t('正文')} htmlFor="mailBody">
           <Textarea
             id="mailBody"
             rows={5}
@@ -66,7 +67,7 @@ export function AdminSettingsBroadcastPage() {
             loading={broadcastMut.isPending}
             onClick={send}
           >
-            发送
+            {i18n.t('发送')}
           </Button>
         </div>
       </Section>

@@ -1,4 +1,5 @@
 import { useCallback, createContext, useContext, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { Modal } from './Modal';
 
@@ -62,6 +63,7 @@ function ConfirmDialog({
   options: ConfirmOptions;
   onDecide: (accepted: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const danger = options.danger !== false;
   return (
     <Modal
@@ -72,7 +74,7 @@ function ConfirmDialog({
       footer={
         <>
           <Button variant="ghost" data-autofocus onClick={() => onDecide(false)}>
-            {options.cancelText ?? '取消'}
+            {options.cancelText ?? t('action.cancel')}
           </Button>
           <Button variant={danger ? 'danger' : 'primary'} onClick={() => onDecide(true)}>
             {options.confirmText}

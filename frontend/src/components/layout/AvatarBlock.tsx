@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Camera } from 'lucide-react';
@@ -26,7 +27,7 @@ export function AvatarBlock({ user, editable = false }: AvatarBlockProps) {
     const f = e.target.files?.[0];
     if (!f) return;
     if (f.size > 2 * 1024 * 1024) {
-      toast.error('头像不能超过 2MB');
+      toast.error(i18n.t('头像不能超过 2MB'));
       return;
     }
     setUploading(true);
@@ -34,9 +35,9 @@ export function AvatarBlock({ user, editable = false }: AvatarBlockProps) {
       await uploadAvatar(f);
       await qc.invalidateQueries({ queryKey: ['user'] });
       await qc.invalidateQueries({ queryKey: ['auth-me'] });
-      toast.success('头像已更新');
+      toast.success(i18n.t('头像已更新'));
     } catch (err) {
-      toast.error(err instanceof ApiClientError ? err.message : '上传失败');
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('上传失败'));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -60,7 +61,7 @@ export function AvatarBlock({ user, editable = false }: AvatarBlockProps) {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          aria-label="更换头像"
+          aria-label={i18n.t('更换头像')}
           className="absolute -bottom-1 -right-1 inline-flex h-6 w-6 items-center justify-center rounded-sm bg-ink text-paper border border-paper hover:bg-ink-2 transition-colors disabled:opacity-60"
         >
           {uploading ? (

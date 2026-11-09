@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,11 +22,11 @@ import { userActivity, userAchievements } from '@/api/stats';
 import type { Achievement } from '@/types';
 
 const ACCOUNT_LINKS = [
-  { to: '/settings', label: '资料', desc: '头像、简介与资料可见性' },
-  { to: '/settings/password', label: '密码', desc: '修改登录密码' },
-  { to: '/settings/security', label: '安全', desc: '两步验证与邮箱验证' },
-  { to: '/me/solves', label: '我的解题', desc: '练习模式下解出的题目' },
-  { to: '/me/submissions', label: '我的提交', desc: '全部 flag 尝试记录' },
+  { to: '/settings', label: i18n.t('资料'), desc: i18n.t('头像、简介与资料可见性') },
+  { to: '/settings/password', label: i18n.t('密码'), desc: i18n.t('修改登录密码') },
+  { to: '/settings/security', label: i18n.t('安全'), desc: i18n.t('两步验证与邮箱验证') },
+  { to: '/me/solves', label: i18n.t('我的解题'), desc: i18n.t('练习模式下解出的题目') },
+  { to: '/me/submissions', label: i18n.t('我的提交'), desc: i18n.t('全部 flag 尝试记录') },
 ];
 
 export function UserProfilePage() {
@@ -60,13 +61,13 @@ export function UserProfilePage() {
     mutationFn: (next: boolean) => (next ? followUser(uid) : unfollowUser(uid)),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['user', uid] }),
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   if (!valid) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-        <p className="text-sm text-muted">用户 ID 无效。</p>
+        <p className="text-sm text-muted">{i18n.t('用户 ID 无效。')}</p>
       </div>
     );
   }
@@ -83,7 +84,7 @@ export function UserProfilePage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <Card>
           <CardBody className="py-10 text-center text-sm text-muted">
-            {userQ.isError ? '无法打开该用户，请稍后重试。' : '用户不存在。'}
+            {userQ.isError ? i18n.t('无法打开该用户，请稍后重试。') : i18n.t('用户不存在。')}
           </CardBody>
         </Card>
       </div>
@@ -101,20 +102,18 @@ export function UserProfilePage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-semibold">{u.username}</h1>
-                {u.role === 'admin' && <Badge tone="accent">管理员</Badge>}
+                {u.role === 'admin' && <Badge tone="accent">{i18n.t('管理员')}</Badge>}
               </div>
-              <p className="text-2xs text-muted mt-1">
-                注册于 {formatTime(u.createdAt)}
-              </p>
+              <p className="text-2xs text-muted mt-1">{i18n.t('注册于 {{v0}}', { v0: formatTime(u.createdAt) })}</p>
               {u.bio && <p className="mt-3 text-sm text-fg">{u.bio}</p>}
               <div className="mt-3 flex items-center gap-4 font-mono text-2xs text-muted tabular-nums">
-                <span>{formatNumber(u.followerCount ?? 0)} 关注者</span>
-                <span>{formatNumber(u.followingCount ?? 0)} 关注中</span>
+                <span>{i18n.t('{{v0}} 关注者', { v0: formatNumber(u.followerCount ?? 0) })}</span>
+                <span>{i18n.t('{{v0}} 关注中', { v0: formatNumber(u.followingCount ?? 0) })}</span>
               </div>
             </div>
             <div className="text-right space-y-2">
               <div>
-                <div className="text-2xs text-muted">积分</div>
+                <div className="text-2xs text-muted">{i18n.t('积分')}</div>
                 <div className="text-2xl font-semibold tabular-nums">
                   {formatNumber(u.score)}
                 </div>
@@ -126,7 +125,7 @@ export function UserProfilePage() {
                   loading={followMut.isPending}
                   onClick={() => followMut.mutate(!u.isFollowing)}
                 >
-                  {u.isFollowing ? '取消关注' : '关注'}
+                  {u.isFollowing ? i18n.t('取消关注') : i18n.t('关注')}
                 </Button>
               )}
             </div>
@@ -137,14 +136,14 @@ export function UserProfilePage() {
       {u.privateProfile ? (
         <Card>
           <CardBody className="text-sm text-muted">
-            该用户未公开个人资料与活动记录。
+            {i18n.t('该用户未公开个人资料与活动记录。')}
           </CardBody>
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <Card className="min-w-0">
             <CardHeader>
-              <CardTitle>解题活动</CardTitle>
+              <CardTitle>{i18n.t('解题活动')}</CardTitle>
             </CardHeader>
             <CardBody>
               <ActivityHeatmap days={activityQ.data ?? []} />
@@ -152,7 +151,7 @@ export function UserProfilePage() {
           </Card>
           <Card className="min-w-0">
             <CardHeader>
-              <CardTitle>成就</CardTitle>
+              <CardTitle>{i18n.t('成就')}</CardTitle>
             </CardHeader>
             <CardBody>
               <AchievementList items={achievementsQ.data ?? []} />
@@ -164,7 +163,7 @@ export function UserProfilePage() {
       {isMe && (
         <Card>
           <CardHeader>
-            <CardTitle>账号</CardTitle>
+            <CardTitle>{i18n.t('账号')}</CardTitle>
           </CardHeader>
           <CardBody className="p-0">
             <ul className="divide-y divide-border">
@@ -221,8 +220,8 @@ function ActivityHeatmap({ days }: { days: { date: string; count: number }[] }) 
         ))}
       </div>
       <div className="flex items-center justify-between font-mono text-2xs text-muted">
-        <span>过去 365 天</span>
-        <span>{cells.reduce((n, c) => n + c.count, 0)} 次解题</span>
+        <span>{i18n.t('过去 365 天')}</span>
+        <span>{i18n.t('{{v0}} 次解题', { v0: cells.reduce((n, c) => n + c.count, 0) })}</span>
       </div>
     </div>
   );
@@ -230,7 +229,7 @@ function ActivityHeatmap({ days }: { days: { date: string; count: number }[] }) 
 
 function AchievementList({ items }: { items: Achievement[] }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted">暂无成就数据。</p>;
+    return <p className="text-sm text-muted">{i18n.t('暂无成就数据。')}</p>;
   }
   return (
     <ul className="space-y-3">

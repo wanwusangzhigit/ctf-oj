@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { CompetitionForm } from '@/components/admin/CompetitionForm';
@@ -13,16 +14,16 @@ export function AdminCompetitionNewPage() {
         className="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink transition-colors hover:no-underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        返回赛事列表
+        {i18n.t('返回赛事列表')}
       </Link>
 
       <header className="border-b border-rule pb-3">
         <p className="font-mono text-2xs text-ink-3 mb-1 tabular-nums">
           $ sudo admin --competitions new
         </p>
-        <h2 className="text-2xl font-semibold tracking-tight text-ink">新建赛事</h2>
+        <h2 className="text-2xl font-semibold tracking-tight text-ink">{i18n.t('新建赛事')}</h2>
         <p className="mt-1 text-sm text-ink-3 max-w-prose">
-          创建一场新的比赛。绑定题目可留空，留空时计分覆盖全部公开题目。
+          {i18n.t('创建一场新的比赛。绑定题目可留空，留空时计分覆盖全部公开题目。')}
         </p>
       </header>
 

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
@@ -17,11 +18,11 @@ const STATUS_TONE: Record<InstanceStatus, 'success' | 'neutral' | 'warning' | 'd
 };
 
 const STATUS_LABEL: Record<InstanceStatus, string> = {
-  running: '运行中',
-  stopped: '已停止',
-  expired: '已过期',
-  auto_expired: '自动回收',
-  error: '错误',
+  running: i18n.t('运行中'),
+  stopped: i18n.t('已停止'),
+  expired: i18n.t('已过期'),
+  auto_expired: i18n.t('自动回收'),
+  error: i18n.t('错误'),
 };
 
 /**
@@ -39,10 +40,10 @@ export function MyInstancesPage() {
     mutationFn: (inst: { challengeId: number; id: number }) =>
       stopInstance(inst.challengeId, inst.id),
     onSuccess: () => {
-      toast.success('已销毁');
+      toast.success(i18n.t('已销毁'));
       qc.invalidateQueries({ queryKey: ['my-instances'] });
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   return (
@@ -50,10 +51,10 @@ export function MyInstancesPage() {
       <header className="border-t-2 border-ink pt-6 mb-8">
         <p className="font-mono text-2xs text-ink-3 mb-3">$ docker ps --user=self</p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          我的实例
+          {i18n.t('我的实例')}
         </h1>
         <p className="mt-2 text-ink-2 max-w-prose">
-          你与队友共享的容器实例 —— 包括运行中、已过期、自动回收。
+          {i18n.t('你与队友共享的容器实例 —— 包括运行中、已过期、自动回收。')}
         </p>
       </header>
 
@@ -80,16 +81,16 @@ export function MyInstancesPage() {
                     to={`/challenges/${inst.challengeId}`}
                     className="font-medium truncate hover:text-amber transition-colors hover:no-underline"
                   >
-                    {inst.challenge?.title ?? `题目 #${inst.challengeId}`}
+                    {inst.challenge?.title ?? i18n.t('题目 #{{v0}}', { v0: inst.challengeId })}
                   </Link>
                   <div className="font-mono text-2xs text-ink-3 mt-1 tabular-nums">
                     {inst.teamId && inst.userId !== me?.id && (
                       <span className="text-amber">
-                        团队 · {inst.user?.username ?? '队友'} ·{' '}
+                        {i18n.t('团队 · {{v0}} ·', { v0: inst.user?.username ?? i18n.t('队友') })}{' '}
                       </span>
                     )}
-                    启动 {relativeTime(inst.startedAt)}
-                    {inst.status === 'running' && <> · 到期 {formatTime(inst.expiresAt)}</>}
+                    {i18n.t('启动 {{v0}}', { v0: relativeTime(inst.startedAt) })}
+                    {inst.status === 'running' && <> · {i18n.t('到期 {{v0}}', { v0: formatTime(inst.expiresAt) })}</>}
                   </div>
                 </div>
                 <div>
@@ -108,7 +109,7 @@ export function MyInstancesPage() {
                       onClick={() =>
                         stopMut.mutate({ challengeId: inst.challengeId, id: inst.id })
                       }
-                      aria-label="销毁实例"
+                      aria-label={i18n.t('销毁实例')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -122,7 +123,7 @@ export function MyInstancesPage() {
                       onClick={() =>
                         stopMut.mutate({ challengeId: inst.challengeId, id: inst.id })
                       }
-                      aria-label="销毁实例"
+                      aria-label={i18n.t('销毁实例')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -133,10 +134,8 @@ export function MyInstancesPage() {
           </ul>
         </div>
       ) : (
-        <div className="border-t border-rule py-16 text-center text-sm text-ink-3">
-          还没有实例。{' '}
-          <Link to="/challenges" className="text-amber">
-            去浏览题目
+        <div className="border-t border-rule py-16 text-center text-sm text-ink-3">{i18n.t('还没有实例。{{v0}}', { v0: ' ' })}<Link to="/challenges" className="text-amber">
+            {i18n.t('去浏览题目')}
           </Link>
         </div>
       )}

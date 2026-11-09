@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ export type ModalProps = {
  * or render it conditionally — both work because a closed modal renders nothing.
  */
 export function Modal({ open, onClose, title, subtitle, children, footer, width = 'max-w-lg' }: ModalProps) {
+  const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
@@ -116,7 +118,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, width 
           </div>
           <button
             type="button"
-            aria-label="关闭"
+            aria-label={t('action.close')}
             onClick={onClose}
             className="-mr-1 shrink-0 p-1 text-ink-3 hover:text-ink transition-colors"
           >

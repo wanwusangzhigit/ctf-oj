@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
@@ -6,9 +7,9 @@ import { getUser } from '@/api/user';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { to: '/settings', label: '资料', end: true },
-  { to: '/settings/password', label: '密码' },
-  { to: '/settings/security', label: '安全' },
+  { to: '/settings', label: i18n.t('资料'), end: true },
+  { to: '/settings/password', label: i18n.t('密码') },
+  { to: '/settings/security', label: i18n.t('安全') },
 ];
 
 /**
@@ -35,14 +36,14 @@ export function SettingsLayout() {
           {profile && <AvatarBlock user={profile} />}
           <div className="min-w-0">
             <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-              账号设置
+              {i18n.t('账号设置')}
             </h1>
             <p className="mt-1 font-mono text-2xs text-ink-3">{profile?.username}</p>
           </div>
         </div>
       </header>
 
-      <nav aria-label="设置导航" className="mt-6 border-b border-rule">
+      <nav aria-label={i18n.t('设置导航')} className="mt-6 border-b border-rule">
         <div className="flex flex-wrap gap-x-5 gap-y-1">
           {TABS.map((tab) => (
             <NavLink

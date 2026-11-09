@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -71,7 +72,7 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative inline-flex items-center justify-center h-8 w-8 rounded hover:bg-surface-2 transition-colors"
-        aria-label="通知"
+        aria-label={i18n.t('通知')}
       >
         <Bell className="h-4 w-4" />
         {count > 0 && (
@@ -90,7 +91,7 @@ export function NotificationBell() {
           />
           <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-surface border border-border rounded-lg shadow-popover z-40">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-              <span className="text-sm font-medium">通知</span>
+              <span className="text-sm font-medium">{i18n.t('通知')}</span>
               <div className="flex items-center gap-2">
                 {count > 0 && (
                   <button
@@ -99,14 +100,14 @@ export function NotificationBell() {
                     className="inline-flex items-center gap-1 text-2xs text-accent hover:underline"
                   >
                     <CheckCheck className="h-3 w-3" />
-                    全部已读
+                    {i18n.t('全部已读')}
                   </button>
                 )}
               </div>
             </div>
             <div className="max-h-96 overflow-y-auto">
               {recent.isLoading ? (
-                <div className="px-3 py-6 text-center text-2xs text-muted">加载中...</div>
+                <div className="px-3 py-6 text-center text-2xs text-muted">{i18n.t('加载中...')}</div>
               ) : recent.data?.items?.length ? (
                 recent.data.items.map((n) => {
                   const Icon = KIND_ICON[n.kind] ?? Bell;
@@ -140,7 +141,7 @@ export function NotificationBell() {
               ) : (
                 <div className="px-3 py-8 text-center text-2xs text-muted">
                   <Bell className="h-5 w-5 mx-auto mb-2 opacity-50" />
-                  暂无通知
+                  {i18n.t('暂无通知')}
                 </div>
               )}
             </div>
@@ -151,7 +152,7 @@ export function NotificationBell() {
                 className="text-2xs text-accent hover:underline inline-flex items-center gap-1"
               >
                 <Check className="h-3 w-3" />
-                查看全部
+                {i18n.t('查看全部')}
               </Link>
             </div>
           </div>

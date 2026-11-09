@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Pencil, Pin, Plus, Eye } from 'lucide-react';
@@ -48,22 +49,22 @@ export function AdminAnnouncementsPage() {
       return createAnnouncement(form);
     },
     onSuccess: () => {
-      toast.success(editing ? '已更新' : '已创建');
+      toast.success(editing ? i18n.t('已更新') : i18n.t('已创建'));
       qc.invalidateQueries({ queryKey: ['admin-announcements'] });
       qc.invalidateQueries({ queryKey: ['announcements'] });
       reset();
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteAnnouncement(id),
     onSuccess: () => {
-      toast.success('已删除');
+      toast.success(i18n.t('已删除'));
       qc.invalidateQueries({ queryKey: ['admin-announcements'] });
       qc.invalidateQueries({ queryKey: ['announcements'] });
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
   });
 
   function reset() {
@@ -85,7 +86,7 @@ export function AdminAnnouncementsPage() {
     <div className="grid gap-6 lg:grid-cols-3">
       <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle>{editing ? '编辑公告' : '新建公告'}</CardTitle>
+          <CardTitle>{editing ? i18n.t('编辑公告') : i18n.t('新建公告')}</CardTitle>
         </CardHeader>
         <CardBody>
           <form
@@ -95,20 +96,20 @@ export function AdminAnnouncementsPage() {
             }}
             className="space-y-4"
           >
-            <Field label="标题">
+            <Field label={i18n.t('标题')}>
               <Input
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="重要通知..."
+                placeholder={i18n.t('重要通知...')}
                 required
               />
             </Field>
-            <Field label="正文（Markdown）">
+            <Field label={i18n.t('正文（Markdown）')}>
               <Textarea
                 rows={10}
                 value={form.contentMd}
                 onChange={(e) => setForm((f) => ({ ...f, contentMd: e.target.value }))}
-                placeholder="可以使用 Markdown 语法..."
+                placeholder={i18n.t('可以使用 Markdown 语法...')}
               />
             </Field>
             <div className="flex items-center gap-4">
@@ -118,7 +119,7 @@ export function AdminAnnouncementsPage() {
                   checked={form.isPinned}
                   onChange={(e) => setForm((f) => ({ ...f, isPinned: e.target.checked }))}
                 />
-                <span>置顶</span>
+                <span>{i18n.t('置顶')}</span>
               </label>
               <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
                 <input
@@ -126,16 +127,16 @@ export function AdminAnnouncementsPage() {
                   checked={form.isPublished}
                   onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))}
                 />
-                <span>立即发布</span>
+                <span>{i18n.t('立即发布')}</span>
               </label>
             </div>
             <div className="flex gap-2">
               <Button type="submit" loading={saveMut.isPending} className="flex-1">
-                {editing ? '保存修改' : '创建'}
+                {editing ? i18n.t('保存修改') : i18n.t('创建')}
               </Button>
               {editing && (
                 <Button type="button" variant="outline" onClick={reset}>
-                  取消
+                  {i18n.t('取消')}
                 </Button>
               )}
             </div>
@@ -145,11 +146,11 @@ export function AdminAnnouncementsPage() {
 
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle>已有公告（{list.data?.total ?? 0}）</CardTitle>
+          <CardTitle>{i18n.t('已有公告（{{v0}}）', { v0: list.data?.total ?? 0 })}</CardTitle>
         </CardHeader>
         <CardBody className="p-0">
           {list.isLoading ? (
-            <div className="py-10 text-center text-sm text-muted">加载中...</div>
+            <div className="py-10 text-center text-sm text-muted">{i18n.t('加载中...')}</div>
           ) : list.data?.items?.length ? (
             <ul className="divide-y divide-border">
               {list.data.items.map((a) => (
@@ -159,19 +160,19 @@ export function AdminAnnouncementsPage() {
                       <span className="font-medium truncate">{a.title}</span>
                       {a.isPinned && (
                         <Badge tone="warning">
-                          <Pin className="h-3 w-3" /> 置顶
+                          <Pin className="h-3 w-3" /> {i18n.t('置顶')}
                         </Badge>
                       )}
                       {a.isPublished ? (
                         <Badge tone="success">
-                          <Eye className="h-3 w-3" /> 已发布
+                          <Eye className="h-3 w-3" /> {i18n.t('已发布')}
                         </Badge>
                       ) : (
-                        <Badge>草稿</Badge>
+                        <Badge>{i18n.t('草稿')}</Badge>
                       )}
                     </div>
                     <div className="text-2xs text-muted mt-1">
-                      {a.publishedAt ? `发布于 ${formatTime(a.publishedAt)}` : formatTime(a.createdAt)}
+                      {a.publishedAt ? i18n.t('发布于 {{v0}}', { v0: formatTime(a.publishedAt) }) : formatTime(a.createdAt)}
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
@@ -183,9 +184,9 @@ export function AdminAnnouncementsPage() {
                       size="icon"
                       onClick={async () => {
                         const ok = await confirm({
-                          title: '删除公告',
-                          description: `删除公告「${a.title}」？删除后前台不再展示，且无法恢复。`,
-                          confirmText: '删除',
+                          title: i18n.t('删除公告'),
+                          description: i18n.t('删除公告「{{v0}}」？删除后前台不再展示，且无法恢复。', { v0: a.title }),
+                          confirmText: i18n.t('删除'),
                         });
                         if (ok) deleteMut.mutate(a.id);
                       }}
@@ -198,9 +199,9 @@ export function AdminAnnouncementsPage() {
             </ul>
           ) : (
             <div className="py-10 text-center text-sm text-muted">
-              还没有任何公告，
+              {i18n.t('还没有任何公告，')}
               <Plus className="inline h-3 w-3" />
-              创建第一条吧
+              {i18n.t('创建第一条吧')}
             </div>
           )}
         </CardBody>

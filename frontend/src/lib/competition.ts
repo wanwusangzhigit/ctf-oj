@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import type { Competition } from '@/types';
 
 export type CompetitionPhase = 'upcoming' | 'live' | 'ended' | 'unscheduled';
@@ -11,11 +12,12 @@ export function competitionPhase(c: Competition, now = Date.now()): CompetitionP
   return 'live';
 }
 
+// Getters resolve the active language at read time so call sites stay unchanged.
 export const COMPETITION_PHASE_LABEL: Record<CompetitionPhase, string> = {
-  upcoming: '即将开始',
-  live: '进行中',
-  ended: '已结束',
-  unscheduled: '未排期',
+  get upcoming() { return i18n.t('enums.phase.upcoming'); },
+  get live() { return i18n.t('enums.phase.live'); },
+  get ended() { return i18n.t('enums.phase.ended'); },
+  get unscheduled() { return i18n.t('enums.phase.unscheduled'); },
 };
 
 export const COMPETITION_PHASE_TONE: Record<

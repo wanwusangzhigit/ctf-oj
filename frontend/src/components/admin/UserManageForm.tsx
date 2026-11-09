@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,7 +28,7 @@ const ROLES: Role[] = ['user', 'challenge_admin', 'competition_admin', 'moderato
 const manageSchema = z.object({
   role: z.enum(['user', 'challenge_admin', 'competition_admin', 'moderator', 'admin']),
   isBanned: z.boolean(),
-  bannedReason: z.string().max(200, '封禁原因最长 200 字符'),
+  bannedReason: z.string().max(200, i18n.t('封禁原因最长 200 字符')),
   scoreExcluded: z.boolean(),
 });
 
@@ -89,12 +90,12 @@ export function UserManageForm({ user }: { user: User }) {
     mutationFn: (patch: Parameters<typeof adminUpdateUser>[1]) =>
       adminUpdateUser(user.id, patch),
     onSuccess: () => {
-      toast.success('已更新');
+      toast.success(i18n.t('已更新'));
       qc.invalidateQueries({ queryKey: ['admin-user', user.id] });
       qc.invalidateQueries({ queryKey: ['admin-users'] });
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   const isBanned = watch('isBanned');
@@ -107,14 +108,14 @@ export function UserManageForm({ user }: { user: User }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>权限与状态</CardTitle>
+        <CardTitle>{i18n.t('权限与状态')}</CardTitle>
       </CardHeader>
       <CardBody>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <Field
-            label="角色"
+            label={i18n.t('角色')}
             htmlFor="user-role"
-            hint="变更在该用户的下一次请求时生效"
+            hint={i18n.t('变更在该用户的下一次请求时生效')}
             error={errors.role?.message}
           >
             <select
@@ -130,7 +131,7 @@ export function UserManageForm({ user }: { user: User }) {
             </select>
           </Field>
 
-          <Field label="封禁" htmlFor="user-banned" hint="封禁后该账号无法登录与调用接口">
+          <Field label={i18n.t('封禁')} htmlFor="user-banned" hint={i18n.t('封禁后该账号无法登录与调用接口')}>
             <label className="flex items-center gap-2 h-9 text-sm">
               <input
                 id="user-banned"
@@ -138,22 +139,22 @@ export function UserManageForm({ user }: { user: User }) {
                 checked={isBanned}
                 {...register('isBanned')}
               />
-              已封禁
+              {i18n.t('已封禁')}
             </label>
           </Field>
 
           {isBanned && (
             <Field
-              label="封禁原因"
+              label={i18n.t('封禁原因')}
               htmlFor="user-banned-reason"
-              hint="写入审计日志，不会展示给该用户"
+              hint={i18n.t('写入审计日志，不会展示给该用户')}
               error={errors.bannedReason?.message}
             >
               <Textarea
                 id="user-banned-reason"
                 rows={3}
                 maxLength={200}
-                placeholder="例如：刷榜、提交无关答案"
+                placeholder={i18n.t('例如：刷榜、提交无关答案')}
                 invalid={!!errors.bannedReason}
                 {...register('bannedReason')}
               />
@@ -161,9 +162,9 @@ export function UserManageForm({ user }: { user: User }) {
           )}
 
           <Field
-            label="榜单"
+            label={i18n.t('榜单')}
             htmlFor="user-score-excluded"
-            hint="排除后不再出现在练习榜与赛事榜，历史解题保留"
+            hint={i18n.t('排除后不再出现在练习榜与赛事榜，历史解题保留')}
           >
             <label className="flex items-center gap-2 h-9 text-sm">
               <input
@@ -172,16 +173,16 @@ export function UserManageForm({ user }: { user: User }) {
                 checked={scoreExcluded}
                 {...register('scoreExcluded')}
               />
-              排除出榜单
+              {i18n.t('排除出榜单')}
             </label>
           </Field>
 
           <div className="flex items-center justify-between gap-3 border-t border-rule pt-4">
             <span className="text-2xs text-ink-3">
-              {isDirty ? '有未保存的更改' : '没有需要保存的更改'}
+              {isDirty ? i18n.t('有未保存的更改') : i18n.t('没有需要保存的更改')}
             </span>
             <Button type="submit" size="sm" loading={mut.isPending} disabled={!isDirty}>
-              保存
+              {i18n.t('保存')}
             </Button>
           </div>
         </form>
@@ -192,12 +193,12 @@ export function UserManageForm({ user }: { user: User }) {
 
 const passwordSchema = z
   .object({
-    newPassword: z.string().min(8, '密码至少 8 位').max(64, '密码最多 64 位'),
+    newPassword: z.string().min(8, i18n.t('密码至少 8 位')).max(64, i18n.t('密码最多 64 位')),
     confirm: z.string(),
   })
   .refine((v) => v.newPassword === v.confirm, {
     path: ['confirm'],
-    message: '两次输入的密码不一致',
+    message: i18n.t('两次输入的密码不一致'),
   });
 
 type PasswordValues = z.infer<typeof passwordSchema>;
@@ -219,11 +220,11 @@ export function UserPasswordResetForm({ user }: { user: User }) {
   const mut = useMutation({
     mutationFn: (password: string) => adminResetPassword(user.id, password),
     onSuccess: () => {
-      toast.success('密码已重置');
+      toast.success(i18n.t('密码已重置'));
       reset(EMPTY_PASSWORD);
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '重置失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('重置失败')),
   });
 
   const onSubmit = handleSubmit((values) => mut.mutate(values.newPassword));
@@ -231,11 +232,11 @@ export function UserPasswordResetForm({ user }: { user: User }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>重置密码</CardTitle>
+        <CardTitle>{i18n.t('重置密码')}</CardTitle>
       </CardHeader>
       <CardBody>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
-          <Field label="新密码" htmlFor="user-new-password" error={errors.newPassword?.message}>
+          <Field label={i18n.t('新密码')} htmlFor="user-new-password" error={errors.newPassword?.message}>
             <Input
               id="user-new-password"
               type="password"
@@ -245,7 +246,7 @@ export function UserPasswordResetForm({ user }: { user: User }) {
               {...register('newPassword')}
             />
           </Field>
-          <Field label="确认新密码" htmlFor="user-confirm-password" error={errors.confirm?.message}>
+          <Field label={i18n.t('确认新密码')} htmlFor="user-confirm-password" error={errors.confirm?.message}>
             <Input
               id="user-confirm-password"
               type="password"
@@ -257,7 +258,7 @@ export function UserPasswordResetForm({ user }: { user: User }) {
           </Field>
           <div className="flex items-center justify-between gap-3 border-t border-rule pt-4">
             <span className="text-2xs text-ink-3">
-              重置后该用户的现有登录不会自动失效
+              {i18n.t('重置后该用户的现有登录不会自动失效')}
             </span>
             <Button
               type="submit"
@@ -265,7 +266,7 @@ export function UserPasswordResetForm({ user }: { user: User }) {
               variant="danger"
               loading={mut.isPending}
             >
-              重置密码
+              {i18n.t('重置密码')}
             </Button>
           </div>
         </form>

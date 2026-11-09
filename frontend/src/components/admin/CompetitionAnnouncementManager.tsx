@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
@@ -24,7 +25,7 @@ import type { Competition, CompetitionAnnouncement } from '@/types';
 const EMPTY = { title: '', contentMd: '', isPublished: true };
 
 /**
- * Per-competition announcements. Drafts stay hidden until 立即发布 is checked;
+ * Per-competition announcements. Drafts stay hidden until Publish now is checked;
  * the public feed reads `competition-announcements`, so both keys are
  * invalidated on every write.
  */
@@ -71,22 +72,22 @@ export function CompetitionAnnouncementManager({
         : createCompetitionAnnouncement(competition.id, input);
     },
     onSuccess: () => {
-      toast.success(editing ? '公告已更新' : '公告已发布');
+      toast.success(editing ? i18n.t('公告已更新') : i18n.t('公告已发布'));
       reset();
       invalidate();
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '保存失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('保存失败')),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteCompetitionAnnouncement(competition.id, id),
     onSuccess: () => {
-      toast.success('公告已删除');
+      toast.success(i18n.t('公告已删除'));
       invalidate();
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
   });
 
   const openNew = () => {
@@ -106,10 +107,10 @@ export function CompetitionAnnouncementManager({
   return (
     <div className="max-w-3xl space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-ink-3">仅发布后的公告对参赛者可见。</p>
+        <p className="text-sm text-ink-3">{i18n.t('仅发布后的公告对参赛者可见。')}</p>
         <Button type="button" size="sm" variant="primary" onClick={openNew}>
           <Plus className="h-3.5 w-3.5" />
-          新建公告
+          {i18n.t('新建公告')}
         </Button>
       </div>
 
@@ -122,7 +123,7 @@ export function CompetitionAnnouncementManager({
           }}
           className="border border-rule rounded-sm p-4 space-y-3 bg-paper-2/40"
         >
-          <Field label="标题" htmlFor="ann-title">
+          <Field label={i18n.t('标题')} htmlFor="ann-title">
             <Input
               id="ann-title"
               value={draft.title}
@@ -131,7 +132,7 @@ export function CompetitionAnnouncementManager({
               required
             />
           </Field>
-          <Field label="内容" htmlFor="ann-content" hint="支持 Markdown">
+          <Field label={i18n.t('内容')} htmlFor="ann-content" hint={i18n.t('支持 Markdown')}>
             <MarkdownEditor
               id="ann-content"
               rows={5}
@@ -147,11 +148,11 @@ export function CompetitionAnnouncementManager({
                 setDraft((d) => ({ ...d, isPublished: e.target.checked }))
               }
             />
-            立即发布
+            {i18n.t('立即发布')}
           </label>
           <div className="flex justify-end gap-2">
             <Button type="button" size="sm" variant="ghost" onClick={reset}>
-              取消
+              {i18n.t('取消')}
             </Button>
             <Button
               type="submit"
@@ -160,7 +161,7 @@ export function CompetitionAnnouncementManager({
               loading={saveMut.isPending}
               disabled={!draft.title.trim()}
             >
-              {editing ? '保存' : '创建'}
+              {editing ? i18n.t('保存') : i18n.t('创建')}
             </Button>
           </div>
         </form>
@@ -171,9 +172,9 @@ export function CompetitionAnnouncementManager({
           <Spinner className="h-5 w-5 text-ink-3" />
         </div>
       ) : listQ.isError ? (
-        <p className="text-sm text-ink-3">无法加载公告。</p>
+        <p className="text-sm text-ink-3">{i18n.t('无法加载公告。')}</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-ink-3">暂无公告。</p>
+        <p className="text-sm text-ink-3">{i18n.t('暂无公告。')}</p>
       ) : (
         <ul className="border-t border-rule">
           {items.map((a) => (
@@ -185,7 +186,7 @@ export function CompetitionAnnouncementManager({
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-sm font-medium text-ink">{a.title}</h4>
                   <Badge tone={a.isPublished ? 'success' : 'neutral'}>
-                    {a.isPublished ? '已发布' : '草稿'}
+                    {a.isPublished ? i18n.t('已发布') : i18n.t('草稿')}
                   </Badge>
                 </div>
                 <p className="mt-1 font-mono text-2xs text-ink-3">
@@ -202,7 +203,7 @@ export function CompetitionAnnouncementManager({
                   variant="ghost"
                   onClick={() => openEdit(a)}
                 >
-                  编辑
+                  {i18n.t('编辑')}
                 </Button>
                 <Button
                   type="button"
@@ -211,13 +212,13 @@ export function CompetitionAnnouncementManager({
                   loading={deleteMut.isPending && deleteMut.variables === a.id}
                   onClick={async () => {
                     const ok = await confirm({
-                      title: '删除赛事公告',
-                      description: `公告「${a.title}」将被删除，无法恢复。`,
-                      confirmText: '删除',
+                      title: i18n.t('删除赛事公告'),
+                      description: i18n.t('公告「{{v0}}」将被删除，无法恢复。', { v0: a.title }),
+                      confirmText: i18n.t('删除'),
                     });
                     if (ok) deleteMut.mutate(a.id);
                   }}
-                  aria-label={`删除公告 ${a.title}`}
+                  aria-label={i18n.t('删除公告 {{v0}}', { v0: a.title })}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -33,7 +34,7 @@ export function CompetitionAdminShell({
       className="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink transition-colors hover:no-underline"
     >
       <ArrowLeft className="h-3.5 w-3.5" />
-      返回赛事列表
+      {i18n.t('返回赛事列表')}
     </Link>
   );
 
@@ -43,9 +44,9 @@ export function CompetitionAdminShell({
         {back}
         <div className="border-t border-rule pt-6">
           <h2 className="text-lg font-semibold tracking-tight text-ink">
-            赛事 ID 无效
+            {i18n.t('赛事 ID 无效')}
           </h2>
-          <p className="text-sm text-ink-3 mt-2">URL 中的 id 参数不是合法的数字。</p>
+          <p className="text-sm text-ink-3 mt-2">{i18n.t('URL 中的 id 参数不是合法的数字。')}</p>
         </div>
       </div>
     );
@@ -65,12 +66,12 @@ export function CompetitionAdminShell({
         {back}
         <div className="border-t border-rule pt-6">
           <h2 className="text-lg font-semibold tracking-tight text-ink">
-            无法打开该赛事
+            {i18n.t('无法打开该赛事')}
           </h2>
           <p className="text-sm text-ink-3 mt-2">
             {query.isError
-              ? '赛事列表加载失败，请稍后重试。'
-              : '赛事不存在，或你没有该赛事的管理权限。'}
+              ? i18n.t('赛事列表加载失败，请稍后重试。')
+              : i18n.t('赛事不存在，或你没有该赛事的管理权限。')}
           </p>
         </div>
       </div>

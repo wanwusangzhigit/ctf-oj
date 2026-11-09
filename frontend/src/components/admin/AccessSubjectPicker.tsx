@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, X } from 'lucide-react';
@@ -6,14 +7,14 @@ import { listAccessGroups, searchAccessSubjects } from '@/api/access';
 import type { AccessPermission, AccessSubject, AccessSubjectType } from '@/types';
 
 const TYPE_LABEL: Record<AccessSubjectType, string> = {
-  user: '用户',
-  team: '团队',
-  group: '权限组',
+  user: i18n.t('用户'),
+  team: i18n.t('团队'),
+  group: i18n.t('权限组'),
 };
 
 export const PERMISSION_LABEL: Record<AccessPermission, string> = {
-  view: '只读',
-  manage: '修改',
+  view: i18n.t('只读'),
+  manage: i18n.t('修改'),
 };
 
 export function AccessSubjectPicker({
@@ -100,17 +101,17 @@ export function AccessSubjectPicker({
                     setPermission(sub, e.target.value as AccessPermission)
                   }
                   className="h-5 bg-paper border border-rule text-2xs text-ink-2"
-                  aria-label={`${sub.name} 的权限`}
+                  aria-label={i18n.t('{{v0}} 的权限', { v0: sub.name })}
                 >
-                  <option value="view">只读</option>
-                  <option value="manage">修改</option>
+                  <option value="view">{i18n.t('只读')}</option>
+                  <option value="manage">{i18n.t('修改')}</option>
                 </select>
               )}
               <button
                 type="button"
                 onClick={() => remove(sub)}
                 className="text-ink-3 hover:text-oxblood"
-                aria-label={`移除 ${sub.name}`}
+                aria-label={i18n.t('移除 {{v0}}', { v0: sub.name })}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -128,16 +129,16 @@ export function AccessSubjectPicker({
           }}
           className="h-9 px-2 bg-paper border border-rule rounded-sm text-sm"
         >
-          <option value="user">用户</option>
-          <option value="team">团队</option>
-          {allowGroups && <option value="group">权限组</option>}
+          <option value="user">{i18n.t('用户')}</option>
+          <option value="team">{i18n.t('团队')}</option>
+          {allowGroups && <option value="group">{i18n.t('权限组')}</option>}
         </select>
         <div className="relative min-w-[12rem] flex-1">
           <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-3" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={type === 'group' ? '筛选权限组' : '搜索用户名或团队名'}
+            placeholder={type === 'group' ? i18n.t('筛选权限组') : i18n.t('搜索用户名或团队名')}
             className="pl-7"
           />
         </div>
@@ -151,7 +152,7 @@ export function AccessSubjectPicker({
             </div>
           ) : results.length === 0 ? (
             <p className="px-3 py-4 text-center text-2xs text-ink-3">
-              {type === 'group' ? '没有匹配的权限组' : '输入关键字搜索'}
+              {type === 'group' ? i18n.t('没有匹配的权限组') : i18n.t('输入关键字搜索')}
             </p>
           ) : (
             <ul className="divide-y divide-rule">
@@ -175,11 +176,11 @@ export function AccessSubjectPicker({
         </div>
       )}
       {type !== 'group' && debounced.length === 0 && (
-        <p className="text-2xs text-ink-3">输入关键字后选择要添加的对象。</p>
+        <p className="text-2xs text-ink-3">{i18n.t('输入关键字后选择要添加的对象。')}</p>
       )}
       {type === 'group' && (
         <p className="text-2xs text-ink-3">
-          权限组的成员在「权限组」页面维护；此处只引用组。
+          {i18n.t('权限组的成员在「权限组」页面维护；此处只引用组。')}
         </p>
       )}
     </div>
@@ -188,7 +189,7 @@ export function AccessSubjectPicker({
 
 export function AccessSubjectList({ subjects }: { subjects: AccessSubject[] }) {
   if (subjects.length === 0) {
-    return <span className="text-2xs text-ink-3">无</span>;
+    return <span className="text-2xs text-ink-3">{i18n.t('无')}</span>;
   }
   return (
     <span className="flex flex-wrap gap-1">
@@ -211,7 +212,7 @@ export function AccessSubjectList({ subjects }: { subjects: AccessSubject[] }) {
 export function AddSubjectButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" variant="ghost" size="sm" onClick={onClick}>
-      <Plus className="h-3.5 w-3.5" /> 添加
+      <Plus className="h-3.5 w-3.5" /> {i18n.t('添加')}
     </Button>
   );
 }

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -20,10 +21,10 @@ const KIND_ICON: Record<NotificationKind, typeof Bell> = {
   system: Settings,
 };
 const KIND_LABEL: Record<NotificationKind, string> = {
-  solve: '解题',
-  reply: '回复',
-  announcement: '公告',
-  system: '系统',
+  solve: i18n.t('解题'),
+  reply: i18n.t('回复'),
+  announcement: i18n.t('公告'),
+  system: i18n.t('系统'),
 };
 
 export function NotificationsPage() {
@@ -42,9 +43,9 @@ export function NotificationsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notifications'] });
       qc.invalidateQueries({ queryKey: ['notifications-unread'] });
-      toast.success('已标记全部为已读');
+      toast.success(i18n.t('已标记全部为已读'));
     },
-    onError: (e) => toast.error(e instanceof ApiClientError ? e.message : '操作失败'),
+    onError: (e) => toast.error(e instanceof ApiClientError ? e.message : i18n.t('操作失败')),
   });
   const oneReadMut = useMutation({
     mutationFn: (id: number) => markRead(id),
@@ -60,8 +61,8 @@ export function NotificationsPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <header className="flex items-end justify-between gap-4 mb-6 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">通知中心</h1>
-          <p className="text-sm text-muted mt-1">解题、回复、公告都在这里。</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{i18n.t('通知中心')}</h1>
+          <p className="text-sm text-muted mt-1">{i18n.t('解题、回复、公告都在这里。')}</p>
         </div>
         <Button
           variant="outline"
@@ -70,13 +71,13 @@ export function NotificationsPage() {
           loading={allReadMut.isPending}
         >
           <CheckCheck className="h-3.5 w-3.5" />
-          全部已读
+          {i18n.t('全部已读')}
         </Button>
       </header>
 
       <div className="flex items-center gap-1 mb-4 overflow-x-auto">
         <FilterTab active={kind === 'all'} onClick={() => setKind('all')}>
-          全部
+          {i18n.t('全部')}
         </FilterTab>
         {(['solve', 'reply', 'announcement', 'system'] as const).map((k) => (
           <FilterTab key={k} active={kind === k} onClick={() => setKind(k)}>
@@ -87,7 +88,7 @@ export function NotificationsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>最近通知</CardTitle>
+          <CardTitle>{i18n.t('最近通知')}</CardTitle>
         </CardHeader>
         <CardBody className="p-0">
           {list.isLoading ? (
@@ -124,7 +125,7 @@ export function NotificationsPage() {
                           onClick={() => !n.readAt && oneReadMut.mutate(n.id)}
                           className="text-2xs text-accent hover:underline"
                         >
-                          打开
+                          {i18n.t('打开')}
                         </Link>
                       )}
                       {!n.readAt && (
@@ -132,7 +133,7 @@ export function NotificationsPage() {
                           type="button"
                           onClick={() => oneReadMut.mutate(n.id)}
                           className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-surface-2 text-muted hover:text-fg transition-colors"
-                          aria-label="标记已读"
+                          aria-label={i18n.t('标记已读')}
                         >
                           <Check className="h-3.5 w-3.5" />
                         </button>
@@ -143,7 +144,7 @@ export function NotificationsPage() {
               })}
             </ul>
           ) : (
-            <div className="py-16 text-center text-sm text-muted">还没有通知。</div>
+            <div className="py-16 text-center text-sm text-muted">{i18n.t('还没有通知。')}</div>
           )}
         </CardBody>
       </Card>

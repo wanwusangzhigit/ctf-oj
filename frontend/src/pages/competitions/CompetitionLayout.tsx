@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link, NavLink, Outlet, useOutletContext, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, Snowflake } from 'lucide-react';
@@ -22,11 +23,11 @@ export function useCompetitionOutlet() {
 }
 
 const TABS = [
-  { to: '.', label: '概览', end: true },
-  { to: 'challenges', label: '赛题' },
-  { to: 'scoreboard', label: '赛事榜' },
-  { to: 'announcements', label: '公告' },
-  { to: 'discussions', label: '答疑' },
+  { to: '.', label: i18n.t('概览'), end: true },
+  { to: 'challenges', label: i18n.t('赛题') },
+  { to: 'scoreboard', label: i18n.t('赛事榜') },
+  { to: 'announcements', label: i18n.t('公告') },
+  { to: 'discussions', label: i18n.t('答疑') },
 ];
 
 export function CompetitionLayout() {
@@ -51,14 +52,14 @@ export function CompetitionLayout() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
         <div className="border-t-2 border-ink pt-6">
-          <h1 className="text-2xl font-semibold tracking-tight">赛事不存在</h1>
-          <p className="mt-2 text-ink-3">它可能已被删除。</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{i18n.t('赛事不存在')}</h1>
+          <p className="mt-2 text-ink-3">{i18n.t('它可能已被删除。')}</p>
           <Link
             to="/competitions"
             className="mt-4 inline-flex items-center gap-1 text-amber font-medium"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            返回赛事列表
+            {i18n.t('返回赛事列表')}
           </Link>
         </div>
       </div>
@@ -75,27 +76,27 @@ export function CompetitionLayout() {
         className="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink transition-colors mb-6 hover:no-underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        返回赛事列表
+        {i18n.t('返回赛事列表')}
       </Link>
 
       <header className="border-t-2 border-ink pt-6">
         <div className="flex items-center gap-2 flex-wrap mb-2">
           <span className="font-mono text-2xs text-ink-3">@{c.slug}</span>
-          {c.isActive && <Badge tone="accent">当前赛事</Badge>}
-          {c.visibility === 'private' && <Badge>私有</Badge>}
-          {c.archivedAt && <Badge>已归档</Badge>}
+          {c.isActive && <Badge tone="accent">{i18n.t('当前赛事')}</Badge>}
+          {c.visibility === 'private' && <Badge>{i18n.t('私有')}</Badge>}
+          {c.archivedAt && <Badge>{i18n.t('已归档')}</Badge>}
           <Badge>
             {c.scoringMode === 'fixed'
-              ? '固定分值'
+              ? i18n.t('固定分值')
               : c.scoringMode === 'three_blood'
-                ? '三血加成'
-                : '动态分值'}
+                ? i18n.t('三血加成')
+                : i18n.t('动态分值')}
           </Badge>
           <Badge tone={COMPETITION_PHASE_TONE[phase]}>
             {COMPETITION_PHASE_LABEL[phase]}
           </Badge>
-          {c.scoreboardFrozen && <Badge tone="accent">封榜中</Badge>}
-          {c.registered && <Badge tone="success">已报名</Badge>}
+          {c.scoreboardFrozen && <Badge tone="accent">{i18n.t('封榜中')}</Badge>}
+          {c.registered && <Badge tone="success">{i18n.t('已报名')}</Badge>}
         </div>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
           {c.name}
@@ -107,14 +108,12 @@ export function CompetitionLayout() {
           </span>
           {c.freezeAt && (
             <span className="inline-flex items-center gap-1">
-              <Snowflake className="h-3 w-3" />
-              封榜 {formatTime(c.freezeAt)}
-            </span>
+              <Snowflake className="h-3 w-3" />{i18n.t('封榜 {{v0}}', { v0: formatTime(c.freezeAt) })}</span>
           )}
         </div>
       </header>
 
-      <nav aria-label="赛事导航" className="mt-6 border-b border-rule overflow-x-auto">
+      <nav aria-label={i18n.t('赛事导航')} className="mt-6 border-b border-rule overflow-x-auto">
         <div className="flex min-w-max gap-5">
           {TABS.map((tab) => (
             <NavLink

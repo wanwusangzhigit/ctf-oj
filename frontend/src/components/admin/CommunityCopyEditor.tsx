@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
@@ -60,10 +61,10 @@ export function CommunityCopyEditor({ overrides }: { overrides?: Record<string, 
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-settings'] });
       qc.invalidateQueries({ queryKey: ['community-meta'] });
-      toast.success('文案已保存');
+      toast.success(i18n.t('文案已保存'));
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '保存失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('保存失败')),
   });
 
   return (
@@ -78,7 +79,7 @@ export function CommunityCopyEditor({ overrides }: { overrides?: Record<string, 
           onClick={() => saveMut.mutate()}
         >
           <Save className="h-3.5 w-3.5" />
-          保存文案
+          {i18n.t('保存文案')}
         </Button>
       </div>
 

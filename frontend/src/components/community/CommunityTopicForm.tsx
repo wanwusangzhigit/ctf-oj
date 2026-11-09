@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,17 +19,17 @@ const SELECT_CLASS =
   'w-full h-9 px-3 bg-paper border border-rule rounded-sm text-sm focus:outline-none focus:border-amber';
 
 const schema = z.object({
-  sectionId: z.coerce.number().int().positive('请选择板块'),
+  sectionId: z.coerce.number().int().positive(i18n.t('请选择板块')),
   title: z
     .string()
     .trim()
-    .min(1, '请输入主题标题')
-    .max(160, '标题最长 160 字符'),
+    .min(1, i18n.t('请输入主题标题'))
+    .max(160, i18n.t('标题最长 160 字符')),
   contentMd: z
     .string()
     .trim()
-    .min(1, '请输入正文')
-    .max(5000, '正文最长 5000 字符'),
+    .min(1, i18n.t('请输入正文'))
+    .max(5000, i18n.t('正文最长 5000 字符')),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -112,7 +113,7 @@ export function CommunityTopicForm({
             values.title,
           ),
     onSuccess: (d) => {
-      toast.success(isEdit ? '修改已保存' : '主题已发布');
+      toast.success(isEdit ? i18n.t('修改已保存') : i18n.t('主题已发布'));
       if (isEdit) {
         onSaved?.();
         return;
@@ -121,7 +122,7 @@ export function CommunityTopicForm({
       onCreated?.(d.id);
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : isEdit ? '保存失败' : '发布失败'),
+      toast.error(err instanceof ApiClientError ? err.message : isEdit ? i18n.t('保存失败') : i18n.t('发布失败')),
   });
 
   const onSubmit = handleSubmit((values) => mut.mutate(values));
@@ -137,9 +138,9 @@ export function CommunityTopicForm({
   if (isEdit && (contentQ.isError || !contentQ.data)) {
     return (
       <div className="border border-rule bg-paper-2/40 p-6">
-        <h2 className="text-sm font-medium text-ink">无法编辑该主题</h2>
+        <h2 className="text-sm font-medium text-ink">{i18n.t('无法编辑该主题')}</h2>
         <p className="mt-2 text-sm text-ink-3">
-          它可能已被删除，或者你既不是作者也没有社区管理权限。
+          {i18n.t('它可能已被删除，或者你既不是作者也没有社区管理权限。')}
         </p>
       </div>
     );
@@ -163,17 +164,17 @@ export function CommunityTopicForm({
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
       {isEdit ? (
         <p className="text-sm text-ink-3">
-          板块：<span className="text-ink">{editSectionName ?? '—'}</span>
+          {i18n.t('板块：')}<span className="text-ink">{editSectionName ?? '—'}</span>
         </p>
       ) : (
-        <Field label="板块" htmlFor="topic-section" error={errors.sectionId?.message}>
+        <Field label={i18n.t('板块')} htmlFor="topic-section" error={errors.sectionId?.message}>
           <select
             id="topic-section"
             className={SELECT_CLASS}
             aria-invalid={!!errors.sectionId}
             {...register('sectionId')}
           >
-            <option value={0}>请选择板块</option>
+            <option value={0}>{i18n.t('请选择板块')}</option>
             {postable.map((section) => (
               <option key={section.id} value={section.id}>
                 {section.name}
@@ -182,7 +183,7 @@ export function CommunityTopicForm({
           </select>
         </Field>
       )}
-      <Field label="主题标题" htmlFor="topic-title" error={errors.title?.message}>
+      <Field label={i18n.t('主题标题')} htmlFor="topic-title" error={errors.title?.message}>
         <Input
           id="topic-title"
           maxLength={160}
@@ -191,7 +192,7 @@ export function CommunityTopicForm({
           {...register('title')}
         />
       </Field>
-      <Field label="正文" htmlFor="topic-content" error={errors.contentMd?.message}>
+      <Field label={i18n.t('正文')} htmlFor="topic-content" error={errors.contentMd?.message}>
         <MarkdownEditor
           id="topic-content"
           rows={12}
@@ -206,7 +207,7 @@ export function CommunityTopicForm({
         <div className="flex gap-2">
           {onCancel && (
             <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-              取消
+              {i18n.t('取消')}
             </Button>
           )}
           <Button

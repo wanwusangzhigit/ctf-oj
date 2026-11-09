@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminListSettings, adminUpdateSettings } from '@/api/settings';
@@ -83,11 +84,11 @@ export function useAdminSettingsSave() {
   return useMutation({
     mutationFn: (values: Record<string, string>) => adminUpdateSettings(values),
     onSuccess: () => {
-      toast.success('已保存');
+      toast.success(i18n.t('已保存'));
       void qc.invalidateQueries({ queryKey: ['admin-settings'] });
       reloadSite();
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '保存失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('保存失败')),
   });
 }

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -70,21 +71,21 @@ export function RealtimeScoreboardPage() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <header className="mb-6 flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">实时记分板</h1>
-          <p className="text-sm text-muted mt-1">通过 WebSocket 推送最新解题事件。</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{i18n.t('实时记分板')}</h1>
+          <p className="text-sm text-muted mt-1">{i18n.t('通过 WebSocket 推送最新解题事件。')}</p>
         </div>
         <Badge tone={connected ? 'success' : 'neutral'}>
           <span
             className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-success' : 'bg-muted'}`}
           />
-          {connected ? '已连接' : '离线'}
+          {connected ? i18n.t('已连接') : i18n.t('离线')}
         </Badge>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>排行榜（实时更新）</CardTitle>
+            <CardTitle>{i18n.t('排行榜（实时更新）')}</CardTitle>
           </CardHeader>
           <CardBody className="p-0">
             {board.isLoading ? (
@@ -96,8 +97,8 @@ export function RealtimeScoreboardPage() {
                 <thead>
                   <tr className="text-2xs uppercase text-muted bg-surface-2">
                     <th className="text-left px-5 py-2 font-medium w-12">#</th>
-                    <th className="text-left px-5 py-2 font-medium">选手</th>
-                    <th className="text-right px-5 py-2 font-medium">积分</th>
+                    <th className="text-left px-5 py-2 font-medium">{i18n.t('选手')}</th>
+                    <th className="text-right px-5 py-2 font-medium">{i18n.t('积分')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -119,7 +120,7 @@ export function RealtimeScoreboardPage() {
                 </tbody>
               </table>
             ) : (
-              <div className="py-16 text-center text-sm text-muted">榜单为空。</div>
+              <div className="py-16 text-center text-sm text-muted">{i18n.t('榜单为空。')}</div>
             )}
           </CardBody>
         </Card>
@@ -127,7 +128,7 @@ export function RealtimeScoreboardPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>解题事件</CardTitle>
+              <CardTitle>{i18n.t('解题事件')}</CardTitle>
             </CardHeader>
             <CardBody className="p-0">
               {(events.length > 0 || (recent.data?.length ?? 0) > 0) ? (
@@ -163,11 +164,11 @@ export function RealtimeScoreboardPage() {
                         <Avatar name={it.username} />
                         <span className="font-medium text-sm">{it.username}</span>
                         {it.firstBlood && (
-                          <Badge tone="warning">首杀</Badge>
+                          <Badge tone="warning">{i18n.t('首杀')}</Badge>
                         )}
                       </div>
                       <div className="text-2xs text-muted mt-1">
-                        解出 <Link to={`/challenges/`} className="text-accent">{it.title}</Link>
+                        {i18n.t('解出')} <Link to={`/challenges/`} className="text-accent">{it.title}</Link>
                         <span className="ml-2 font-mono">+{it.score}</span>
                         {!it.live && it.solvedAt && (
                           <span className="ml-2">{relativeTime(it.solvedAt)}</span>
@@ -178,7 +179,7 @@ export function RealtimeScoreboardPage() {
                 </ul>
               ) : (
                 <div className="py-10 text-center text-sm text-muted">
-                  等待事件…
+                  {i18n.t('等待事件…')}
                 </div>
               )}
             </CardBody>
@@ -186,13 +187,13 @@ export function RealtimeScoreboardPage() {
 
           <Card>
             <CardBody className="text-sm text-muted">
-              解题事件会在选手提交正确 Flag 后即时推送到本页；同时刷新榜单与最近活动。
+              {i18n.t('解题事件会在选手提交正确 Flag 后即时推送到本页；同时刷新榜单与最近活动。')}
               <div className="mt-3">
                 <Button variant="outline" size="sm" onClick={() => {
                   qc.invalidateQueries({ queryKey: ['scoreboard'] });
                   qc.invalidateQueries({ queryKey: ['recent-solves'] });
                 }}>
-                  手动刷新
+                  {i18n.t('手动刷新')}
                 </Button>
               </div>
             </CardBody>

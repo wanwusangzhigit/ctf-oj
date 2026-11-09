@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { DiscussionPanel } from '@/components/DiscussionPanel';
 import { useCompetitionOutlet } from './CompetitionLayout';
 
@@ -7,10 +8,10 @@ export function CompetitionDiscussionsPage() {
   return (
     <DiscussionPanel
       target={{ scope: 'competition', id: c.id }}
-      title="赛事答疑"
+      title={i18n.t('赛事答疑')}
       canPost={!c.registrationRequired || !!c.registered}
-      postDeniedText="报名后才能参与赛事答疑。"
-      emptyText="暂无答疑。"
+      postDeniedText={i18n.t('报名后才能参与赛事答疑。')}
+      emptyText={i18n.t('暂无答疑。')}
     />
   );
 }

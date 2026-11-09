@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { AccessSubjectPicker } from './AccessSubjectPicker';
 import type { AccessSubject } from '@/types';
@@ -29,7 +30,7 @@ export function AccessGrantEditor({
             to={groupsLink}
             className="text-2xs text-amber hover:underline"
           >
-            管理权限组
+            {i18n.t('管理权限组')}
           </Link>
         )}
       </div>
@@ -52,8 +53,8 @@ export function ChallengeAccessEditor({
 }) {
   return (
     <AccessGrantEditor
-      title="访问与修改授权"
-      description="只读：隐藏题目对授权对象可见；修改：允许授权对象编辑题目内容、附件、提示与容器源。已发布题目的只读授权不改变公开可见性。"
+      title={i18n.t('访问与修改授权')}
+      description={i18n.t('只读：隐藏题目对授权对象可见；修改：允许授权对象编辑题目内容、附件、提示与容器源。已发布题目的只读授权不改变公开可见性。')}
       grants={grants}
       onChange={onChange}
       groupsLink="/admin/access-groups"

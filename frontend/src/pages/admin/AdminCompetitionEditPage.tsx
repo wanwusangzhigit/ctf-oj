@@ -1,10 +1,11 @@
+import i18n from '@/locales/i18n';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CompetitionAdminShell } from '@/components/admin/CompetitionAdminShell';
 import { CompetitionForm } from '@/components/admin/CompetitionForm';
 
 /**
  * /admin/competitions/:id/edit — global managers and holders of a manage grant
- * on this competition. Delegates see no 归档 / 激活 / 授权 controls.
+ * on this competition. Delegates see no archive / activate / grant controls.
  */
 export function AdminCompetitionEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,8 +16,8 @@ export function AdminCompetitionEditPage() {
     <CompetitionAdminShell
       competitionId={competitionId}
       command={`edit ${competitionId}`}
-      title="编辑赛事"
-      note="激活、归档、删除与导出仅全局管理员可用"
+      title={i18n.t('编辑赛事')}
+      note={i18n.t('激活、归档、删除与导出仅全局管理员可用')}
     >
       {(competition) => (
         <CompetitionForm

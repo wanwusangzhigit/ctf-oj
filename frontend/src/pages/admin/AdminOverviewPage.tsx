@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, Upload, Trash2 } from 'lucide-react';
@@ -51,10 +52,10 @@ export function AdminOverviewPage() {
   const stopMut = useMutation({
     mutationFn: (id: number) => adminStopInstance(id),
     onSuccess: () => {
-      toast.success('实例已销毁');
+      toast.success(i18n.t('实例已销毁'));
       qc.invalidateQueries({ queryKey: ['admin-instances'] });
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '销毁失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('销毁失败')),
   });
 
   const stopId = stopMut.isPending ? stopMut.variables : undefined;
@@ -68,9 +69,9 @@ export function AdminOverviewPage() {
   const stopInstance = async (inst: Instance) => {
     const title = inst.challenge?.title ?? `#${inst.challengeId}`;
     const ok = await confirm({
-      title: '强制销毁实例',
-      description: `「${title}」的运行容器会被立即停止并删除。`,
-      confirmText: '销毁',
+      title: i18n.t('强制销毁实例'),
+      description: i18n.t('「{{v0}}」的运行容器会被立即停止并删除。', { v0: title }),
+      confirmText: i18n.t('销毁'),
     });
     if (ok) stopMut.mutate(inst.id);
   };
@@ -84,9 +85,9 @@ export function AdminOverviewPage() {
       a.download = `ctfoj-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('导出完成');
+      toast.success(i18n.t('导出完成'));
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : '导出失败'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : i18n.t('导出失败')),
   });
 
   const importMut = useMutation({
@@ -100,25 +101,25 @@ export function AdminOverviewPage() {
     },
     onSuccess: (s) => {
       toast.success(
-        `已导入 ${s.challengesCreated} 题目，${s.categoriesCreated} 分类，跳过 ${s.challengesSkipped}`,
+        i18n.t('已导入 {{v0}} 题目，{{v1}} 分类，跳过 {{v2}}', { v0: s.challengesCreated, v1: s.categoriesCreated, v2: s.challengesSkipped }),
       );
       qc.invalidateQueries({ queryKey: ['admin-challenges'] });
       qc.invalidateQueries({ queryKey: ['challenges'] });
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '导入失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('导入失败')),
   });
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>数据导出 / 导入</CardTitle>
+          <CardTitle>{i18n.t('数据导出 / 导入')}</CardTitle>
         </CardHeader>
         <CardBody className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Button variant="primary" onClick={() => exportMut.mutate()} loading={exportMut.isPending}>
               <Download className="h-3.5 w-3.5" />
-              导出全部题目（JSON）
+              {i18n.t('导出全部题目（JSON）')}
             </Button>
             <label className="cursor-pointer">
               <input
@@ -133,32 +134,29 @@ export function AdminOverviewPage() {
               />
               <span className="inline-flex items-center gap-1 h-9 px-3 rounded-md border border-border-strong text-sm font-medium hover:bg-surface-2 transition-colors">
                 <Upload className="h-3.5 w-3.5" />
-                {importMut.isPending ? '导入中...' : '从 JSON 导入'}
+                {importMut.isPending ? i18n.t('导入中...') : i18n.t('从 JSON 导入')}
               </span>
             </label>
           </div>
-          <p className="text-2xs text-muted">
-            导出包含分类与题目（含 flag、动态字段、附件元数据；附件文件本身需共享存储卷迁移）。
-            导入按题目名去重，已存在则跳过。
-          </p>
+          <p className="text-2xs text-muted">{i18n.t('导出包含分类与题目（含 flag、动态字段、附件元数据；附件文件本身需共享存储卷迁移）。 导入按题目名去重，已存在则跳过。')}</p>
         </CardBody>
       </Card>
 
       <Card>
         <CardHeader className="flex items-center justify-between gap-3">
-          <CardTitle>实例总览（{list.data?.total ?? 0}）</CardTitle>
+          <CardTitle>{i18n.t('实例总览（{{v0}}）', { v0: list.data?.total ?? 0 })}</CardTitle>
           <Field>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="h-9 px-3 bg-surface border border-border rounded-md text-sm"
             >
-              <option value="">全部</option>
-              <option value="running">运行中</option>
-              <option value="stopped">已停止</option>
-              <option value="expired">已过期</option>
-              <option value="auto_expired">自动回收</option>
-              <option value="error">错误</option>
+              <option value="">{i18n.t('全部')}</option>
+              <option value="running">{i18n.t('运行中')}</option>
+              <option value="stopped">{i18n.t('已停止')}</option>
+              <option value="expired">{i18n.t('已过期')}</option>
+              <option value="auto_expired">{i18n.t('自动回收')}</option>
+              <option value="error">{i18n.t('错误')}</option>
             </select>
           </Field>
         </CardHeader>
@@ -166,7 +164,7 @@ export function AdminOverviewPage() {
           {list.isLoading ? (
             <div className="py-10 flex justify-center"><Spinner className="h-5 w-5 text-muted" /></div>
           ) : (list.data?.items?.length ?? 0) === 0 ? (
-            <div className="py-10 text-center text-sm text-muted">暂无实例。</div>
+            <div className="py-10 text-center text-sm text-muted">{i18n.t('暂无实例。')}</div>
           ) : (
             <>
               <div className="divide-y divide-rule md:hidden">
@@ -184,9 +182,7 @@ export function AdminOverviewPage() {
                       <StatusBadge status={inst.status} />
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-2xs text-muted">
-                        到期 {formatTime(inst.expiresAt)}
-                      </span>
+                      <span className="text-2xs text-muted">{i18n.t('到期 {{v0}}', { v0: formatTime(inst.expiresAt) })}</span>
                       <InstanceActions
                         compact
                         inst={inst}
@@ -202,12 +198,12 @@ export function AdminOverviewPage() {
                 <table className="w-full min-w-[760px] text-sm">
                   <thead>
                     <tr className="text-2xs uppercase text-muted bg-surface-2">
-                      <th className="text-left px-5 py-2 font-medium">题目</th>
-                      <th className="text-left px-5 py-2 font-medium">用户</th>
-                      <th className="text-left px-5 py-2 font-medium">地址</th>
-                      <th className="text-left px-5 py-2 font-medium">状态</th>
-                      <th className="text-left px-5 py-2 font-medium">到期</th>
-                      <th className="text-right px-5 py-2 font-medium">操作</th>
+                      <th className="text-left px-5 py-2 font-medium">{i18n.t('题目')}</th>
+                      <th className="text-left px-5 py-2 font-medium">{i18n.t('用户')}</th>
+                      <th className="text-left px-5 py-2 font-medium">{i18n.t('地址')}</th>
+                      <th className="text-left px-5 py-2 font-medium">{i18n.t('状态')}</th>
+                      <th className="text-left px-5 py-2 font-medium">{i18n.t('到期')}</th>
+                      <th className="text-right px-5 py-2 font-medium">{i18n.t('操作')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -245,9 +241,7 @@ export function AdminOverviewPage() {
           )}
           {total > PAGE_SIZE && (
             <div className="flex items-center justify-between border-t border-rule px-5 py-3 text-2xs text-muted">
-              <span>
-                第 {page} / {totalPages} 页 · 共 {total} 个实例
-              </span>
+              <span>{i18n.t('第 {{v0}} / {{v1}} 页 · 共 {{v2}} 个实例', { v0: page, v1: totalPages, v2: total })}</span>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -255,7 +249,7 @@ export function AdminOverviewPage() {
                   disabled={page <= 1 || list.isFetching}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
-                  上一页
+                  {i18n.t('上一页')}
                 </Button>
                 <Button
                   variant="outline"
@@ -263,7 +257,7 @@ export function AdminOverviewPage() {
                   disabled={page >= totalPages || list.isFetching}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 >
-                  下一页
+                  {i18n.t('下一页')}
                 </Button>
               </div>
             </div>
@@ -298,8 +292,8 @@ function LogsModal({
     <Modal
       open
       onClose={onClose}
-      title={`容器日志 · ${target.title}`}
-      subtitle={`instance #${target.id} · 最近 500 行`}
+      title={i18n.t('容器日志 · {{v0}}', { v0: target.title })}
+      subtitle={i18n.t('instance #{{v0}} · 最近 500 行', { v0: target.id })}
       width="max-w-3xl"
     >
       {logsQ.isLoading ? (
@@ -308,11 +302,11 @@ function LogsModal({
         </div>
       ) : logsQ.isError ? (
         <div className="py-8 text-center text-sm text-ink-3">
-          无法读取日志 —— 接口返回错误。请稍后重试。
+          {i18n.t('无法读取日志 —— 接口返回错误。请稍后重试。')}
         </div>
       ) : (
         <pre className="font-mono text-2xs whitespace-pre-wrap break-all text-ink bg-paper-2 p-3 rounded-sm border border-rule leading-relaxed">
-          {logsQ.data?.trim() || '（无日志输出 —— 容器可能在日志采集前已终止）'}
+          {logsQ.data?.trim() || i18n.t('（无日志输出 —— 容器可能在日志采集前已终止）')}
         </pre>
       )}
     </Modal>
@@ -340,11 +334,11 @@ function InstanceActions({
           size="sm"
           className={compact ? 'px-1.5' : undefined}
           onClick={onLogs}
-          aria-label="查看日志"
-          title="查看日志"
+          aria-label={i18n.t('查看日志')}
+          title={i18n.t('查看日志')}
         >
           <FileText className="h-3.5 w-3.5" />
-          {!compact && '日志'}
+          {!compact && i18n.t('日志')}
         </Button>
       )}
       {inst.status === 'running' && (
@@ -354,11 +348,11 @@ function InstanceActions({
           className={compact ? 'px-1.5' : undefined}
           loading={stopping}
           onClick={onStop}
-          aria-label="销毁实例"
-          title="销毁实例"
+          aria-label={i18n.t('销毁实例')}
+          title={i18n.t('销毁实例')}
         >
           <Trash2 className="h-3.5 w-3.5" />
-          {!compact && '销毁'}
+          {!compact && i18n.t('销毁')}
         </Button>
       )}
     </div>
@@ -372,11 +366,11 @@ function StatusBadge({ status }: { status: string }) {
     status === 'expired' ? 'neutral' :
     status === 'auto_expired' ? 'warning' : 'danger';
   const label: Record<string, string> = {
-    running: '运行中',
-    stopped: '已停止',
-    expired: '已过期',
-    auto_expired: '自动回收',
-    error: '错误',
+    running: i18n.t('运行中'),
+    stopped: i18n.t('已停止'),
+    expired: i18n.t('已过期'),
+    auto_expired: i18n.t('自动回收'),
+    error: i18n.t('错误'),
   };
   return <Badge tone={tone}>{label[status] ?? status}</Badge>;
 }

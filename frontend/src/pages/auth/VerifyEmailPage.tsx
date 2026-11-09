@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button, Spinner, useToast } from '@/components/ui';
@@ -12,6 +13,7 @@ import { ApiClientError } from '@/api/client';
  * the token from the query string; a path-segment form is also supported.
  */
 export function VerifyEmailPage() {
+  const { t } = useTranslation();
   const { token: pathToken } = useParams<{ token: string }>();
   const [search] = useSearchParams();
   const token = pathToken ?? search.get('token') ?? '';
@@ -21,15 +23,18 @@ export function VerifyEmailPage() {
   const mut = useMutation({
     mutationFn: () => verifyEmail(token),
     onSuccess: () => {
-      toast.success('邮箱已验证');
+      toast.success(t('auth.verify.success'));
       setDone(true);
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '验证失败'),
+      toast.error(err instanceof ApiClientError ? err.message : t('auth.verify.failed')),
   });
 
+  const errMessage = (err: unknown): string =>
+    err instanceof ApiClientError ? err.message : t('auth.verify.invalidToken');
+
   return (
-    <AuthFrame title="邮箱验证" subtitle="确认邮箱所有权以激活账号">
+    <AuthFrame title={t('auth.verify.title')} subtitle={t('auth.verify.subtitle')}>
       {mut.isPending ? (
         <div className="flex items-center justify-center py-10">
           <Spinner className="h-5 w-5 text-amber" />
@@ -37,21 +42,21 @@ export function VerifyEmailPage() {
       ) : done ? (
         <Result
           tone="ok"
-          title="验证成功"
-          body="你现在可以登录并参与所有题目。"
-          action={{ to: '/auth/login', label: '前去登录' }}
+          title={t('auth.verify.successTitle')}
+          body={t('auth.verify.successBody')}
+          action={{ to: '/auth/login', label: t('auth.verify.goLogin') }}
         />
       ) : mut.isError ? (
         <Result
           tone="err"
-          title="验证失败"
+          title={t('auth.verify.failTitle')}
           body={errMessage(mut.error)}
-          action={{ to: '/', label: '返回首页' }}
+          action={{ to: '/', label: t('auth.verify.backHome') }}
         />
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-ink-2 leading-relaxed">
-            点击下方按钮确认邮箱。验证后即可登录参与所有题目。
+            {t('auth.verify.prompt')}
           </p>
           <Button
             variant="primary"
@@ -59,21 +64,17 @@ export function VerifyEmailPage() {
             onClick={() => mut.mutate()}
             disabled={!token}
           >
-            确认验证
+            {t('auth.verify.submit')}
           </Button>
           {!token && (
             <p className="text-2xs text-oxblood text-center font-mono">
-              缺少验证 token —— 请检查邮件中的链接是否完整。
+              {t('auth.verify.missingToken')}
             </p>
           )}
         </div>
       )}
     </AuthFrame>
   );
-}
-
-function errMessage(err: unknown): string {
-  return err instanceof ApiClientError ? err.message : '验证 token 无效或已过期。';
 }
 
 function Result({

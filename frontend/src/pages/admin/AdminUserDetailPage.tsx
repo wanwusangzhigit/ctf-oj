@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
@@ -36,7 +37,7 @@ export function AdminUserDetailPage() {
       className="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink transition-colors hover:no-underline"
     >
       <ArrowLeft className="h-3.5 w-3.5" />
-      返回用户列表
+      {i18n.t('返回用户列表')}
     </Link>
   );
 
@@ -45,8 +46,8 @@ export function AdminUserDetailPage() {
       <div className="space-y-4">
         {back}
         <div className="border-t border-rule pt-6">
-          <h2 className="text-lg font-semibold tracking-tight text-ink">用户 ID 无效</h2>
-          <p className="text-sm text-ink-3 mt-2">URL 中的 id 参数不是合法的数字。</p>
+          <h2 className="text-lg font-semibold tracking-tight text-ink">{i18n.t('用户 ID 无效')}</h2>
+          <p className="text-sm text-ink-3 mt-2">{i18n.t('URL 中的 id 参数不是合法的数字。')}</p>
         </div>
       </div>
     );
@@ -68,9 +69,9 @@ export function AdminUserDetailPage() {
       <div className="space-y-4">
         {back}
         <div className="border-t border-rule pt-6">
-          <h2 className="text-lg font-semibold tracking-tight text-ink">无法打开该用户</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-ink">{i18n.t('无法打开该用户')}</h2>
           <p className="text-sm text-ink-3 mt-2">
-            {notFound ? '用户不存在，或账号已被删除。' : '用户信息加载失败，请稍后重试。'}
+            {notFound ? i18n.t('用户不存在，或账号已被删除。') : i18n.t('用户信息加载失败，请稍后重试。')}
           </p>
         </div>
       </div>
@@ -87,25 +88,25 @@ export function AdminUserDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-2xl font-semibold tracking-tight text-ink">{user.username}</h2>
           <Badge tone={user.role === 'admin' ? 'accent' : undefined}>{ROLE_LABEL[user.role]}</Badge>
-          {user.isBanned && <Badge tone="danger">已封禁</Badge>}
-          {user.scoreExcluded && <Badge>榜单排除</Badge>}
+          {user.isBanned && <Badge tone="danger">{i18n.t('已封禁')}</Badge>}
+          {user.scoreExcluded && <Badge>{i18n.t('榜单排除')}</Badge>}
         </div>
         <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-2xs text-ink-3">
           <div className="flex gap-1">
-            <dt>邮箱</dt>
+            <dt>{i18n.t('邮箱')}</dt>
             <dd className="font-mono text-ink">{user.email ?? '—'}</dd>
           </div>
           <div className="flex gap-1">
-            <dt>积分</dt>
+            <dt>{i18n.t('积分')}</dt>
             <dd className="font-mono text-ink tabular-nums">{user.score}</dd>
           </div>
           <div className="flex gap-1">
-            <dt>注册于</dt>
+            <dt>{i18n.t('注册于')}</dt>
             <dd className="text-ink">{formatTime(user.createdAt)}</dd>
           </div>
           {user.bannedAt && (
             <div className="flex gap-1">
-              <dt>封禁于</dt>
+              <dt>{i18n.t('封禁于')}</dt>
               <dd className="text-ink">{formatTime(user.bannedAt)}</dd>
             </div>
           )}
@@ -115,18 +116,15 @@ export function AdminUserDetailPage() {
             to={`/users/${user.id}`}
             className="text-sm text-ink-3 hover:text-amber transition-colors"
           >
-            查看公开主页
+            {i18n.t('查看公开主页')}
           </Link>
         </p>
       </header>
 
       {user.id === me?.id ? (
         <div className="border border-rule bg-paper-2/40 p-6">
-          <h3 className="text-sm font-medium text-ink">不能修改自己的权限与状态</h3>
-          <p className="mt-2 text-sm text-ink-3">
-            后端拒绝管理员对自己的账号变更角色、封禁或榜单排除，避免唯一的管理员把自己锁在门外。
-            需要调整时请使用另一个管理员账号。
-          </p>
+          <h3 className="text-sm font-medium text-ink">{i18n.t('不能修改自己的权限与状态')}</h3>
+          <p className="mt-2 text-sm text-ink-3">{i18n.t('后端拒绝管理员对自己的账号变更角色、封禁或榜单排除，避免唯一的管理员把自己锁在门外。 需要调整时请使用另一个管理员账号。')}</p>
         </div>
       ) : (
         <UserManageForm user={user} />

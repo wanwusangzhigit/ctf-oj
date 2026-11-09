@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Badge, Spinner } from '@/components/ui';
@@ -22,10 +23,10 @@ export function MeSolvesPage() {
       <header className="border-t-2 border-ink pt-6 mb-8">
         <p className="font-mono text-2xs text-ink-3 mb-3">$ history --solves</p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          我的解题
+          {i18n.t('我的解题')}
         </h1>
         <p className="mt-2 text-ink-2 max-w-prose">
-          练习模式下解出的题目，按解题时间倒序排列；赛事解题记录见对应赛事榜单。
+          {i18n.t('练习模式下解出的题目，按解题时间倒序排列；赛事解题记录见对应赛事榜单。')}
         </p>
       </header>
 
@@ -35,22 +36,22 @@ export function MeSolvesPage() {
         </div>
       ) : q.isError ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          无法加载解题记录，请稍后重试。
+          {i18n.t('无法加载解题记录，请稍后重试。')}
         </div>
       ) : !solves || solves.length === 0 ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          还没有解题记录 —— 去
+          {i18n.t('还没有解题记录 —— 去')}
           <Link to="/challenges" className="text-amber hover:underline">
-            题目列表
+            {i18n.t('题目列表')}
           </Link>
-          试试第一题。
+          {i18n.t('试试第一题。')}
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between font-mono text-2xs text-ink-3 mb-2">
-            <span>{formatNumber(solves.length)} 题解出</span>
+            <span>{i18n.t('{{v0}} 题解出', { v0: formatNumber(solves.length) })}</span>
             <span className="tabular-nums">
-              合计 +{formatNumber(solves.reduce((n, s) => n + s.score, 0))}
+              {i18n.t('合计 +{{v0}}', { v0: formatNumber(solves.reduce((n, s) => n + s.score, 0)) })}
             </span>
           </div>
           <div className="border-t border-ink">
@@ -65,14 +66,14 @@ export function MeSolvesPage() {
                       to={`/challenges/${s.challengeId}`}
                       className="block text-sm text-ink truncate hover:text-amber"
                     >
-                      {s.challenge?.title ?? `题目 #${s.challengeId}`}
+                      {s.challenge?.title ?? i18n.t('题目 #{{v0}}', { v0: s.challengeId })}
                     </Link>
                     <div className="font-mono text-2xs text-ink-3 tabular-nums">
                       {formatTime(s.solvedAt)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {s.isFirstBlood && <Badge tone="warning">首杀</Badge>}
+                    {s.isFirstBlood && <Badge tone="warning">{i18n.t('首杀')}</Badge>}
                     <span className="font-mono text-sm tabular-nums text-ink">
                       +{s.score}
                     </span>

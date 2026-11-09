@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
@@ -31,16 +32,16 @@ export function AnnouncementDetailPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <div className="border-t-2 border-ink pt-6">
           <h1 className="text-2xl font-semibold tracking-tight">
-            公告不存在
+            {i18n.t('公告不存在')}
           </h1>
-          <p className="mt-2 text-ink-3">它可能被删除或撤销了。</p>
+          <p className="mt-2 text-ink-3">{i18n.t('它可能被删除或撤销了。')}</p>
           <div className="mt-4">
             <Link
               to="/announcements"
               className="inline-flex items-center gap-1 text-amber font-medium"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              返回公告列表
+              {i18n.t('返回公告列表')}
             </Link>
           </div>
         </div>
@@ -55,7 +56,7 @@ export function AnnouncementDetailPage() {
         className="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink transition-colors mb-8 hover:no-underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        返回公告
+        {i18n.t('返回公告')}
       </Link>
 
       <header className="border-t-2 border-ink pt-6 mb-8">
@@ -71,7 +72,7 @@ export function AnnouncementDetailPage() {
       </header>
 
       <div className="max-w-prose text-ink-2 leading-relaxed">
-        <Markdown>{data.contentMd || '（无内容）'}</Markdown>
+        <Markdown>{data.contentMd || i18n.t('（无内容）')}</Markdown>
       </div>
     </article>
   );

@@ -1,3 +1,5 @@
+import i18n from '@/locales/i18n';
+
 export const COPY_PREFIX = 'community.copy.';
 
 export type CopyKey =
@@ -48,12 +50,13 @@ export type CommunityCopyEntry = {
   def: string;
 };
 
+// Getters resolve the active language at read time so call sites stay unchanged.
 export const COPY_GROUP_LABEL: Record<CopyGroup, string> = {
-  board: '社区文案',
-  composer: '主题表单',
-  reply: '回复表单',
-  access: '权限与状态',
-  history: '修改记录',
+  get board() { return i18n.t('enums.copyGroup.board'); },
+  get composer() { return i18n.t('enums.copyGroup.composer'); },
+  get reply() { return i18n.t('enums.copyGroup.reply'); },
+  get access() { return i18n.t('enums.copyGroup.access'); },
+  get history() { return i18n.t('enums.copyGroup.history'); },
 };
 
 // The value of every entry here is the fallback the UI renders when the admin

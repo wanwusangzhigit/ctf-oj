@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Save } from 'lucide-react';
 import { Button } from '@/components/ui';
 
@@ -69,10 +70,10 @@ export function SaveBar({
     <div className="flex items-center gap-3 border-t border-rule pt-4">
       <Button variant="primary" onClick={onSave} loading={pending} disabled={!dirty}>
         <Save className="h-3.5 w-3.5" />
-        保存本页
+        {i18n.t('保存本页')}
       </Button>
       <span className="text-2xs text-ink-3">
-        {dirty ? '有未保存的更改' : '所有更改已保存'}
+        {dirty ? i18n.t('有未保存的更改') : i18n.t('所有更改已保存')}
       </span>
     </div>
   );

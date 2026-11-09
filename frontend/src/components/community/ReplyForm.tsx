@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { type RefObject } from 'react';
 import { Button, Textarea } from '@/components/ui';
 import type { CommunityCopy } from '@/lib/communityCopy';
@@ -31,10 +32,8 @@ export function ReplyForm({
       className="space-y-2"
     >
       {quote && (
-        <div className="flex items-center gap-2 text-2xs text-ink-3">
-          正在回复 @{quote}
-          <button type="button" onClick={onCancelQuote} className="text-amber">
-            取消
+        <div className="flex items-center gap-2 text-2xs text-ink-3">{i18n.t('正在回复 @{{v0}}', { v0: quote })}<button type="button" onClick={onCancelQuote} className="text-amber">
+            {i18n.t('取消')}
           </button>
         </div>
       )}

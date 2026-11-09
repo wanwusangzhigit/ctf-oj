@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Crown, Trash2, Users } from 'lucide-react';
@@ -22,19 +23,19 @@ export function TeamMemberTable({ team }: { team: Team }) {
   const removeMut = useMutation({
     mutationFn: (memberUserId: number) => removeTeamMember(team.id, memberUserId),
     onSuccess: () => {
-      toast.success('已移除成员');
+      toast.success(i18n.t('已移除成员'));
       refresh();
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   const transferMut = useMutation({
     mutationFn: (memberUserId: number) => transferTeamOwner(team.id, memberUserId),
     onSuccess: () => {
-      toast.success('已转让队长');
+      toast.success(i18n.t('已转让队长'));
       refresh();
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '转让失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('转让失败')),
   });
 
   const members = team.members ?? [];
@@ -43,13 +44,11 @@ export function TeamMemberTable({ team }: { team: Team }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          成员（{members.length}）
-        </CardTitle>
+          <Users className="h-4 w-4" />{i18n.t('成员（{{v0}}）', { v0: members.length })}</CardTitle>
       </CardHeader>
       <CardBody className="p-0">
         {members.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-muted">暂无成员。</p>
+          <p className="px-5 py-10 text-center text-sm text-muted">{i18n.t('暂无成员。')}</p>
         ) : (
           <ul className="divide-y divide-border">
             {members.map((m) => (
@@ -62,12 +61,10 @@ export function TeamMemberTable({ team }: { team: Team }) {
                   {m.userId === team.ownerId && (
                     <Badge tone="warning">
                       <Crown className="h-3 w-3" />
-                      队长
+                      {i18n.t('队长')}
                     </Badge>
                   )}
-                  <span className="text-2xs text-muted">
-                    {formatNumber(m.user?.score ?? 0)} 分 · 加入于 {relativeTime(m.joinedAt)}
-                  </span>
+                  <span className="text-2xs text-muted">{i18n.t('{{v0}} 分 · 加入于 {{v1}}', { v0: formatNumber(m.user?.score ?? 0), v1: relativeTime(m.joinedAt) })}</span>
                 </div>
                 {isOwner && m.userId !== team.ownerId && (
                   <div className="flex items-center gap-1">
@@ -77,26 +74,26 @@ export function TeamMemberTable({ team }: { team: Team }) {
                       loading={transferMut.isPending}
                       onClick={async () => {
                         const ok = await confirm({
-                          title: '转让队长',
-                          description: `将队长转让给 ${m.user?.username ?? '该成员'}？转让后你将成为普通成员。`,
-                          confirmText: '转让队长',
+                          title: i18n.t('转让队长'),
+                          description: i18n.t('将队长转让给 {{v0}}？转让后你将成为普通成员。', { v0: m.user?.username ?? i18n.t('该成员') }),
+                          confirmText: i18n.t('转让队长'),
                           danger: false,
                         });
                         if (ok) transferMut.mutate(m.userId);
                       }}
                     >
                       <Crown className="h-3.5 w-3.5" />
-                      转让队长
+                      {i18n.t('转让队长')}
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`移除 ${m.user?.username ?? `#${m.userId}`}`}
+                      aria-label={i18n.t('移除 {{v0}}', { v0: m.user?.username ?? `#${m.userId}` })}
                       onClick={async () => {
                         const ok = await confirm({
-                          title: '移除成员',
-                          description: `确认把 ${m.user?.username ?? '该成员'} 移出团队？`,
-                          confirmText: '移除',
+                          title: i18n.t('移除成员'),
+                          description: i18n.t('确认把 {{v0}} 移出团队？', { v0: m.user?.username ?? i18n.t('该成员') }),
+                          confirmText: i18n.t('移除'),
                         });
                         if (ok) removeMut.mutate(m.userId);
                       }}

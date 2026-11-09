@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -32,8 +33,8 @@ export function CompetitionScoreboardPage() {
   return (
     <section>
       <div className="border-b border-rule pb-2 mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-ink">赛事榜</h2>
-        <div className="flex items-center gap-1" role="group" aria-label="榜单类型">
+        <h2 className="text-base font-semibold text-ink">{i18n.t('赛事榜')}</h2>
+        <div className="flex items-center gap-1" role="group" aria-label={i18n.t('榜单类型')}>
           {(['user', 'team'] as const).map((g) => (
             <button
               key={g}
@@ -46,36 +47,34 @@ export function CompetitionScoreboardPage() {
                   : 'px-2 py-1 text-2xs font-mono text-ink-3 border-b-2 border-transparent hover:text-ink'
               }
             >
-              {g === 'user' ? '个人' : '团队'}
+              {g === 'user' ? i18n.t('个人') : i18n.t('团队')}
             </button>
           ))}
         </div>
       </div>
 
       {c.scoreboardFrozen && c.freezeAt && (
-        <p className="mb-3 border-l-2 border-amber pl-3 text-2xs text-ink-2">
-          封榜中：公开榜单停留在 {formatTime(c.freezeAt)}，封榜后的提交仍计入最终成绩，赛事结束后恢复完整排名。
-        </p>
+        <p className="mb-3 border-l-2 border-amber pl-3 text-2xs text-ink-2">{i18n.t('封榜中：公开榜单停留在 {{v0}}，封榜后的提交仍计入最终成绩，赛事结束后恢复完整排名。', { v0: formatTime(c.freezeAt) })}</p>
       )}
       {!c.scoreboardFrozen && phase === 'ended' && c.freezeAt && (
-        <p className="mb-3 text-2xs text-ink-3">赛事已结束，榜单已恢复完整排名。</p>
+        <p className="mb-3 text-2xs text-ink-3">{i18n.t('赛事已结束，榜单已恢复完整排名。')}</p>
       )}
 
       {group === 'user' ? (
         board.isLoading ? (
           <Spinner className="h-4 w-4 text-ink-3" />
         ) : board.isError ? (
-          <p className="text-sm text-ink-3">无法加载赛事榜。</p>
+          <p className="text-sm text-ink-3">{i18n.t('无法加载赛事榜。')}</p>
         ) : (board.data?.items.length ?? 0) === 0 ? (
-          <p className="text-sm text-ink-3">暂无成绩。</p>
+          <p className="text-sm text-ink-3">{i18n.t('暂无成绩。')}</p>
         ) : (
           <>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-2xs uppercase text-ink-3 border-b border-rule">
                   <th className="text-left py-2 font-medium w-12">#</th>
-                  <th className="text-left py-2 font-medium">用户</th>
-                  <th className="text-right py-2 font-medium">得分</th>
+                  <th className="text-left py-2 font-medium">{i18n.t('用户')}</th>
+                  <th className="text-right py-2 font-medium">{i18n.t('得分')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,17 +106,17 @@ export function CompetitionScoreboardPage() {
       ) : teamBoard.isLoading ? (
         <Spinner className="h-4 w-4 text-ink-3" />
       ) : teamBoard.isError ? (
-        <p className="text-sm text-ink-3">无法加载团队榜。</p>
+        <p className="text-sm text-ink-3">{i18n.t('无法加载团队榜。')}</p>
       ) : (teamBoard.data?.items.length ?? 0) === 0 ? (
-        <p className="text-sm text-ink-3">暂无团队成绩。</p>
+        <p className="text-sm text-ink-3">{i18n.t('暂无团队成绩。')}</p>
       ) : (
         <>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-2xs uppercase text-ink-3 border-b border-rule">
                 <th className="text-left py-2 font-medium w-12">#</th>
-                <th className="text-left py-2 font-medium">团队</th>
-                <th className="text-right py-2 font-medium">得分</th>
+                <th className="text-left py-2 font-medium">{i18n.t('团队')}</th>
+                <th className="text-right py-2 font-medium">{i18n.t('得分')}</th>
               </tr>
             </thead>
             <tbody>
@@ -150,8 +149,8 @@ export function CompetitionScoreboardPage() {
       <p className="mt-8 font-mono text-2xs text-ink-3 inline-flex items-center gap-1">
         <Clock className="h-3 w-3" />
         {c.freezeAt
-          ? '封榜期间榜单停留在封榜时刻；封榜后的提交仍计入最终成绩，赛事结束后恢复完整排名。'
-          : '赛事榜按赛事内解题得分汇总，不影响练习进度与全局分。'}
+          ? i18n.t('封榜期间榜单停留在封榜时刻；封榜后的提交仍计入最终成绩，赛事结束后恢复完整排名。')
+          : i18n.t('赛事榜按赛事内解题得分汇总，不影响练习进度与全局分。')}
       </p>
     </section>
   );
@@ -178,7 +177,7 @@ function Pager({
         onClick={() => onChange(page - 1)}
         className="h-7 px-2 border border-rule rounded-sm disabled:opacity-40 hover:text-ink"
       >
-        上一页
+        {i18n.t('上一页')}
       </button>
       <span className="tabular-nums">
         {page} / {pages}
@@ -189,7 +188,7 @@ function Pager({
         onClick={() => onChange(page + 1)}
         className="h-7 px-2 border border-rule rounded-sm disabled:opacity-40 hover:text-ink"
       >
-        下一页
+        {i18n.t('下一页')}
       </button>
     </div>
   );

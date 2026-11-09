@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import {
   Link,
   NavLink,
@@ -73,10 +74,10 @@ export function ChallengeLayout() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
         <div className="border-t-2 border-ink pt-6">
           <h1 className="text-2xl font-semibold tracking-tight">
-            题目不存在或已下线
+            {i18n.t('题目不存在或已下线')}
           </h1>
           <p className="mt-2 text-ink-3">
-            它可能被发布者删除，或被管理员下架。
+            {i18n.t('它可能被发布者删除，或被管理员下架。')}
           </p>
           <div className="mt-4">
             <Link
@@ -84,7 +85,7 @@ export function ChallengeLayout() {
               className="inline-flex items-center gap-1 text-amber font-medium"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              返回题目列表
+              {i18n.t('返回题目列表')}
             </Link>
           </div>
         </div>
@@ -102,9 +103,9 @@ export function ChallengeLayout() {
   const tabs = contest
     ? []
     : [
-        { to: `${base}${search}`, label: '题目', end: true },
+        { to: `${base}${search}`, label: i18n.t('题目'), end: true },
         { to: `${base}/writeups${search}`, label: 'Writeup' },
-        { to: `${base}/discussions${search}`, label: '讨论' },
+        { to: `${base}/discussions${search}`, label: i18n.t('讨论') },
       ];
 
   return (
@@ -114,13 +115,13 @@ export function ChallengeLayout() {
         className="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink transition-colors mb-6 hover:no-underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        {contest ? '返回赛事' : '返回题目列表'}
+        {contest ? i18n.t('返回赛事') : i18n.t('返回题目列表')}
       </Link>
 
       {contest && (
         <div className="mb-6 border border-amber/30 bg-amber-soft rounded-sm px-4 py-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge tone="accent">比赛模式</Badge>
+            <Badge tone="accent">{i18n.t('比赛模式')}</Badge>
             <Link
               to={`/competitions/${contest.id}`}
               className="text-sm font-medium text-ink hover:text-amber hover:no-underline"
@@ -129,48 +130,48 @@ export function ChallengeLayout() {
             </Link>
           </div>
           <p className="mt-1 text-2xs text-ink-3 leading-relaxed">
-            本题提交计入赛事。已解出后可重复提交，但不会再次加分。比赛进行中，Writeup 与题目讨论已关闭。
+            {i18n.t('本题提交计入赛事。已解出后可重复提交，但不会再次加分。比赛进行中，Writeup 与题目讨论已关闭。')}
           </p>
         </div>
       )}
 
       {!contest && hasRequestedCompetition && competition && (
         <p className="mb-6 text-2xs text-ink-3">
-          该赛事当前不在进行中，本题按练习模式提交。
+          {i18n.t('该赛事当前不在进行中，本题按练习模式提交。')}
         </p>
       )}
 
       <header className="border-t-2 border-ink pt-6">
         <div className="font-mono text-2xs text-ink-3 mb-3 tabular-nums">
           #{String(data.id).padStart(3, '0')} · {data.category?.name ?? 'uncategorized'}
-          {data.solved && ' · 练习已通过'}
-          {contest && data.competitionSolved && ' · 比赛已解出'}
+          {data.solved && i18n.t(' · 练习已通过')}
+          {contest && data.competitionSolved && i18n.t(' · 比赛已解出')}
         </div>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
           {data.title}
         </h1>
         <div className="mt-4 flex items-center gap-6 flex-wrap text-sm">
-          <Meta label="基础分" value={data.baseScore.toString()} />
-          <Meta label="最低分" value={data.minScore.toString()} />
-          <Meta label="难度" value={`${data.difficulty}/5`} />
-          <Meta label="解题" value={`${data.solveCount} 人`} />
+          <Meta label={i18n.t('基础分')} value={data.baseScore.toString()} />
+          <Meta label={i18n.t('最低分')} value={data.minScore.toString()} />
+          <Meta label={i18n.t('难度')} value={`${data.difficulty}/5`} />
+          <Meta label={i18n.t('解题')} value={i18n.t('{{v0}} 人', { v0: data.solveCount })} />
           {data.solved && (
             <Badge tone="accent">
               <CheckCircle2 className="h-3 w-3" />
-              练习已通过
+              {i18n.t('练习已通过')}
             </Badge>
           )}
           {contest && data.competitionSolved && (
             <Badge tone="success">
               <CheckCircle2 className="h-3 w-3" />
-              比赛已解出
+              {i18n.t('比赛已解出')}
             </Badge>
           )}
         </div>
       </header>
 
       {tabs.length > 0 && (
-        <nav aria-label="题目导航" className="mt-6 border-b border-rule overflow-x-auto">
+        <nav aria-label={i18n.t('题目导航')} className="mt-6 border-b border-rule overflow-x-auto">
           <div className="flex min-w-max gap-5">
             {tabs.map((tab) => (
               <NavLink
@@ -197,17 +198,17 @@ export function ChallengeLayout() {
         {blockedPath ? (
           <div className="border-t-2 border-ink pt-6">
             <h2 className="text-xl font-semibold tracking-tight">
-              比赛期间不可用
+              {i18n.t('比赛期间不可用')}
             </h2>
             <p className="mt-2 max-w-xl text-sm text-ink-3 leading-relaxed">
-              为避免影响比赛公平性，Writeup 与题目讨论在赛事进行中关闭。
+              {i18n.t('为避免影响比赛公平性，Writeup 与题目讨论在赛事进行中关闭。')}
             </p>
             <Link
               to={`${base}${search}`}
               className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-amber"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              返回题目
+              {i18n.t('返回题目')}
             </Link>
           </div>
         ) : (

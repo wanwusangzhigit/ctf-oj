@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, Flag, Trophy } from 'lucide-react';
@@ -30,37 +31,35 @@ export function CompetitionChallengesPage() {
   return (
     <section>
       <div className="border-b border-rule pb-2 mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-base font-semibold text-ink">赛题</h2>
+        <h2 className="text-base font-semibold text-ink">{i18n.t('赛题')}</h2>
         <div className="flex items-center gap-2">
           {solvedCount > 0 && (
             <Badge tone="success">
-              <CheckCircle2 className="h-3 w-3" />
-              比赛已解出 {solvedCount}
-            </Badge>
+              <CheckCircle2 className="h-3 w-3" />{i18n.t('比赛已解出 {{v0}}', { v0: solvedCount })}</Badge>
           )}
           <span className="font-mono text-2xs text-ink-3 tabular-nums">
-            {boundCount > 0 ? `${boundCount} 道` : '全部公开题目'}
+            {boundCount > 0 ? i18n.t('{{v0}} 道', { v0: boundCount }) : i18n.t('全部公开题目')}
           </span>
         </div>
       </div>
       <p className="mb-2 text-2xs text-ink-3 leading-relaxed">
         {phase === 'live'
-          ? '比赛进行中：从下方进入题目即按比赛模式提交，成绩单独计入赛事，不影响练习进度。'
+          ? i18n.t('比赛进行中：从下方进入题目即按比赛模式提交，成绩单独计入赛事，不影响练习进度。')
           : phase === 'upcoming'
-            ? '赛事尚未开始：可查看赛题，比赛提交需等赛事开始。'
-            : '赛事已结束：可继续练习，赛事成绩不再变化。'}
+            ? i18n.t('赛事尚未开始：可查看赛题，比赛提交需等赛事开始。')
+            : i18n.t('赛事已结束：可继续练习，赛事成绩不再变化。')}
       </p>
       {c.registrationRequired && !c.registered && (
         <p className="mb-3 border-l-2 border-amber pl-3 text-2xs text-ink-2">
           {user ? (
             <>
-              报名后才能提交赛事题目。
+              {i18n.t('报名后才能提交赛事题目。')}
               <Link to={`/competitions/${c.id}`} className="ml-1 text-amber hover:no-underline">
-                前往报名
+                {i18n.t('前往报名')}
               </Link>
             </>
           ) : (
-            '登录并报名后才能提交赛事题目。'
+            i18n.t('登录并报名后才能提交赛事题目。')
           )}
         </p>
       )}
@@ -68,13 +67,13 @@ export function CompetitionChallengesPage() {
         allChallenges.isLoading ? (
           <Spinner className="h-4 w-4 text-ink-3" />
         ) : allChallenges.isError ? (
-          <p className="text-sm text-ink-3">无法加载题目列表。</p>
+          <p className="text-sm text-ink-3">{i18n.t('无法加载题目列表。')}</p>
         ) : (allChallenges.data?.items.length ?? 0) === 0 ? (
-          <p className="text-sm text-ink-3">暂无公开题目。</p>
+          <p className="text-sm text-ink-3">{i18n.t('暂无公开题目。')}</p>
         ) : (
           <>
             <p className="mb-2 text-2xs text-ink-3">
-              本赛事未单独绑定题目，下列全部公开题目均计入赛事。
+              {i18n.t('本赛事未单独绑定题目，下列全部公开题目均计入赛事。')}
             </p>
             <ChallengeList
               challenges={allChallenges.data!.items}
@@ -85,7 +84,7 @@ export function CompetitionChallengesPage() {
         )
       ) : (c.challenges?.length ?? 0) === 0 ? (
         <p className="text-sm text-ink-3">
-          本赛事题目暂不可见，可能尚未发布或需要授权。
+          {i18n.t('本赛事题目暂不可见，可能尚未发布或需要授权。')}
         </p>
       ) : (
         <ChallengeList
@@ -123,25 +122,25 @@ function ChallengeList({
                 </span>
                 <Badge tone="warning">
                   <Flag className="h-3 w-3" />
-                  赛事题
+                  {i18n.t('赛事题')}
                 </Badge>
                 {status?.solved && (
                   <Badge tone="success">
                     <CheckCircle2 className="h-3 w-3" />
-                    练习已通过
+                    {i18n.t('练习已通过')}
                   </Badge>
                 )}
                 {status?.competitionSolved && (
                   <Badge tone="success">
                     <Trophy className="h-3 w-3" />
-                    比赛已解出
+                    {i18n.t('比赛已解出')}
                   </Badge>
                 )}
               </div>
               <div className="mt-1 flex items-center gap-3 flex-wrap font-mono text-2xs text-ink-3 tabular-nums">
-                <span>{ch.category?.name ?? '未分类'}</span>
-                <span>{ch.baseScore} 分</span>
-                <span>难度 {ch.difficulty}</span>
+                <span>{ch.category?.name ?? i18n.t('未分类')}</span>
+                <span>{i18n.t('{{v0}} 分', { v0: ch.baseScore })}</span>
+                <span>{i18n.t('难度 {{v0}}', { v0: ch.difficulty })}</span>
               </div>
             </Link>
           </li>
