@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui';
 import { SaveBar, Section } from '@/components/admin/SettingsSection';
@@ -31,13 +32,13 @@ export function AdminSettingsMiscPage() {
     <div className="space-y-8">
       {miscRows.length === 0 ? (
         <p className="text-sm text-ink-3">
-          没有其它自定义键。品牌、注册与认证、社区文案、社区策略各有专属分页。
+          {i18n.t('没有其它自定义键。品牌、注册与认证、社区文案、社区策略各有专属分页。')}
         </p>
       ) : (
         <>
-          <Section title="其他设置">
+          <Section title={i18n.t('其他设置')}>
             <p className="text-2xs text-ink-3">
-              直接编辑 site_settings 中未被专属分页接管的键。
+              {i18n.t('直接编辑 site_settings 中未被专属分页接管的键。')}
             </p>
             <div className="space-y-2">
               {miscRows.map((row) => (

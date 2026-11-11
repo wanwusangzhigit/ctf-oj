@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -57,15 +58,15 @@ export function CommunityTopicPage() {
       setDraft('');
       setQuote(null);
       invalidate();
-      toast.success('已回复');
+      toast.success(i18n.t('已回复'));
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '回复失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('回复失败')),
   });
 
   const likeMut = useMutation({
     mutationFn: (discussionId: number) => toggleDiscussionLike(discussionId),
     onSuccess: invalidate,
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   const deleteMut = useMutation({
@@ -73,21 +74,21 @@ export function CommunityTopicPage() {
     onSuccess: (_data, discussionId) => {
       if (discussionId === topicId) {
         qc.invalidateQueries({ queryKey: ['community-topics'] });
-        toast.success('主题已删除');
+        toast.success(i18n.t('主题已删除'));
         navigate('/community');
         return;
       }
       invalidate();
-      toast.success('回复已删除');
+      toast.success(i18n.t('回复已删除'));
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
   });
 
   const modMut = useMutation({
     mutationFn: (input: { isPinned?: boolean; isLocked?: boolean; tags?: string }) =>
       moderateDiscussion({ scope: 'community' }, topicId, input),
     onSuccess: invalidate,
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   const startReply = (username: string) => {
@@ -108,11 +109,9 @@ export function CommunityTopicPage() {
     return (
       <div className="max-w-3xl mx-auto">
         <div className="border-t-2 border-ink pt-6">
-          <h1 className="text-2xl font-semibold tracking-tight">主题不存在</h1>
-          <p className="mt-2 text-ink-3">该主题可能已被删除。</p>
-          <Link to="/community" className="mt-4 inline-block text-sm text-amber">
-            返回{copy.title}
-          </Link>
+          <h1 className="text-2xl font-semibold tracking-tight">{i18n.t('主题不存在')}</h1>
+          <p className="mt-2 text-ink-3">{i18n.t('该主题可能已被删除。')}</p>
+          <Link to="/community" className="mt-4 inline-block text-sm text-amber">{i18n.t('返回{{v0}}', { v0: copy.title })}</Link>
         </div>
       </div>
     );
@@ -136,7 +135,7 @@ export function CommunityTopicPage() {
     <div className="max-w-3xl mx-auto">
       <header className="border-t-2 border-ink pt-6">
         <div className="flex flex-wrap items-center gap-2 font-mono text-2xs text-ink-3">
-          <span>主题 #{topic.id}</span>
+          <span>{i18n.t('主题 #{{v0}}', { v0: topic.id })}</span>
           {section && (
             <Link
               to={`/community?section=${section.id}`}
@@ -146,25 +145,23 @@ export function CommunityTopicPage() {
             </Link>
           )}
           <span aria-hidden>·</span>
-          <span>{formatNumber(topic.viewCount)} 浏览</span>
+          <span>{i18n.t('{{v0}} 浏览', { v0: formatNumber(topic.viewCount) })}</span>
           <span aria-hidden>·</span>
-          <span>{formatNumber(topic.replyCount)} 回复</span>
+          <span>{i18n.t('{{v0}} 回复', { v0: formatNumber(topic.replyCount) })}</span>
           {topic.isPinned && (
             <span className="inline-flex items-center gap-1 text-amber">
               <Pin className="h-3 w-3" />
-              置顶
+              {i18n.t('置顶')}
             </span>
           )}
           {topic.isLocked && (
             <span className="inline-flex items-center gap-1">
               <Lock className="h-3 w-3" />
-              已锁定
+              {i18n.t('已锁定')}
             </span>
           )}
           {topic.editCount > 0 && (
-            <span>
-              已编辑 {topic.editCount} 次 · 修改于 {relativeTime(topic.editedAt ?? topic.updatedAt)}
-            </span>
+            <span>{i18n.t('已编辑 {{v0}} 次 · 修改于 {{v1}}', { v0: topic.editCount, v1: relativeTime(topic.editedAt ?? topic.updatedAt) })}</span>
           )}
         </div>
         <h1 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tightest text-ink leading-[1.15] break-words">
@@ -192,7 +189,7 @@ export function CommunityTopicPage() {
                 onClick={() => navigate(`/community/${topicId}/edit`)}
               >
                 <Pencil className="h-3 w-3" />
-                编辑
+                {i18n.t('编辑')}
               </Button>
             )}
             {canViewHistory && (
@@ -215,7 +212,7 @@ export function CommunityTopicPage() {
                   onClick={() => modMut.mutate({ isPinned: !topic.isPinned })}
                 >
                   <Pin className="h-3 w-3" />
-                  {topic.isPinned ? '取消置顶' : '置顶'}
+                  {topic.isPinned ? i18n.t('取消置顶') : i18n.t('置顶')}
                 </Button>
                 <Button
                   type="button"
@@ -224,19 +221,19 @@ export function CommunityTopicPage() {
                   onClick={() => modMut.mutate({ isLocked: !topic.isLocked })}
                 >
                   <Lock className="h-3 w-3" />
-                  {topic.isLocked ? '解锁' : '锁定'}
+                  {topic.isLocked ? i18n.t('解锁') : i18n.t('锁定')}
                 </Button>
                 <div className="flex items-center gap-2 ml-auto">
-                  <span className="font-mono text-2xs text-ink-3">标签</span>
+                  <span className="font-mono text-2xs text-ink-3">{i18n.t('标签')}</span>
                   <Input
                     value={tagDraft}
                     onChange={(e) => setTagDraft(e.target.value)}
                     onBlur={() => {
                       if (tagDraft !== (topic.tags ?? '')) modMut.mutate({ tags: tagDraft });
                     }}
-                    placeholder="逗号分隔"
+                    placeholder={i18n.t('逗号分隔')}
                     className="h-7 w-40 text-2xs"
-                    aria-label="主题标签"
+                    aria-label={i18n.t('主题标签')}
                   />
                 </div>
               </>
@@ -256,9 +253,9 @@ export function CommunityTopicPage() {
         onReply={() => startReply(topic.user?.username ?? '')}
         onDelete={async () => {
           const ok = await confirm({
-            title: '删除主题',
-            description: '该主题及其全部回复都会被删除，无法恢复。',
-            confirmText: '删除',
+            title: i18n.t('删除主题'),
+            description: i18n.t('该主题及其全部回复都会被删除，无法恢复。'),
+            confirmText: i18n.t('删除'),
           });
           if (ok) deleteMut.mutate(topic.id);
         }}
@@ -277,9 +274,9 @@ export function CommunityTopicPage() {
             onReply={() => startReply(reply.user?.username ?? '')}
             onDelete={async () => {
               const ok = await confirm({
-                title: '删除回复',
-                description: '该回复会被删除，后续楼层序号会重新排列。',
-                confirmText: '删除',
+                title: i18n.t('删除回复'),
+                description: i18n.t('该回复会被删除，后续楼层序号会重新排列。'),
+                confirmText: i18n.t('删除'),
               });
               if (ok) deleteMut.mutate(reply.id);
             }}
@@ -290,7 +287,7 @@ export function CommunityTopicPage() {
       )}
 
       <section className="mt-6">
-        <h2 className="text-sm font-medium text-ink mb-3">回复主题</h2>
+        <h2 className="text-sm font-medium text-ink mb-3">{i18n.t('回复主题')}</h2>
         {topic.isLocked ? (
           <p className="text-sm text-ink-3">{copy.locked_notice}</p>
         ) : canPostHere ? (

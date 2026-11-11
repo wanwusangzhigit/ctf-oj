@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Badge } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
 import { postingLabel, visibilityLabel, type CommunityCopy } from '@/lib/communityCopy';
@@ -45,7 +46,7 @@ export function CommunityGuidelines({
       </section>
       {tagCounts.length > 0 && (
         <section>
-          <h2 className="font-mono text-2xs text-ink-3 mb-2">本页标签</h2>
+          <h2 className="font-mono text-2xs text-ink-3 mb-2">{i18n.t('本页标签')}</h2>
           <div className="flex flex-wrap gap-1.5">
             {tagCounts.map(([name, count]) => (
               <button

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { NavLink, Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -24,29 +25,29 @@ export function AdminLayout() {
           $ sudo admin --panel
         </p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          管理后台
+          {i18n.t('管理后台')}
         </h1>
         <p className="mt-2 text-ink-2 max-w-prose">
-          站点运营 —— 按角色展示可用模块。
+          {i18n.t('站点运营 —— 按角色展示可用模块。')}
         </p>
       </header>
 
       <nav
         role="tablist"
-        aria-label="管理"
+        aria-label={i18n.t('管理')}
         className="flex items-center gap-1 mb-8 border-b border-rule-strong overflow-x-auto"
       >
-        {canOverview && <Tab to="/admin/overview">概览</Tab>}
-        {canManageChallenges && <Tab to="/admin/categories">分类</Tab>}
-        {canChallenges && <Tab to="/admin/challenges">题目</Tab>}
-        {canManageChallenges && <Tab to="/admin/access-groups">权限组</Tab>}
-        {canAnnouncements && <Tab to="/admin/announcements">公告</Tab>}
-        {canCommunity && <Tab to="/admin/community">社区</Tab>}
-        {canUsers && <Tab to="/admin/users">用户</Tab>}
-        {canCompetitions && <Tab to="/admin/competitions">赛事</Tab>}
-        {canSettings && <Tab to="/admin/settings">站点</Tab>}
-        {canAudit && <Tab to="/admin/audit">审计</Tab>}
-        {canServer && <Tab to="/admin/server">服务器</Tab>}
+        {canOverview && <Tab to="/admin/overview">{i18n.t('概览')}</Tab>}
+        {canManageChallenges && <Tab to="/admin/categories">{i18n.t('分类')}</Tab>}
+        {canChallenges && <Tab to="/admin/challenges">{i18n.t('题目')}</Tab>}
+        {canManageChallenges && <Tab to="/admin/access-groups">{i18n.t('权限组')}</Tab>}
+        {canAnnouncements && <Tab to="/admin/announcements">{i18n.t('公告')}</Tab>}
+        {canCommunity && <Tab to="/admin/community">{i18n.t('社区')}</Tab>}
+        {canUsers && <Tab to="/admin/users">{i18n.t('用户')}</Tab>}
+        {canCompetitions && <Tab to="/admin/competitions">{i18n.t('赛事')}</Tab>}
+        {canSettings && <Tab to="/admin/settings">{i18n.t('站点')}</Tab>}
+        {canAudit && <Tab to="/admin/audit">{i18n.t('审计')}</Tab>}
+        {canServer && <Tab to="/admin/server">{i18n.t('服务器')}</Tab>}
       </nav>
 
       <Outlet />

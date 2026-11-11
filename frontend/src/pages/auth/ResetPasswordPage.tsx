@@ -1,29 +1,37 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button, Field, Input, useToast } from '@/components/ui';
 import { resetPassword } from '@/api/email';
 import { ApiClientError } from '@/api/client';
 
-const schema = z
-  .object({
-    password: z.string().min(8, '密码至少 8 位').max(64, '密码最多 64 位'),
-    confirm: z.string(),
-  })
-  .refine((v) => v.password === v.confirm, {
-    path: ['confirm'],
-    message: '两次输入的密码不一致',
-  });
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = { password: string; confirm: string };
 
 /**
  * ResetPasswordPage — Step 2: reached via the reset email link.
  * Token comes from the URL. On success, send the user to login.
  */
 export function ResetPasswordPage() {
+  const { t } = useTranslation();
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          password: z
+            .string()
+            .min(8, t('auth.validation.passwordMin'))
+            .max(64, t('auth.validation.passwordMax')),
+          confirm: z.string(),
+        })
+        .refine((v) => v.password === v.confirm, {
+          path: ['confirm'],
+          message: t('auth.validation.passwordMismatch'),
+        }),
+    [t],
+  );
   const { token: pathToken } = useParams<{ token: string }>();
   const [search] = useSearchParams();
   const token = pathToken ?? search.get('token') ?? '';
@@ -43,16 +51,16 @@ export function ResetPasswordPage() {
   const onSubmit = handleSubmit(async ({ confirm: _c, password }) => {
     void _c;
     if (!token) {
-      toast.error('缺少重置 token');
+      toast.error(t('auth.reset.missingToken'));
       return;
     }
     setPending(true);
     try {
       await resetPassword(token, password);
-      toast.success('密码已重置，请重新登录');
+      toast.success(t('auth.reset.success'));
       navigate('/auth/login', { replace: true });
     } catch (err) {
-      const msg = err instanceof ApiClientError ? err.message : '重置失败';
+      const msg = err instanceof ApiClientError ? err.message : t('auth.reset.failed');
       toast.error(msg);
     } finally {
       setPending(false);
@@ -75,10 +83,10 @@ export function ResetPasswordPage() {
           </span>
           <span className="font-mono font-semibold tracking-tight">CTF-OJ</span>
         </Link>
-        <h1 className="text-xl font-semibold tracking-tight text-ink">设置新密码</h1>
-        <p className="mt-1 text-sm text-ink-3">为账号设置一个新的登录密码</p>
+        <h1 className="text-xl font-semibold tracking-tight text-ink">{t('auth.reset.title')}</h1>
+        <p className="mt-1 text-sm text-ink-3">{t('auth.reset.subtitle')}</p>
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
-          <Field label="新密码" htmlFor="password" hint="至少 8 位" error={errors.password?.message}>
+          <Field label={t('auth.reset.newPassword')} htmlFor="password" hint={t('auth.reset.passwordHint')} error={errors.password?.message}>
             <Input
               id="password"
               type="password"
@@ -88,7 +96,7 @@ export function ResetPasswordPage() {
               {...register('password')}
             />
           </Field>
-          <Field label="确认新密码" htmlFor="confirm" error={errors.confirm?.message}>
+          <Field label={t('auth.reset.confirm')} htmlFor="confirm" error={errors.confirm?.message}>
             <Input
               id="confirm"
               type="password"
@@ -99,12 +107,12 @@ export function ResetPasswordPage() {
             />
           </Field>
           <Button type="submit" loading={pending} className="w-full" size="lg">
-            重置密码
+            {t('auth.reset.submit')}
           </Button>
         </form>
         <p className="mt-6 text-sm text-ink-3 text-center">
           <Link to="/auth/login" className="text-amber ml-1 font-medium">
-            返回登录
+            {t('auth.reset.backToLogin')}
           </Link>
         </p>
       </div>

@@ -6,7 +6,7 @@ export function CommunityNewPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { meta, copy, sections } = useCommunityOutlet();
-  // ?section= from a board tab or a board's "发起讨论" link preselects the
+  // ?section= from a board tab or a board's "start discussion" link preselects the
   // board, but only when the caller may actually post there — a value the
   // select cannot render would silently submit a board that answers 403.
   const requested = Number(params.get('section')) || 0;

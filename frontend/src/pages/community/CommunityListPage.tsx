@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -91,7 +92,7 @@ export function CommunityListPage() {
                   className="inline-flex h-6 items-center gap-1 text-xs text-ink-3 hover:text-amber hover:no-underline"
                 >
                   <PencilLine className="h-3 w-3" />
-                  编辑板块文案
+                  {i18n.t('编辑板块文案')}
                 </Link>
               )}
             </div>

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Download, Paperclip, Trash2 } from 'lucide-react';
 import { Button, useConfirm } from '@/components/ui';
 import { attachmentDownloadURL } from '@/api/challenge';
@@ -30,7 +31,7 @@ export function AttachmentManager({
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium inline-flex items-center gap-1.5">
           <Paperclip className="h-3.5 w-3.5 text-amber" />
-          附件
+          {i18n.t('附件')}
         </span>
         <label className="cursor-pointer">
           <input
@@ -45,12 +46,12 @@ export function AttachmentManager({
           />
           <span className="inline-flex items-center gap-1 h-7 px-2.5 rounded-sm border border-rule-strong text-2xs font-medium hover:bg-paper transition-colors">
             <Paperclip className="h-3 w-3" />
-            {uploading ? '上传中…' : '上传文件'}
+            {uploading ? i18n.t('上传中…') : i18n.t('上传文件')}
           </span>
         </label>
       </div>
       {attachments.length === 0 ? (
-        <p className="text-2xs text-ink-3">暂无附件。题目保存后即可上传。</p>
+        <p className="text-2xs text-ink-3">{i18n.t('暂无附件。题目保存后即可上传。')}</p>
       ) : (
         <ul className="border-t border-rule">
           {attachments.map((a) => (
@@ -74,13 +75,13 @@ export function AttachmentManager({
                 loading={deleting}
                 onClick={async () => {
                   const ok = await confirm({
-                    title: '删除附件',
-                    description: `附件「${a.filename}」将被删除，无法恢复。`,
-                    confirmText: '删除',
+                    title: i18n.t('删除附件'),
+                    description: i18n.t('附件「{{v0}}」将被删除，无法恢复。', { v0: a.filename }),
+                    confirmText: i18n.t('删除'),
                   });
                   if (ok) onDelete(a.id);
                 }}
-                aria-label="删除附件"
+                aria-label={i18n.t('删除附件')}
               >
                 <Trash2 className="h-3 w-3" />
               </Button>

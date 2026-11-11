@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { forwardRef, useState, type ReactNode } from 'react';
 import { Eye, PencilLine } from 'lucide-react';
 import { Textarea } from '@/components/ui';
@@ -29,20 +30,20 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
 
     return (
       <div className="space-y-1.5">
-        <div className="flex items-center gap-1" role="group" aria-label="编辑或预览">
+        <div className="flex items-center gap-1" role="group" aria-label={i18n.t('编辑或预览')}>
           <ModeButton
             active={!previewing}
             onClick={() => setMode('write')}
             icon={<PencilLine className="h-3 w-3" />}
           >
-            编辑
+            {i18n.t('编辑')}
           </ModeButton>
           <ModeButton
             active={previewing}
             onClick={() => setMode('preview')}
             icon={<Eye className="h-3 w-3" />}
           >
-            预览
+            {i18n.t('预览')}
           </ModeButton>
         </div>
         {previewing ? (
@@ -56,7 +57,7 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
             {value.trim() ? (
               <Markdown>{value}</Markdown>
             ) : (
-              <p className="text-sm text-ink-3">暂无内容可预览。</p>
+              <p className="text-sm text-ink-3">{i18n.t('暂无内容可预览。')}</p>
             )}
           </div>
         ) : (

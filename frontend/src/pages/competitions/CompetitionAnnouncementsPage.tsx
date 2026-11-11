@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useQuery } from '@tanstack/react-query';
 import { Spinner } from '@/components/ui';
 import { listCompetitionAnnouncements } from '@/api/competition';
@@ -16,17 +17,15 @@ export function CompetitionAnnouncementsPage() {
   return (
     <section>
       <div className="border-b border-rule pb-2 mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-base font-semibold text-ink">比赛公告</h2>
-        <span className="font-mono text-2xs text-ink-3 tabular-nums">
-          {announcements.data?.total ?? 0} 条
-        </span>
+        <h2 className="text-base font-semibold text-ink">{i18n.t('比赛公告')}</h2>
+        <span className="font-mono text-2xs text-ink-3 tabular-nums">{i18n.t('{{v0}} 条', { v0: announcements.data?.total ?? 0 })}</span>
       </div>
       {announcements.isLoading ? (
         <Spinner className="h-4 w-4 text-ink-3" />
       ) : announcements.isError ? (
-        <p className="text-sm text-ink-3">无法加载比赛公告。</p>
+        <p className="text-sm text-ink-3">{i18n.t('无法加载比赛公告。')}</p>
       ) : (announcements.data?.items.length ?? 0) === 0 ? (
-        <p className="text-sm text-ink-3">暂无比赛公告。</p>
+        <p className="text-sm text-ink-3">{i18n.t('暂无比赛公告。')}</p>
       ) : (
         <div className="space-y-5">
           {announcements.data!.items.map((a) => (

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
@@ -141,37 +142,37 @@ export function ChallengeForm({
   const createMut = useMutation({
     mutationFn: (input: ChallengeInput) => createChallenge(input),
     onSuccess: (created) => {
-      toast.success('已创建');
+      toast.success(i18n.t('已创建'));
       onCreated?.(created.id);
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '创建失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('创建失败')),
   });
 
   const updateMut = useMutation({
     mutationFn: (input: ChallengeInput) => updateChallenge(challengeId!, input),
     onSuccess: () => {
-      toast.success('已更新');
+      toast.success(i18n.t('已更新'));
       onSaved?.();
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '更新失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('更新失败')),
   });
 
   const uploadMut = useMutation({
     mutationFn: ({ id, file }: { id: number; file: File }) => uploadAttachment(id, file),
     onSuccess: (att) => {
-      toast.success('上传成功');
+      toast.success(i18n.t('上传成功'));
       setAttachments((prev) => [...prev, att]);
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '上传失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('上传失败')),
   });
 
   const deleteAttMut = useMutation({
     mutationFn: ({ cid, aid }: { cid: number; aid: number }) => deleteAttachment(cid, aid),
     onSuccess: (_, vars) => {
-      toast.success('已删除附件');
+      toast.success(i18n.t('已删除附件'));
       setAttachments((prev) => prev.filter((a) => a.id !== vars.aid));
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
   });
 
   function updateFlag(idx: number, patch: Partial<FlagInput>) {
@@ -183,17 +184,17 @@ export function ChallengeForm({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.categoryId) return toast.error('请选择分类');
-    if (!form.title.trim()) return toast.error('请填写题目名称');
+    if (!form.categoryId) return toast.error(i18n.t('请选择分类'));
+    if (!form.title.trim()) return toast.error(i18n.t('请填写题目名称'));
     if (form.isDynamic) {
       if (!(form.image ?? '').trim() && form.sourceType === 'image') {
-        return toast.error('请填写容器镜像');
+        return toast.error(i18n.t('请填写容器镜像'));
       }
       if (!form.internalPort || form.internalPort <= 0) {
-        return toast.error('请填写容器内端口');
+        return toast.error(i18n.t('请填写容器内端口'));
       }
     } else if (form.flags.some((f) => !f.content.trim())) {
-      return toast.error('请完善所有 Flag 内容');
+      return toast.error(i18n.t('请完善所有 Flag 内容'));
     }
     if (mode === 'edit') updateMut.mutate(form);
     else createMut.mutate(form);
@@ -201,7 +202,7 @@ export function ChallengeForm({
 
   const submitPending = createMut.isPending || updateMut.isPending;
   const editingId = mode === 'edit' ? challengeId : undefined;
-  const headerLabel = mode === 'edit' ? `编辑：${titleSnapshot}` : '新建题目';
+  const headerLabel = mode === 'edit' ? i18n.t('编辑：{{v0}}', { v0: titleSnapshot }) : i18n.t('新建题目');
 
   // In edit mode, show a quiet loader until the existing challenge has been
   // loaded into the form. Prevents flashing EMPTY defaults on slow networks.
@@ -218,7 +219,7 @@ export function ChallengeForm({
       <FormHeader label={headerLabel} mode={mode} />
 
       <fieldset>
-        <legend className="sr-only">题目类型</legend>
+        <legend className="sr-only">{i18n.t('题目类型')}</legend>
         <div className="grid sm:grid-cols-2 gap-3">
           {(['static', 'dynamic'] as const).map((t) => {
             const active = (t === 'dynamic') === form.isDynamic;
@@ -240,12 +241,12 @@ export function ChallengeForm({
                   onChange={() => setForm((f) => ({ ...f, isDynamic: t === 'dynamic' }))}
                 />
                 <div className="text-sm font-medium">
-                  {t === 'static' ? '静态题目' : '容器题目'}
+                  {t === 'static' ? i18n.t('静态题目') : i18n.t('容器题目')}
                 </div>
                 <div className="text-2xs text-ink-3 mt-0.5">
                   {t === 'static'
-                    ? '固定 flag，无需运行环境'
-                    : 'Docker 实例 + 动态 flag 注入'}
+                    ? i18n.t('固定 flag，无需运行环境')
+                    : i18n.t('Docker 实例 + 动态 flag 注入')}
                 </div>
               </label>
             );
@@ -254,20 +255,20 @@ export function ChallengeForm({
       </fieldset>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="标题">
+        <Field label={i18n.t('标题')}>
           <Input
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             required
           />
         </Field>
-        <Field label="分类">
+        <Field label={i18n.t('分类')}>
           <select
             value={form.categoryId}
             onChange={(e) => setForm((f) => ({ ...f, categoryId: Number(e.target.value) }))}
             className={selectCls}
           >
-            <option value={0}>请选择</option>
+            <option value={0}>{i18n.t('请选择')}</option>
             {cats.data?.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -277,7 +278,7 @@ export function ChallengeForm({
         </Field>
       </div>
 
-      <Field label="描述">
+      <Field label={i18n.t('描述')}>
         <Textarea
           rows={5}
           value={form.description}
@@ -285,7 +286,7 @@ export function ChallengeForm({
         />
       </Field>
 
-      <Field label="题解（解题后可见）" hint="支持 Markdown">
+      <Field label={i18n.t('题解（解题后可见）')} hint={i18n.t('支持 Markdown')}>
         <Textarea
           rows={5}
           value={form.editorial ?? ''}
@@ -294,28 +295,28 @@ export function ChallengeForm({
       </Field>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Field label="基础分">
+        <Field label={i18n.t('基础分')}>
           <Input
             type="number"
             value={form.baseScore}
             onChange={(e) => setForm((f) => ({ ...f, baseScore: Number(e.target.value) }))}
           />
         </Field>
-        <Field label="最低分">
+        <Field label={i18n.t('最低分')}>
           <Input
             type="number"
             value={form.minScore}
             onChange={(e) => setForm((f) => ({ ...f, minScore: Number(e.target.value) }))}
           />
         </Field>
-        <Field label="衰减系数">
+        <Field label={i18n.t('衰减系数')}>
           <Input
             type="number"
             value={form.decay}
             onChange={(e) => setForm((f) => ({ ...f, decay: Number(e.target.value) }))}
           />
         </Field>
-        <Field label="难度">
+        <Field label={i18n.t('难度')}>
           <Input
             type="number"
             min={1}
@@ -327,13 +328,13 @@ export function ChallengeForm({
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="连接信息（可选）" hint="例如 nc host 1337">
+        <Field label={i18n.t('连接信息（可选）')} hint={i18n.t('例如 nc host 1337')}>
           <Input
             value={form.connectionInfo}
             onChange={(e) => setForm((f) => ({ ...f, connectionInfo: e.target.value }))}
           />
         </Field>
-        <Field label="标签（逗号分隔）">
+        <Field label={i18n.t('标签（逗号分隔）')}>
           <Input
             value={form.tags}
             onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
@@ -345,7 +346,7 @@ export function ChallengeForm({
       {!form.isDynamic && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Flag 配置</span>
+            <span className="text-sm font-medium">{i18n.t('Flag 配置')}</span>
             <Button
               type="button"
               variant="outline"
@@ -358,7 +359,7 @@ export function ChallengeForm({
               }
             >
               <Plus className="h-3.5 w-3.5" />
-              添加 Flag
+              {i18n.t('添加 Flag')}
             </Button>
           </div>
           {form.flags.map((fl, i) => (
@@ -373,7 +374,7 @@ export function ChallengeForm({
               </select>
               <Input
                 className="col-span-7 font-mono"
-                placeholder="flag{...} 或正则表达式"
+                placeholder={i18n.t('flag{...} 或正则表达式')}
                 value={fl.content}
                 onChange={(e) => updateFlag(i, { content: e.target.value })}
               />
@@ -398,15 +399,15 @@ export function ChallengeForm({
               </Button>
             </div>
           ))}
-          <p className="text-2xs text-ink-3">复选框表示大小写敏感。</p>
+          <p className="text-2xs text-ink-3">{i18n.t('复选框表示大小写敏感。')}</p>
         </div>
       )}
 
       {form.isDynamic && (
         <div className="border border-rule bg-paper-2 p-4 space-y-3 rounded-sm">
-          <div className="text-sm font-medium">容器运行环境</div>
+          <div className="text-sm font-medium">{i18n.t('容器运行环境')}</div>
           <div className="grid sm:grid-cols-2 gap-3 pt-1">
-            <Field label="容器来源" hint="image=直接拉取镜像；dockerfile/compose=从源码构建">
+            <Field label={i18n.t('容器来源')} hint={i18n.t('image=直接拉取镜像；dockerfile/compose=从源码构建')}>
               <select
                 value={form.sourceType}
                 onChange={(e) =>
@@ -417,13 +418,13 @@ export function ChallengeForm({
                 }
                 className={selectCls}
               >
-                <option value="image">Image（拉取现成镜像）</option>
-                <option value="dockerfile">Dockerfile（上传构建上下文）</option>
-                <option value="compose">Compose（多服务编排）</option>
+                <option value="image">{i18n.t('Image（拉取现成镜像）')}</option>
+                <option value="dockerfile">{i18n.t('Dockerfile（上传构建上下文）')}</option>
+                <option value="compose">{i18n.t('Compose（多服务编排）')}</option>
               </select>
             </Field>
             {form.sourceType === 'image' ? (
-              <Field label="镜像" hint="例如 nginx:alpine 或自建仓库地址">
+              <Field label={i18n.t('镜像')} hint={i18n.t('例如 nginx:alpine 或自建仓库地址')}>
                 <Input
                   value={form.image}
                   onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
@@ -432,11 +433,11 @@ export function ChallengeForm({
               </Field>
             ) : (
               <Field
-                label="Compose 服务名"
+                label={i18n.t('Compose 服务名')}
                 hint={
                   form.sourceType === 'compose'
-                    ? '暴露 internalPort 的服务名，默认 app'
-                    : 'Dockerfile 模式可留空'
+                    ? i18n.t('暴露 internalPort 的服务名，默认 app')
+                    : i18n.t('Dockerfile 模式可留空')
                 }
               >
                 <Input
@@ -446,7 +447,7 @@ export function ChallengeForm({
                 />
               </Field>
             )}
-            <Field label="容器内端口">
+            <Field label={i18n.t('容器内端口')}>
               <Input
                 type="number"
                 value={form.internalPort}
@@ -455,7 +456,7 @@ export function ChallengeForm({
                 }
               />
             </Field>
-            <Field label="连接协议" hint="决定前端展示成 nc 还是 http://">
+            <Field label={i18n.t('连接协议')} hint={i18n.t('决定前端展示成 nc 还是 http://')}>
               <select
                 value={form.protocol}
                 onChange={(e) =>
@@ -470,7 +471,7 @@ export function ChallengeForm({
                 <option value="http">HTTP（http://host:port）</option>
               </select>
             </Field>
-            <Field label="默认 TTL（秒）" hint="不填使用全局默认 2 小时">
+            <Field label={i18n.t('默认 TTL（秒）')} hint={i18n.t('不填使用全局默认 2 小时')}>
               <Input
                 type="number"
                 value={form.defaultTtl}
@@ -479,7 +480,7 @@ export function ChallengeForm({
                 }
               />
             </Field>
-            <Field label="内存上限（MB）">
+            <Field label={i18n.t('内存上限（MB）')}>
               <Input
                 type="number"
                 value={form.memoryLimitMb}
@@ -488,7 +489,7 @@ export function ChallengeForm({
                 }
               />
             </Field>
-            <Field label="CPU 核心数上限">
+            <Field label={i18n.t('CPU 核心数上限')}>
               <Input
                 type="number"
                 value={form.cpuLimit}
@@ -497,7 +498,7 @@ export function ChallengeForm({
                 }
               />
             </Field>
-            <Field label="进程数上限（pids）" hint="0 表示不限制">
+            <Field label={i18n.t('进程数上限（pids）')} hint={i18n.t('0 表示不限制')}>
               <Input
                 type="number"
                 value={form.pidsLimit}
@@ -536,7 +537,7 @@ export function ChallengeForm({
         />
       )}
 
-      <Field label="状态" hint="published 对所有人可见；hidden 仅对已授权对象可见">
+      <Field label={i18n.t('状态')} hint={i18n.t('published 对所有人可见；hidden 仅对已授权对象可见')}>
         <select
           value={form.status}
           onChange={(e) =>
@@ -548,20 +549,20 @@ export function ChallengeForm({
           }
           className="h-9 px-2 bg-paper border border-rule rounded-sm text-sm"
         >
-          <option value="draft">草稿</option>
-          <option value="hidden">隐藏</option>
-          <option value="published">已发布</option>
-          <option value="archived">已归档</option>
+          <option value="draft">{i18n.t('草稿')}</option>
+          <option value="hidden">{i18n.t('隐藏')}</option>
+          <option value="published">{i18n.t('已发布')}</option>
+          <option value="archived">{i18n.t('已归档')}</option>
         </select>
       </Field>
 
       <div className="flex items-center gap-2">
         <Button type="submit" loading={submitPending} size="lg">
-          {mode === 'edit' ? '保存修改' : '创建题目'}
+          {mode === 'edit' ? i18n.t('保存修改') : i18n.t('创建题目')}
         </Button>
         {mode === 'edit' && onSaved && (
           <Button type="button" variant="ghost" size="lg" onClick={onSaved}>
-            完成编辑
+            {i18n.t('完成编辑')}
           </Button>
         )}
       </div>

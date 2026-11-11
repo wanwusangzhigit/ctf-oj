@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Crown, Trophy, Users } from 'lucide-react';
@@ -32,14 +33,14 @@ export function TeamDetailPage() {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <div className="border-t-2 border-ink pt-6">
-          <h1 className="text-2xl font-semibold tracking-tight">团队不存在</h1>
-          <p className="mt-2 text-ink-3">该团队可能已解散。</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{i18n.t('团队不存在')}</h1>
+          <p className="mt-2 text-ink-3">{i18n.t('该团队可能已解散。')}</p>
           <Link
             to="/teams"
             className="mt-4 inline-flex items-center gap-1 text-amber font-medium"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            返回团队
+            {i18n.t('返回团队')}
           </Link>
         </div>
       </div>
@@ -56,7 +57,7 @@ export function TeamDetailPage() {
         className="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink transition-colors mb-6 hover:no-underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        团队榜
+        {i18n.t('团队榜')}
       </Link>
 
       <header className="border-t-2 border-ink pt-6 mb-8">
@@ -66,15 +67,13 @@ export function TeamDetailPage() {
             {t.name}
           </h1>
           <div className="text-right">
-            <div className="font-mono text-2xs text-ink-3">团队总分</div>
+            <div className="font-mono text-2xs text-ink-3">{i18n.t('团队总分')}</div>
             <div className="font-mono text-3xl font-semibold tabular-nums text-ink">
               {formatNumber(t.score)}
             </div>
           </div>
         </div>
-        <p className="mt-3 font-mono text-2xs text-ink-3">
-          创建于 {relativeTime(t.createdAt)}
-        </p>
+        <p className="mt-3 font-mono text-2xs text-ink-3">{i18n.t('创建于 {{v0}}', { v0: relativeTime(t.createdAt) })}</p>
         {t.description && (
           <p className="mt-3 text-sm text-ink-2 max-w-prose">{t.description}</p>
         )}
@@ -83,12 +82,10 @@ export function TeamDetailPage() {
       <section>
         <div className="flex items-center gap-2 border-b border-rule pb-2 mb-3">
           <Users className="h-3.5 w-3.5 text-ink-3" />
-          <h2 className="text-sm font-medium text-ink">
-            成员（{t.members?.length ?? 0}）
-          </h2>
+          <h2 className="text-sm font-medium text-ink">{i18n.t('成员（{{v0}}）', { v0: t.members?.length ?? 0 })}</h2>
         </div>
         {(t.members?.length ?? 0) === 0 ? (
-          <p className="text-sm text-ink-3">暂无成员。</p>
+          <p className="text-sm text-ink-3">{i18n.t('暂无成员。')}</p>
         ) : (
           <ul className="border-t border-rule">
             {(t.members ?? []).map((m) => (
@@ -107,14 +104,12 @@ export function TeamDetailPage() {
                   {m.userId === t.ownerId && (
                     <Badge tone="warning">
                       <Crown className="h-3 w-3" />
-                      队长
+                      {i18n.t('队长')}
                     </Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-mono text-2xs text-ink-3 tabular-nums">
-                    {formatNumber(m.user?.score ?? 0)} 分
-                  </span>
+                  <span className="font-mono text-2xs text-ink-3 tabular-nums">{i18n.t('{{v0}} 分', { v0: formatNumber(m.user?.score ?? 0) })}</span>
                   <span className="font-mono text-2xs text-ink-3 tabular-nums hidden sm:inline">
                     {relativeTime(m.joinedAt)}
                   </span>
@@ -129,15 +124,15 @@ export function TeamDetailPage() {
         {isMember ? (
           <DiscussionPanel
             target={{ scope: 'team', id: t.id }}
-            title="团队讨论"
+            title={i18n.t('团队讨论')}
             canPost
             canModerate={user?.id === t.ownerId}
-            emptyText="还没有团队讨论。发布第一条内部消息吧。"
+            emptyText={i18n.t('还没有团队讨论。发布第一条内部消息吧。')}
           />
         ) : (
           <div className="border-t border-rule pt-4">
-            <h2 className="text-sm font-medium text-ink">团队讨论</h2>
-            <p className="mt-1 text-sm text-ink-3">仅团队成员可见。</p>
+            <h2 className="text-sm font-medium text-ink">{i18n.t('团队讨论')}</h2>
+            <p className="mt-1 text-sm text-ink-3">{i18n.t('仅团队成员可见。')}</p>
           </div>
         )}
       </section>
@@ -159,10 +154,10 @@ export function TeamScoreboardPage() {
       <header className="border-t-2 border-ink pt-6 mb-8">
         <p className="font-mono text-2xs text-ink-3 mb-3">$ teams --ranked</p>
         <h1 className="text-3xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          团队榜
+          {i18n.t('团队榜')}
         </h1>
         <p className="mt-2 text-ink-2 max-w-prose">
-          按团队成员解题总分排名。
+          {i18n.t('按团队成员解题总分排名。')}
         </p>
       </header>
 
@@ -172,11 +167,11 @@ export function TeamScoreboardPage() {
         </div>
       ) : q.isError ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          无法加载团队榜。
+          {i18n.t('无法加载团队榜。')}
         </div>
       ) : items.length === 0 ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          还没有团队。
+          {i18n.t('还没有团队。')}
         </div>
       ) : (
         <ol className="border-t border-ink">

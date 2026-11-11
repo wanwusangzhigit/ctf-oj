@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, XCircle } from 'lucide-react';
@@ -30,10 +31,10 @@ export function MySubmissionsPage() {
           $ history --submissions
         </p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          我的提交
+          {i18n.t('我的提交')}
         </h1>
         <p className="mt-2 text-ink-2 max-w-prose">
-          全部 flag 尝试记录 —— 包括正确与错误，按时间倒序排列。
+          {i18n.t('全部 flag 尝试记录 —— 包括正确与错误，按时间倒序排列。')}
         </p>
       </header>
 
@@ -43,11 +44,11 @@ export function MySubmissionsPage() {
         </div>
       ) : q.isError ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          无法加载提交记录，请稍后重试。
+          {i18n.t('无法加载提交记录，请稍后重试。')}
         </div>
       ) : (data?.items?.length ?? 0) === 0 ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          还没有提交记录 —— 去题目页面试着提交一个 flag。
+          {i18n.t('还没有提交记录 —— 去题目页面试着提交一个 flag。')}
         </div>
       ) : (
         <div className="border-t border-ink">
@@ -70,7 +71,7 @@ export function MySubmissionsPage() {
                 </span>
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">
-                    {s.challenge?.title ?? `题目 #${s.challengeId}`}
+                    {s.challenge?.title ?? i18n.t('题目 #{{v0}}', { v0: s.challengeId })}
                   </div>
                   <div className="font-mono text-2xs text-ink-3 mt-0.5 truncate">
                     {s.flag}

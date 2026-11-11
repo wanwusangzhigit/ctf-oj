@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 
 export function NotFoundPage() {
@@ -11,16 +12,16 @@ export function NotFoundPage() {
           404
         </div>
         <h1 className="mt-4 text-xl font-semibold tracking-tight">
-          页面不存在或已被移除
+          {i18n.t('页面不存在或已被移除')}
         </h1>
         <p className="mt-2 text-ink-3 max-w-prose">
-          可能是链接过期、地址输错，或它从来没存在过。
+          {i18n.t('可能是链接过期、地址输错，或它从来没存在过。')}
         </p>
         <Link
           to="/"
           className="mt-6 inline-flex items-center h-9 px-4 bg-ink text-paper rounded-sm text-sm font-medium hover:bg-ink-2 transition-colors hover:no-underline"
         >
-          返回首页
+          {i18n.t('返回首页')}
         </Link>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -27,10 +28,10 @@ import type {
 } from '@/types';
 
 export const CHALLENGE_STATUS: Record<ChallengeStatus, string> = {
-  draft: '草稿',
-  hidden: '隐藏',
-  published: '已发布',
-  archived: '归档',
+  draft: i18n.t('草稿'),
+  hidden: i18n.t('隐藏'),
+  published: i18n.t('已发布'),
+  archived: i18n.t('归档'),
 };
 
 const SELECT_CLS =
@@ -140,7 +141,7 @@ export function CompetitionForm({
         ? updateCompetition(competition.id, input)
         : createCompetition(input),
     onSuccess: (saved) => {
-      toast.success(isEdit ? '已保存' : '已创建');
+      toast.success(isEdit ? i18n.t('已保存') : i18n.t('已创建'));
       qc.invalidateQueries({ queryKey: ['admin-competitions'] });
       qc.invalidateQueries({ queryKey: ['admin-competition', saved.id] });
       reloadSite();
@@ -148,7 +149,7 @@ export function CompetitionForm({
       else onCreated?.(saved.id);
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '保存失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('保存失败')),
   });
 
   function submit(e: FormEvent) {
@@ -180,7 +181,7 @@ export function CompetitionForm({
       className="max-w-3xl space-y-4 border border-rule bg-paper-2/40 p-5"
     >
       <div className="grid grid-cols-2 gap-3">
-        <Field label="名称" htmlFor="comp-name">
+        <Field label={i18n.t('名称')} htmlFor="comp-name">
           <Input
             id="comp-name"
             required
@@ -188,7 +189,7 @@ export function CompetitionForm({
             onChange={(e) => patch({ name: e.target.value })}
           />
         </Field>
-        <Field label="slug" htmlFor="comp-slug" hint="用于 URL">
+        <Field label="slug" htmlFor="comp-slug" hint={i18n.t('用于 URL')}>
           <Input
             id="comp-slug"
             required
@@ -198,7 +199,7 @@ export function CompetitionForm({
         </Field>
       </div>
 
-      <Field label="描述" htmlFor="comp-desc">
+      <Field label={i18n.t('描述')} htmlFor="comp-desc">
         <Textarea
           id="comp-desc"
           rows={3}
@@ -208,7 +209,7 @@ export function CompetitionForm({
       </Field>
 
       <div className="grid grid-cols-3 gap-3">
-        <Field label="开始时间" htmlFor="comp-start">
+        <Field label={i18n.t('开始时间')} htmlFor="comp-start">
           <Input
             id="comp-start"
             type="datetime-local"
@@ -220,7 +221,7 @@ export function CompetitionForm({
             }
           />
         </Field>
-        <Field label="结束时间" htmlFor="comp-end">
+        <Field label={i18n.t('结束时间')} htmlFor="comp-end">
           <Input
             id="comp-end"
             type="datetime-local"
@@ -232,7 +233,7 @@ export function CompetitionForm({
             }
           />
         </Field>
-        <Field label="冻结时间" htmlFor="comp-freeze" hint="可选">
+        <Field label={i18n.t('冻结时间')} htmlFor="comp-freeze" hint={i18n.t('可选')}>
           <Input
             id="comp-freeze"
             type="datetime-local"
@@ -247,9 +248,9 @@ export function CompetitionForm({
       </div>
 
       <Field
-        label="报名邀请码"
+        label={i18n.t('报名邀请码')}
         htmlFor="comp-reg-code"
-        hint="可选 —— 设置后报名需要此码"
+        hint={i18n.t('可选 —— 设置后报名需要此码')}
       >
         <Input
           id="comp-reg-code"
@@ -259,7 +260,7 @@ export function CompetitionForm({
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="可见性" htmlFor="comp-visibility">
+        <Field label={i18n.t('可见性')} htmlFor="comp-visibility">
           <select
             id="comp-visibility"
             className={SELECT_CLS}
@@ -268,14 +269,14 @@ export function CompetitionForm({
               patch({ visibility: e.target.value as 'public' | 'private' })
             }
           >
-            <option value="public">公开</option>
-            <option value="private">私有（仅管理员可见）</option>
+            <option value="public">{i18n.t('公开')}</option>
+            <option value="private">{i18n.t('私有（仅管理员可见）')}</option>
           </select>
         </Field>
         <Field
-          label="计分模式"
+          label={i18n.t('计分模式')}
           htmlFor="comp-scoring"
-          hint="固定=原始分；三血=前三解有加成"
+          hint={i18n.t('固定=原始分；三血=前三解有加成')}
         >
           <select
             id="comp-scoring"
@@ -285,15 +286,15 @@ export function CompetitionForm({
               patch({ scoringMode: e.target.value as CompetitionInput['scoringMode'] })
             }
           >
-            <option value="dynamic">动态分值</option>
-            <option value="fixed">固定分值</option>
-            <option value="three_blood">三血加成</option>
+            <option value="dynamic">{i18n.t('动态分值')}</option>
+            <option value="fixed">{i18n.t('固定分值')}</option>
+            <option value="three_blood">{i18n.t('三血加成')}</option>
           </select>
         </Field>
         <Field
-          label="报名"
+          label={i18n.t('报名')}
           htmlFor="comp-reg-required"
-          hint="开启后未报名不能提交赛事题或参与答疑"
+          hint={i18n.t('开启后未报名不能提交赛事题或参与答疑')}
         >
           <label className="flex items-center gap-2 h-9 text-sm">
             <input
@@ -302,11 +303,11 @@ export function CompetitionForm({
               checked={form.registrationRequired ?? false}
               onChange={(e) => patch({ registrationRequired: e.target.checked })}
             />
-            必须报名
+            {i18n.t('必须报名')}
           </label>
         </Field>
         {canManageAll && (
-          <Field label="归档" htmlFor="comp-archived" hint="归档后从公开列表隐藏">
+          <Field label={i18n.t('归档')} htmlFor="comp-archived" hint={i18n.t('归档后从公开列表隐藏')}>
             <label className="flex items-center gap-2 h-9 text-sm">
               <input
                 id="comp-archived"
@@ -314,22 +315,22 @@ export function CompetitionForm({
                 checked={form.archived ?? false}
                 onChange={(e) => patch({ archived: e.target.checked })}
               />
-              已归档
+              {i18n.t('已归档')}
             </label>
           </Field>
         )}
       </div>
 
       <Field
-        label={`绑定题目（已选 ${boundIds.length}）`}
-        hint="不选则计入全部题目；隐藏题目需在题目编辑页单独授权"
+        label={i18n.t('绑定题目（已选 {{v0}}）', { v0: boundIds.length })}
+        hint={i18n.t('不选则计入全部题目；隐藏题目需在题目编辑页单独授权')}
       >
         <div className="mb-2 flex items-center gap-2">
           <Input
             value={challengeQuery}
             onChange={(e) => setChallengeQuery(e.target.value)}
-            placeholder="按标题或 ID 筛选"
-            aria-label="筛选题目"
+            placeholder={i18n.t('按标题或 ID 筛选')}
+            aria-label={i18n.t('筛选题目')}
           />
           <Button
             type="button"
@@ -337,7 +338,7 @@ export function CompetitionForm({
             size="sm"
             onClick={() => patch({ challengeIds: [] })}
           >
-            清空
+            {i18n.t('清空')}
           </Button>
         </div>
         <div className="max-h-56 overflow-auto border border-rule rounded-sm p-2 space-y-1">
@@ -370,7 +371,7 @@ export function CompetitionForm({
           ))}
           {filteredChallenges.length === 0 && (
             <p className="py-4 text-center text-2xs text-ink-3">
-              {challengesQ.isLoading ? '加载中…' : '没有可绑定的题目。'}
+              {challengesQ.isLoading ? i18n.t('加载中…') : i18n.t('没有可绑定的题目。')}
             </p>
           )}
         </div>
@@ -379,8 +380,8 @@ export function CompetitionForm({
       {canManageAll && (
         <>
           <AccessGrantEditor
-            title="访问与修改授权"
-            description="只读：私有赛事对授权对象可见；修改：允许授权对象编辑赛事元数据。激活、归档、删除和导出仍仅限全局赛事管理员。"
+            title={i18n.t('访问与修改授权')}
+            description={i18n.t('只读：私有赛事对授权对象可见；修改：允许授权对象编辑赛事元数据。激活、归档、删除和导出仍仅限全局赛事管理员。')}
             grants={grants}
             onChange={(next) => {
               setGrants(next);
@@ -393,17 +394,17 @@ export function CompetitionForm({
               checked={form.isActive}
               onChange={(e) => patch({ isActive: e.target.checked })}
             />
-            设为当前激活赛事（同一时刻只能有一个激活赛事）
+            {i18n.t('设为当前激活赛事（同一时刻只能有一个激活赛事）')}
           </label>
         </>
       )}
 
       <div className="flex items-center justify-end gap-2 border-t border-rule pt-4">
         <Button type="button" variant="ghost" onClick={onCancel}>
-          取消
+          {i18n.t('取消')}
         </Button>
         <Button type="submit" variant="primary" loading={saveMut.isPending}>
-          {isEdit ? '保存' : '创建'}
+          {isEdit ? i18n.t('保存') : i18n.t('创建')}
         </Button>
       </div>
     </form>

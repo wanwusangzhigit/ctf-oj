@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileCode, Pencil, Plus, Trash2, X } from 'lucide-react';
@@ -23,7 +24,7 @@ const SOURCE_TEMPLATES: Record<SourceType, { path: string; content: string }> = 
 WORKDIR /app
 COPY . /app
 
-# 启动时由后端注入 FLAG 与 PUBLISHED_PORT 环境变量
+# The backend injects FLAG and PUBLISHED_PORT at startup
 RUN pip install --no-cache-dir flask gunicorn
 
 EXPOSE 8080
@@ -35,7 +36,7 @@ CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
     content: `services:
   app:
     build: .
-    # 后端会注入 PUBLISHED_PORT 环境变量用于端口映射
+    # The backend injects PUBLISHED_PORT for port mapping
     ports:
       - "\${PUBLISHED_PORT}:8080"
     environment:
@@ -77,31 +78,31 @@ export function SourceFileManager({
     mutationFn: ({ path, file }: { path: string; file: File }) =>
       uploadSource(challengeId, path, file),
     onSuccess: () => {
-      toast.success('已上传');
+      toast.success(i18n.t('已上传'));
       qc.invalidateQueries({ queryKey: ['challenge-sources', challengeId] });
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '上传失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('上传失败')),
   });
 
   const uploadTextMut = useMutation({
     mutationFn: ({ path, content }: { path: string; content: string }) =>
       uploadSourceText(challengeId, path, content),
     onSuccess: () => {
-      toast.success('已保存');
+      toast.success(i18n.t('已保存'));
       qc.invalidateQueries({ queryKey: ['challenge-sources', challengeId] });
       setEditorPath('');
       setEditorContent('');
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '保存失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('保存失败')),
   });
 
   const deleteMut = useMutation({
     mutationFn: (path: string) => deleteSource(challengeId, path),
     onSuccess: () => {
-      toast.success('已删除');
+      toast.success(i18n.t('已删除'));
       qc.invalidateQueries({ queryKey: ['challenge-sources', challengeId] });
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
   });
 
   const entries = sourcesQ.data ?? [];
@@ -127,21 +128,19 @@ export function SourceFileManager({
         a.remove();
         URL.revokeObjectURL(url);
       })
-      .catch(() => toast.error('下载失败'));
+      .catch(() => toast.error(i18n.t('下载失败')));
   }
 
   return (
     <div className="border border-rule bg-paper-2 p-4 space-y-3 rounded-sm">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium inline-flex items-center gap-1.5">
-          <FileCode className="h-3.5 w-3.5 text-amber" />
-          容器构建源（{sourceType === 'dockerfile' ? 'Dockerfile' : 'docker compose'}）
-        </span>
+          <FileCode className="h-3.5 w-3.5 text-amber" />{i18n.t('容器构建源（{{v0}}）', { v0: sourceType === 'dockerfile' ? 'Dockerfile' : 'docker compose' })}</span>
         <div className="flex items-center gap-1.5">
           {!hasTemplate && (
             <Button variant="ghost" size="sm" onClick={applyTemplate}>
               <Plus className="h-3.5 w-3.5" />
-              使用模板
+              {i18n.t('使用模板')}
             </Button>
           )}
           <label className="cursor-pointer">
@@ -159,7 +158,7 @@ export function SourceFileManager({
             />
             <span className="inline-flex items-center gap-1 h-7 px-2.5 rounded-sm border border-rule-strong text-2xs font-medium hover:bg-paper transition-colors">
               <Upload className="h-3 w-3" />
-              上传文件
+              {i18n.t('上传文件')}
             </span>
           </label>
         </div>
@@ -167,8 +166,8 @@ export function SourceFileManager({
 
       <p className="text-2xs text-ink-3 leading-relaxed">
         {sourceType === 'dockerfile'
-          ? '需上传名为 Dockerfile 的文件。启动实例时执行 docker build 并注入 FLAG / PUBLISHED_PORT 环境变量。'
-          : '需上传名为 docker-compose.yml 的文件；其中 ports 用 ${PUBLISHED_PORT} 占位，FLAG 由后端自动注入。要求含名为 app 的服务暴露 internalPort。'}
+          ? i18n.t('需上传名为 Dockerfile 的文件。启动实例时执行 docker build 并注入 FLAG / PUBLISHED_PORT 环境变量。')
+          : i18n.t('需上传名为 docker-compose.yml 的文件；其中 ports 用 ${PUBLISHED_PORT} 占位，FLAG 由后端自动注入。要求含名为 app 的服务暴露 internalPort。')}
       </p>
 
       {entries.length > 0 && (
@@ -197,11 +196,11 @@ export function SourceFileManager({
                     setEditorPath(e.path);
                     getSourceText(challengeId, e.path)
                       .then(setEditorContent)
-                      .catch(() => toast.error('加载失败'));
+                      .catch(() => toast.error(i18n.t('加载失败')));
                   }}
                 >
                   <Pencil className="h-3 w-3" />
-                  编辑
+                  {i18n.t('编辑')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -209,13 +208,13 @@ export function SourceFileManager({
                   loading={deleteMut.isPending}
                   onClick={async () => {
                     const ok = await confirm({
-                      title: '删除源码文件',
-                      description: `删除「${e.path}」？容器镜像重新构建后不会再包含该文件。`,
-                      confirmText: '删除',
+                      title: i18n.t('删除源码文件'),
+                      description: i18n.t('删除「{{v0}}」？容器镜像重新构建后不会再包含该文件。', { v0: e.path }),
+                      confirmText: i18n.t('删除'),
                     });
                     if (ok) deleteMut.mutate(e.path);
                   }}
-                  aria-label="删除"
+                  aria-label={i18n.t('删除')}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -232,7 +231,7 @@ export function SourceFileManager({
               <Input
                 value={editorPath}
                 onChange={(e) => setEditorPath(e.target.value)}
-                placeholder="相对路径，例如 src/index.py"
+                placeholder={i18n.t('相对路径，例如 src/index.py')}
                 className="font-mono text-2xs"
               />
             </Field>
@@ -243,7 +242,7 @@ export function SourceFileManager({
                 setEditorPath('');
                 setEditorContent('');
               }}
-              aria-label="取消"
+              aria-label={i18n.t('取消')}
             >
               <X className="h-3.5 w-3.5" />
             </Button>
@@ -253,7 +252,7 @@ export function SourceFileManager({
             value={trimTrailingSlash(editorContent)}
             onChange={(e) => setEditorContent(e.target.value)}
             className="font-mono text-2xs"
-            placeholder="文件内容…"
+            placeholder={i18n.t('文件内容…')}
           />
           <div className="flex justify-end">
             <Button
@@ -262,7 +261,7 @@ export function SourceFileManager({
               disabled={!editorPath.trim()}
               onClick={() => uploadTextMut.mutate({ path: editorPath, content: editorContent })}
             >
-              保存到容器源
+              {i18n.t('保存到容器源')}
             </Button>
           </div>
         </div>

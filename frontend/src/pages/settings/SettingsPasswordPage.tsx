@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,13 +18,13 @@ import { ApiClientError } from '@/api/client';
 
 const schema = z
   .object({
-    currentPassword: z.string().min(1, '请输入当前密码'),
-    newPassword: z.string().min(8, '新密码至少 8 位').max(64, '新密码最多 64 位'),
+    currentPassword: z.string().min(1, i18n.t('请输入当前密码')),
+    newPassword: z.string().min(8, i18n.t('新密码至少 8 位')).max(64, i18n.t('新密码最多 64 位')),
     confirm: z.string(),
   })
   .refine((v) => v.newPassword === v.confirm, {
     path: ['confirm'],
-    message: '两次输入的密码不一致',
+    message: i18n.t('两次输入的密码不一致'),
   });
 
 type FormValues = z.infer<typeof schema>;
@@ -44,17 +45,17 @@ export function SettingsPasswordPage() {
     mutationFn: (values: FormValues) =>
       changePassword(values.currentPassword, values.newPassword),
     onSuccess: () => {
-      toast.success('密码已更新');
+      toast.success(i18n.t('密码已更新'));
       reset(EMPTY);
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '修改失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('修改失败')),
   });
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>修改密码</CardTitle>
+        <CardTitle>{i18n.t('修改密码')}</CardTitle>
       </CardHeader>
       <CardBody>
         <form
@@ -63,7 +64,7 @@ export function SettingsPasswordPage() {
           noValidate
         >
           <Field
-            label="当前密码"
+            label={i18n.t('当前密码')}
             htmlFor="settings-current-password"
             error={errors.currentPassword?.message}
           >
@@ -77,9 +78,9 @@ export function SettingsPasswordPage() {
           </Field>
           <div className="grid sm:grid-cols-2 gap-4">
             <Field
-              label="新密码"
+              label={i18n.t('新密码')}
               htmlFor="settings-new-password"
-              hint="8–64 位"
+              hint={i18n.t('8–64 位')}
               error={errors.newPassword?.message}
             >
               <Input
@@ -91,7 +92,7 @@ export function SettingsPasswordPage() {
               />
             </Field>
             <Field
-              label="确认新密码"
+              label={i18n.t('确认新密码')}
               htmlFor="settings-confirm-password"
               error={errors.confirm?.message}
             >
@@ -105,9 +106,9 @@ export function SettingsPasswordPage() {
             </Field>
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-rule pt-4">
-            <span className="text-2xs text-ink-3">修改密码不会让其他设备退出登录</span>
+            <span className="text-2xs text-ink-3">{i18n.t('修改密码不会让其他设备退出登录')}</span>
             <Button type="submit" size="sm" loading={mut.isPending}>
-              更新密码
+              {i18n.t('更新密码')}
             </Button>
           </div>
         </form>

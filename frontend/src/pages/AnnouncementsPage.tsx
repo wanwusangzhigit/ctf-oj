@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -28,10 +29,10 @@ export function AnnouncementsPage() {
       <header className="border-t-2 border-ink pt-6 mb-8">
         <p className="font-mono text-2xs text-ink-3 mb-3">$ cat /news</p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          公告
+          {i18n.t('公告')}
         </h1>
         <p className="mt-2 text-ink-2 max-w-prose">
-          来自管理员的站点动态 —— 比赛、维护、变更。
+          {i18n.t('来自管理员的站点动态 —— 比赛、维护、变更。')}
         </p>
       </header>
 
@@ -44,7 +45,7 @@ export function AnnouncementsPage() {
           {pinned && <PinnedAnnouncement a={pinned} />}
           {rest.length > 0 && (
             <section>
-              <SectionLabel>历史</SectionLabel>
+              <SectionLabel>{i18n.t('历史')}</SectionLabel>
               <ul className="border-t border-rule">
                 {rest.map((a) => (
                   <li key={a.id}>
@@ -67,7 +68,7 @@ export function AnnouncementsPage() {
         </div>
       ) : (
         <div className="border-t border-rule py-16 text-center text-sm text-ink-3">
-          暂无公告。
+          {i18n.t('暂无公告。')}
         </div>
       )}
     </div>
@@ -77,7 +78,7 @@ export function AnnouncementsPage() {
 function PinnedAnnouncement({ a }: { a: Announcement }) {
   return (
     <article>
-      <SectionLabel>置顶</SectionLabel>
+      <SectionLabel>{i18n.t('置顶')}</SectionLabel>
       <Link
         to={`/announcements/${a.id}`}
         className="block hover:no-underline"
@@ -93,15 +94,13 @@ function PinnedAnnouncement({ a }: { a: Announcement }) {
         </h2>
       </Link>
       <div className="max-w-prose text-ink-2">
-        <Markdown>{a.contentMd || '（无内容）'}</Markdown>
+        <Markdown>{a.contentMd || i18n.t('（无内容）')}</Markdown>
       </div>
       <div className="mt-4">
         <Link
           to={`/announcements/${a.id}`}
           className="font-mono text-2xs text-amber"
-        >
-          查看全文 · {relativeTime(a.publishedAt ?? a.createdAt)}
-        </Link>
+        >{i18n.t('查看全文 · {{v0}}', { v0: relativeTime(a.publishedAt ?? a.createdAt) })}</Link>
       </div>
     </article>
   );

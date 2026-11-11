@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui';
@@ -6,9 +7,9 @@ import type { TopicSort } from '@/api/discussion';
 import type { CommunityCopy } from '@/lib/communityCopy';
 
 const SORTS: [TopicSort, string][] = [
-  ['last_reply', '最近回复'],
-  ['newest', '最新发布'],
-  ['oldest', '最早发布'],
+  ['last_reply', i18n.t('最近回复')],
+  ['newest', i18n.t('最新发布')],
+  ['oldest', i18n.t('最早发布')],
 ];
 
 export function TopicFilters({
@@ -59,7 +60,7 @@ export function TopicFilters({
               onParam('q', '');
             }}
             className="text-ink-3 hover:text-ink"
-            aria-label="清除搜索"
+            aria-label={i18n.t('清除搜索')}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -92,9 +93,7 @@ export function TopicFilters({
             <X className="h-3 w-3" />
           </button>
         )}
-        <span className="ml-auto font-mono text-2xs text-ink-3 tabular-nums">
-          {formatNumber(total)} 个主题
-        </span>
+        <span className="ml-auto font-mono text-2xs text-ink-3 tabular-nums">{i18n.t('{{v0}} 个主题', { v0: formatNumber(total) })}</span>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, Paperclip, Server } from 'lucide-react';
@@ -41,9 +42,9 @@ export function ChallengeDetailPage() {
       const res = await submitFlag(challengeId, flag.trim(), competitionId);
       if (res.correct) {
         if (res.alreadySolved) {
-          toast.success('Accepted · 已解出，本次不计分');
+          toast.success(i18n.t('Accepted · 已解出，本次不计分'));
         } else if (res.competitionId) {
-          toast.success(`Accepted · 比赛 +${res.score}`);
+          toast.success(i18n.t('Accepted · 比赛 +{{v0}}', { v0: res.score }));
         } else {
           toast.success(`Accepted · +${res.score}`);
         }
@@ -55,10 +56,10 @@ export function ChallengeDetailPage() {
         }
         setFlag('');
       } else {
-        toast.error(res.message || 'Flag 错误');
+        toast.error(res.message || i18n.t('Flag 错误'));
       }
     } catch (err) {
-      const msg = err instanceof ApiClientError ? err.message : '提交失败';
+      const msg = err instanceof ApiClientError ? err.message : i18n.t('提交失败');
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -69,21 +70,21 @@ export function ChallengeDetailPage() {
     <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
       <div className="space-y-10 min-w-0">
         <section>
-          <SectionLabel>描述</SectionLabel>
+          <SectionLabel>{i18n.t('描述')}</SectionLabel>
           {data.description ? (
             <div className="max-w-prose">
               <Markdown>{data.description}</Markdown>
             </div>
           ) : (
             <p className="text-ink-3 max-w-prose">
-              这道题没有描述 —— 尝试从附件或连接信息入手。
+              {i18n.t('这道题没有描述 —— 尝试从附件或连接信息入手。')}
             </p>
           )}
         </section>
 
         {data.attachments?.length > 0 && (
           <section>
-            <SectionLabel>附件</SectionLabel>
+            <SectionLabel>{i18n.t('附件')}</SectionLabel>
             <ul className="border-t border-rule">
               {data.attachments.map((a) => (
                 <li
@@ -104,7 +105,7 @@ export function ChallengeDetailPage() {
                     className="inline-flex items-center gap-1 h-7 px-2.5 text-2xs font-mono rounded-sm border border-rule hover:border-rule-strong hover:bg-paper-2 transition-colors"
                   >
                     <Download className="h-3 w-3" />
-                    下载
+                    {i18n.t('下载')}
                   </a>
                 </li>
               ))}
@@ -114,7 +115,7 @@ export function ChallengeDetailPage() {
 
         {podium.data && podium.data.length > 0 && (
           <section>
-            <SectionLabel>一血时刻</SectionLabel>
+            <SectionLabel>{i18n.t('一血时刻')}</SectionLabel>
             <ul className="border-t border-rule">
               {podium.data.map((p) => (
                 <li
@@ -136,7 +137,7 @@ export function ChallengeDetailPage() {
 
         {data.solved && data.editorial && (
           <section>
-            <SectionLabel>题解</SectionLabel>
+            <SectionLabel>{i18n.t('题解')}</SectionLabel>
             <div className="max-w-prose">
               <Markdown>{data.editorial}</Markdown>
             </div>
@@ -149,7 +150,7 @@ export function ChallengeDetailPage() {
       <aside className="space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>提交 flag</CardTitle>
+            <CardTitle>{i18n.t('提交 flag')}</CardTitle>
           </CardHeader>
           <CardBody>
             <form onSubmit={onSubmit} className="space-y-3">
@@ -166,16 +167,16 @@ export function ChallengeDetailPage() {
                 variant="primary"
                 className="w-full"
               >
-                {solvedInMode ? '再次提交' : '提交'}
+                {solvedInMode ? i18n.t('再次提交') : i18n.t('提交')}
               </Button>
               {solvedInMode && (
                 <p className="text-2xs text-ink-3 leading-relaxed">
-                  {contest ? '本题已在赛事中解出' : '本题已通过'}，可重复提交，但不再加分。
+                  {i18n.t('{{v0}}，可重复提交，但不再加分。', { v0: contest ? i18n.t('本题已在赛事中解出') : i18n.t('本题已通过') })}
                 </p>
               )}
               {data.isDynamic && !solvedInMode && (
                 <p className="text-2xs text-ink-3 leading-relaxed">
-                  先启动下方的容器实例，再从实例中获取 flag 并提交。
+                  {i18n.t('先启动下方的容器实例，再从实例中获取 flag 并提交。')}
                 </p>
               )}
             </form>
@@ -197,7 +198,7 @@ export function ChallengeDetailPage() {
         {data.connectionInfo && !data.isDynamic && (
           <Card>
             <CardHeader>
-              <CardTitle>连接信息</CardTitle>
+              <CardTitle>{i18n.t('连接信息')}</CardTitle>
             </CardHeader>
             <CardBody>
               <div className="flex items-center gap-2 font-mono text-sm bg-paper-2 px-3 py-2 rounded-sm border border-rule">
@@ -205,12 +206,12 @@ export function ChallengeDetailPage() {
                 <span className="flex-1 truncate">{data.connectionInfo}</span>
                 <button
                   type="button"
-                  aria-label="复制"
+                  aria-label={i18n.t('复制')}
                   className="text-ink-3 hover:text-amber transition-colors"
                   onClick={() => {
                     navigator.clipboard
                       ?.writeText(data.connectionInfo)
-                      .then(() => toast.success('已复制到剪贴板'));
+                      .then(() => toast.success(i18n.t('已复制到剪贴板')));
                   }}
                 >
                   <Copy8 className="h-3.5 w-3.5" />
@@ -222,24 +223,24 @@ export function ChallengeDetailPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>题目信息</CardTitle>
+            <CardTitle>{i18n.t('题目信息')}</CardTitle>
           </CardHeader>
           <CardBody>
             <dl className="space-y-2.5 text-sm">
-              <Row label="分类">{data.category?.name ?? '—'}</Row>
-              <Row label="类型">
+              <Row label={i18n.t('分类')}>{data.category?.name ?? '—'}</Row>
+              <Row label={i18n.t('类型')}>
                 {data.isDynamic ? (
-                  <Badge tone="accent">容器</Badge>
+                  <Badge tone="accent">{i18n.t('容器')}</Badge>
                 ) : (
-                  <Badge>静态</Badge>
+                  <Badge>{i18n.t('静态')}</Badge>
                 )}
               </Row>
-              <Row label="标签">
+              <Row label={i18n.t('标签')}>
                 <span className="font-mono text-2xs">
                   {data.tags || '—'}
                 </span>
               </Row>
-              <Row label="创建">
+              <Row label={i18n.t('创建')}>
                 <span className="font-mono text-2xs">
                   {relativeTime(data.createdAt)}
                 </span>

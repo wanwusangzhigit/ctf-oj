@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 /**
@@ -14,6 +15,7 @@ export function AuthShell({
   subtitle?: string;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen grid lg:grid-cols-[1fr_minmax(0,540px)] bg-paper">
       <aside className="hidden lg:flex flex-col justify-between bg-paper-2 border-r border-rule p-10 relative overflow-hidden">
@@ -36,22 +38,22 @@ export function AuthShell({
             $ whoami
           </p>
           <h2 className="text-3xl font-semibold tracking-tightest text-ink leading-[1.1]">
-            一个面向 CTF
+            {t('auth.shell.headline1')}
             <br />
-            练习的在线评测。
+            {t('auth.shell.headline2')}
           </h2>
           <p className="text-sm text-ink-2 max-w-prose">
-            多方向题目、动态打分、容器化实例、嵌套讨论。专注训练本身 —— 界面克制，操作直接。
+            {t('auth.shell.pitch')}
           </p>
           <div className="grid grid-cols-3 gap-3 pt-2 border-t border-rule">
-            <TranscriptStat label="题目" value="∞" />
-            <TranscriptStat label="分类" value="6+" />
-            <TranscriptStat label="实时" value="on" />
+            <TranscriptStat label={t('auth.shell.statChallenges')} value="∞" />
+            <TranscriptStat label={t('auth.shell.statCategories')} value="6+" />
+            <TranscriptStat label={t('auth.shell.statRealtime')} value="on" />
           </div>
         </div>
 
         <p className="text-2xs text-ink-3 font-mono">
-          // 使用即代表同意服务条款与隐私政策
+          {t('auth.shell.terms')}
         </p>
       </aside>
 

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Spinner } from '@/components/ui';
 import { TopicRow } from './TopicRow';
 import type { CommunityCopy } from '@/lib/communityCopy';
@@ -51,7 +52,7 @@ export function CommunityTopicList({
             onClick={onClearFilters}
             className="mt-3 text-sm text-amber"
           >
-            清除筛选
+            {i18n.t('清除筛选')}
           </button>
         )}
       </div>
@@ -61,9 +62,9 @@ export function CommunityTopicList({
   return (
     <>
       <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] gap-4 border-b border-rule-strong px-3 py-2 font-mono text-2xs text-ink-3">
-        <span>主题</span>
-        <span className="text-right">回复</span>
-        <span className="text-right">浏览</span>
+        <span>{i18n.t('主题')}</span>
+        <span className="text-right">{i18n.t('回复')}</span>
+        <span className="text-right">{i18n.t('浏览')}</span>
       </div>
       <div className="border-b border-rule">
         {topics.map((d) => (
@@ -83,7 +84,7 @@ export function CommunityTopicList({
             onClick={() => onParam('page', String(page - 1))}
             className="px-2 py-1 border border-rule rounded-sm hover:border-rule-strong disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            ← 上一页
+            {i18n.t('← 上一页')}
           </button>
           <span className="tabular-nums">
             {page} / {totalPages}
@@ -94,7 +95,7 @@ export function CommunityTopicList({
             onClick={() => onParam('page', String(page + 1))}
             className="px-2 py-1 border border-rule rounded-sm hover:border-rule-strong disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            下一页 →
+            {i18n.t('下一页 →')}
           </button>
         </nav>
       )}

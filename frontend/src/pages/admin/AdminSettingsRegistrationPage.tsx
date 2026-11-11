@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useMemo, useState } from 'react';
 import { Field, Input } from '@/components/ui';
 import { SaveBar, Section, Toggle } from '@/components/admin/SettingsSection';
@@ -46,34 +47,34 @@ export function AdminSettingsRegistrationPage() {
 
   return (
     <div className="space-y-8">
-      <Section title="注册与认证">
+      <Section title={i18n.t('注册与认证')}>
         <Toggle
-          label="开放注册"
-          description="关闭后，新人无法通过 /auth/register 创建账号"
+          label={i18n.t('开放注册')}
+          description={i18n.t('关闭后，新人无法通过 /auth/register 创建账号')}
           checked={on('site.registration_open')}
           onChange={(v) => set('site.registration_open', v ? 'true' : 'false')}
         />
         <Field
-          label="注册邀请码"
+          label={i18n.t('注册邀请码')}
           htmlFor="regCode"
-          hint="设置后，注册时必须填写该值；留空则不强制"
+          hint={i18n.t('设置后，注册时必须填写该值；留空则不强制')}
         >
           <Input
             id="regCode"
             value={draft['site.registration_code']}
             onChange={(e) => set('site.registration_code', e.target.value)}
-            placeholder="（无）"
+            placeholder={i18n.t('（无）')}
           />
         </Field>
         <Toggle
-          label="注册后必须验证邮箱"
-          description="未验证邮箱的用户将被禁止提交（仅当 mailer 已配置时启用）"
+          label={i18n.t('注册后必须验证邮箱')}
+          description={i18n.t('未验证邮箱的用户将被禁止提交（仅当 mailer 已配置时启用）')}
           checked={on('auth.email_verification_required')}
           onChange={(v) => set('auth.email_verification_required', v ? 'true' : 'false')}
         />
         <Toggle
-          label="开放密码重置"
-          description="关闭后，/auth/forgot-password 接口将拒绝请求"
+          label={i18n.t('开放密码重置')}
+          description={i18n.t('关闭后，/auth/forgot-password 接口将拒绝请求')}
           checked={on('auth.password_reset_enabled')}
           onChange={(v) => set('auth.password_reset_enabled', v ? 'true' : 'false')}
         />

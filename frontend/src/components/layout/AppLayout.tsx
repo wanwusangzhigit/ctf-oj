@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, Settings, User as UserIcon, X } from 'lucide-react';
@@ -5,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { logout as apiLogout } from '@/api/auth';
 import { useSiteStore } from '@/stores/site';
+import { useLocaleStore } from '@/stores/locale';
 import { Avatar } from './Avatar';
 import { NotificationBell } from './NotificationBell';
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
@@ -17,15 +19,15 @@ import { canAccessAdmin } from '@/lib/permissions';
  * the only graphic element in the header is the square brand mark.
  */
 const NAV_ITEMS: { to: string; label: string; end?: boolean }[] = [
-  { to: '/challenges',   label: '题目' },
-  { to: '/competitions', label: '赛事' },
-  { to: '/scoreboard',   label: '榜单' },
-  { to: '/search',       label: '搜索' },
-  { to: '/community',    label: '社区' },
-  { to: '/teams',        label: '团队' },
-  { to: '/stats',        label: '统计' },
-  { to: '/instances',    label: '实例' },
-  { to: '/announcements', label: '公告' },
+  { to: '/challenges',   label: i18n.t('题目') },
+  { to: '/competitions', label: i18n.t('赛事') },
+  { to: '/scoreboard',   label: i18n.t('榜单') },
+  { to: '/search',       label: i18n.t('搜索') },
+  { to: '/community',    label: i18n.t('社区') },
+  { to: '/teams',        label: i18n.t('团队') },
+  { to: '/stats',        label: i18n.t('统计') },
+  { to: '/instances',    label: i18n.t('实例') },
+  { to: '/announcements', label: i18n.t('公告') },
 ];
 
 export function AppLayout() {
@@ -69,26 +71,25 @@ export function AppLayout() {
             <span className="font-mono font-semibold tracking-tight text-ink">
               {siteName}
             </span>
-            <span className="hidden sm:inline text-2xs text-ink-3 font-mono ml-1">
-              v0.1
-            </span>
           </Link>
 
           <nav className="hidden sm:flex items-center gap-0 ml-4 -ml-1">
             {NAV_ITEMS.map((it) => (
               <NavItem key={it.to} {...it} />
             ))}
-            {canAccessAdmin(user) && <NavItem to="/admin" label="管理" />}
+            {canAccessAdmin(user) && <NavItem to="/admin" label={i18n.t('管理')} />}
           </nav>
 
           <div className="flex-1" />
+
+          <LocaleSwitch />
 
           <Button
             variant="ghost"
             size="icon"
             className="sm:hidden"
             onClick={() => setMenuOpen((v) => !v)}
-            aria-label={menuOpen ? '关闭菜单' : '打开菜单'}
+            aria-label={menuOpen ? i18n.t('关闭菜单') : i18n.t('打开菜单')}
             aria-expanded={menuOpen}
           >
             {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -99,7 +100,7 @@ export function AppLayout() {
               <NotificationBell />
               <Link
                 to="/settings"
-                aria-label="账号设置"
+                aria-label={i18n.t('账号设置')}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-3 hover:bg-paper-2 hover:text-ink transition-colors hover:no-underline border-b-0"
               >
                 <Settings className="h-4 w-4" />
@@ -116,7 +117,7 @@ export function AppLayout() {
                   <span className="text-sm font-medium">{user.username}</span>
                 </div>
               </Link>
-              <Button variant="ghost" size="icon" onClick={onLogout} aria-label="退出">
+              <Button variant="ghost" size="icon" onClick={onLogout} aria-label={i18n.t('退出')}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -124,11 +125,11 @@ export function AppLayout() {
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => navigate('/auth/login')}>
                 <UserIcon className="h-3.5 w-3.5" />
-                登录
+                {i18n.t('登录')}
               </Button>
               {registrationOpen && (
                 <Button variant="primary" size="sm" onClick={() => navigate('/auth/register')}>
-                  注册
+                  {i18n.t('注册')}
                 </Button>
               )}
             </div>
@@ -139,7 +140,7 @@ export function AppLayout() {
             {NAV_ITEMS.map((it) => (
               <NavItem key={it.to} {...it} />
             ))}
-            {canAccessAdmin(user) && <NavItem to="/admin" label="管理" />}
+            {canAccessAdmin(user) && <NavItem to="/admin" label={i18n.t('管理')} />}
           </nav>
         )}
       </header>
@@ -150,11 +151,33 @@ export function AppLayout() {
 
       <footer className="border-t border-rule">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4 text-2xs text-ink-3 font-mono">
-          <span>{siteName} — 面向 CTF 练习的在线评测平台</span>
+          <span>{i18n.t('{{v0}} — 面向 CTF 练习的在线评测平台', { v0: siteName })}</span>
           <span className="hidden sm:inline">capture · submit · repeat</span>
         </div>
       </footer>
     </div>
+  );
+}
+
+/**
+ * The dictionary is keyed by the Chinese source text, so a full reload makes
+ * every module-level label re-evaluate under the newly selected language.
+ */
+function LocaleSwitch() {
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-label={i18n.t('nav.switchLanguage')}
+      onClick={() => {
+        setLocale(locale === 'zh' ? 'en' : 'zh');
+        window.location.reload();
+      }}
+    >
+      {locale === 'zh' ? 'EN' : i18n.t('nav.langZh')}
+    </Button>
   );
 }
 

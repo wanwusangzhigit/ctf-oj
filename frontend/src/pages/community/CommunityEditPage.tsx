@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CommunityTopicForm } from '@/components/community/CommunityTopicForm';
@@ -17,7 +18,7 @@ export function CommunityEditPage() {
       <header className="border-t-2 border-ink pt-6 mb-6">
         <p className="font-mono text-2xs text-ink-3 mb-3">$ community --edit #{topicId}</p>
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tightest text-ink leading-[1.15]">
-          编辑主题
+          {i18n.t('编辑主题')}
         </h1>
       </header>
       <CommunityTopicForm

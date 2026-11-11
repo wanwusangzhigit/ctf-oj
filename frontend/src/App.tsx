@@ -1,5 +1,7 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { I18nextProvider, useTranslation } from 'react-i18next';
+import i18n from '@/locales/i18n';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfirmProvider, Spinner, ToastProvider } from '@/components/ui';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -272,24 +274,38 @@ function AppRoutes() {
   );
 }
 
+function LocaleSync() {
+  const { t, i18n: instance } = useTranslation();
+  const language = instance.language;
+  useEffect(() => {
+    document.documentElement.lang = language === 'en' ? 'en' : 'zh-CN';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', t('app.metaDescription'));
+  }, [language, t]);
+  return null;
+}
+
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <ConfirmProvider>
-          <BrowserRouter>
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center min-h-screen">
-                  <Spinner className="h-5 w-5 text-muted" />
-                </div>
-              }
-            >
-              <AppRoutes />
-            </Suspense>
-          </BrowserRouter>
-        </ConfirmProvider>
-      </ToastProvider>
-    </QueryClientProvider>
+    <I18nextProvider i18n={i18n}>
+      <LocaleSync />
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <ConfirmProvider>
+            <BrowserRouter>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center min-h-screen">
+                    <Spinner className="h-5 w-5 text-muted" />
+                  </div>
+                }
+              >
+                <AppRoutes />
+              </Suspense>
+            </BrowserRouter>
+          </ConfirmProvider>
+        </ToastProvider>
+      </QueryClientProvider>
+    </I18nextProvider>
   );
 }

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,10 +8,10 @@ import { search } from '@/api/search';
 import type { SearchHit } from '@/types';
 
 const SECTIONS: { type: SearchHit['type']; label: string }[] = [
-  { type: 'challenge', label: '题目' },
-  { type: 'user', label: '用户' },
-  { type: 'team', label: '团队' },
-  { type: 'announcement', label: '公告' },
+  { type: 'challenge', label: i18n.t('题目') },
+  { type: 'user', label: i18n.t('用户') },
+  { type: 'team', label: i18n.t('团队') },
+  { type: 'announcement', label: i18n.t('公告') },
 ];
 
 function href(hit: SearchHit): string {
@@ -43,7 +44,7 @@ export function SearchPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <header className="border-t-2 border-ink pt-6 mb-6">
         <p className="font-mono text-2xs text-ink-3 mb-2">$ grep -ri</p>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">全局搜索</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{i18n.t('全局搜索')}</h1>
       </header>
 
       <form
@@ -59,20 +60,20 @@ export function SearchPage() {
             autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="题目、用户、团队、公告"
+            placeholder={i18n.t('题目、用户、团队、公告')}
             className="pl-8"
           />
         </div>
       </form>
 
       {q.length === 0 ? (
-        <p className="mt-8 text-sm text-ink-3">输入关键词开始搜索。</p>
+        <p className="mt-8 text-sm text-ink-3">{i18n.t('输入关键词开始搜索。')}</p>
       ) : result.isLoading ? (
         <div className="mt-10 flex justify-center">
           <Spinner className="h-5 w-5 text-ink-3" />
         </div>
       ) : (result.data?.length ?? 0) === 0 ? (
-        <p className="mt-8 text-sm text-ink-3">没有找到与「{q}」相关的结果。</p>
+        <p className="mt-8 text-sm text-ink-3">{i18n.t('没有找到与「{{v0}}」相关的结果。', { v0: q })}</p>
       ) : (
         <div className="mt-8 space-y-8">
           {SECTIONS.map((section) => {

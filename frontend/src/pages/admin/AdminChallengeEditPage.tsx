@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { ChallengeForm } from '@/components/admin/ChallengeForm';
@@ -18,15 +19,15 @@ export function AdminChallengeEditPage() {
     return (
       <div className="border-t border-rule pt-6">
         <h2 className="text-lg font-semibold tracking-tight text-ink">
-          题目 ID 无效
+          {i18n.t('题目 ID 无效')}
         </h2>
-        <p className="text-sm text-ink-3 mt-2">URL 中的 id 参数不是合法的数字。</p>
+        <p className="text-sm text-ink-3 mt-2">{i18n.t('URL 中的 id 参数不是合法的数字。')}</p>
         <Link
           to="/admin/challenges"
           className="mt-4 inline-flex items-center gap-1 text-amber font-medium text-sm"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          返回题目列表
+          {i18n.t('返回题目列表')}
         </Link>
       </div>
     );
@@ -39,7 +40,7 @@ export function AdminChallengeEditPage() {
         className="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink transition-colors mb-6 hover:no-underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        返回题目列表
+        {i18n.t('返回题目列表')}
       </Link>
 
       <ChallengeForm

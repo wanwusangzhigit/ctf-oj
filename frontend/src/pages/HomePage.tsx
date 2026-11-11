@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -69,8 +70,8 @@ export function HomePage() {
       <div className="mt-14 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
         <section>
           <SectionTitle
-            left="最新题目"
-            right={<Link to="/challenges" className="text-sm text-amber">查看全部</Link>}
+            left={i18n.t('最新题目')}
+            right={<Link to="/challenges" className="text-sm text-amber">{i18n.t('查看全部')}</Link>}
           />
           <ChallengeLog challenges={challenges.data?.items ?? []} loading={challenges.isLoading} />
         </section>
@@ -78,7 +79,7 @@ export function HomePage() {
         <aside className="space-y-10">
           {user && (
             <section>
-              <SectionTitle left="关注动态" />
+              <SectionTitle left={i18n.t('关注动态')} />
               <FeedLog
                 items={feed.data ?? []}
                 loading={feed.isLoading}
@@ -88,8 +89,8 @@ export function HomePage() {
 
           <section>
             <SectionTitle
-              left="榜单前 5"
-              right={<Link to="/scoreboard" className="text-sm text-amber">完整榜单</Link>}
+              left={i18n.t('榜单前 5')}
+              right={<Link to="/scoreboard" className="text-sm text-amber">{i18n.t('完整榜单')}</Link>}
             />
             <LeaderboardPreview
               users={board.data?.items ?? []}
@@ -100,8 +101,8 @@ export function HomePage() {
           {(pinned || others.length > 0) && (
             <section>
               <SectionTitle
-                left="公告"
-                right={<Link to="/announcements" className="text-sm text-amber">全部</Link>}
+                left={i18n.t('公告')}
+                right={<Link to="/announcements" className="text-sm text-amber">{i18n.t('全部')}</Link>}
               />
               <AnnouncementLog
                 pinned={pinned}
@@ -115,13 +116,13 @@ export function HomePage() {
 
       {user ? null : (
         <p className="mt-14 text-sm text-ink-3 max-w-prose">
-          注册账号后即可开始练习 —— 提交 flag、启动容器实例、登上榜单。
+          {i18n.t('注册账号后即可开始练习 —— 提交 flag、启动容器实例、登上榜单。')}
         </p>
       )}
 
       {rulesMd.trim() && (
         <section className="mt-14">
-          <SectionTitle left="站点规则" />
+          <SectionTitle left={i18n.t('站点规则')} />
           <div className="max-w-prose">
             <Markdown>{rulesMd}</Markdown>
           </div>
@@ -154,7 +155,7 @@ function CompetitionBanner({ competition }: { competition: Competition }) {
             {competition.name}
           </span>
           <Badge tone={live ? 'accent' : 'neutral'}>
-            {live ? '进行中' : upcoming ? '即将开始' : '已结束'}
+            {live ? i18n.t('进行中') : upcoming ? i18n.t('即将开始') : i18n.t('已结束')}
           </Badge>
         </div>
         <div className="font-mono text-2xs text-ink-3 tabular-nums mt-0.5">
@@ -162,7 +163,7 @@ function CompetitionBanner({ competition }: { competition: Competition }) {
           {competition.endAt ? formatTime(competition.endAt) : '—'}
         </div>
       </div>
-      <span className="font-mono text-2xs text-ink-3">查看 →</span>
+      <span className="font-mono text-2xs text-ink-3">{i18n.t('查看 →')}</span>
     </Link>
   );
 }
@@ -217,23 +218,20 @@ function Hero({
         $ status --since=boot
       </p>
       <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.05] max-w-3xl">
-        面向 CTF 练习的
+        {i18n.t('面向 CTF 练习的')}
         <br />
-        在线评测系统
+        {i18n.t('在线评测系统')}
       </h1>
-      <p className="mt-4 text-ink-2 max-w-prose">
-        覆盖 Web、Pwn、Crypto、Reverse、Misc、Forensics 等方向；
-        动态打分、附件下载、容器化实例、解题记录一应俱全。
-      </p>
+      <p className="mt-4 text-ink-2 max-w-prose">{i18n.t('覆盖 Web、Pwn、Crypto、Reverse、Misc、Forensics 等方向； 动态打分、附件下载、容器化实例、解题记录一应俱全。')}</p>
       <div className="mt-8 flex items-end gap-6 sm:gap-10 flex-wrap">
         <BigStat
-          label="榜首分数"
+          label={i18n.t('榜首分数')}
           value={display}
           suffix={topUser ? `  ·  ${topUser}` : ''}
           ready={ready}
         />
-        <ThinStat label="题目" value={totalChallenges} ready={ready} />
-        <ThinStat label="选手" value={totalPlayers} ready={ready} />
+        <ThinStat label={i18n.t('题目')} value={totalChallenges} ready={ready} />
+        <ThinStat label={i18n.t('选手')} value={totalPlayers} ready={ready} />
       </div>
     </section>
   );
@@ -312,7 +310,7 @@ function ChallengeLog({
   loading: boolean;
 }) {
   if (loading) return <Loading />;
-  if (challenges.length === 0) return <Empty label="还没有题目" />;
+  if (challenges.length === 0) return <Empty label={i18n.t('还没有题目')} />;
 
   return (
     <ul className="border-t border-rule">
@@ -370,7 +368,7 @@ function LeaderboardPreview({
   loading: boolean;
 }) {
   if (loading) return <Loading />;
-  if (users.length === 0) return <Empty label="榜单为空" />;
+  if (users.length === 0) return <Empty label={i18n.t('榜单为空')} />;
   return (
     <ol className="border-t border-rule">
       {users.map((u, idx) => (
@@ -404,7 +402,7 @@ function AnnouncementLog({
   loading: boolean;
 }) {
   if (loading) return <Loading />;
-  if (!pinned && others.length === 0) return <Empty label="暂无公告" />;
+  if (!pinned && others.length === 0) return <Empty label={i18n.t('暂无公告')} />;
 
   return (
     <ul className="border-t border-rule">
@@ -415,7 +413,7 @@ function AnnouncementLog({
             className="block py-2.5 border-b border-rule hover:bg-paper-2 transition-colors hover:no-underline"
           >
             <div className="flex items-center gap-2 mb-0.5">
-              <Badge tone="accent">置顶</Badge>
+              <Badge tone="accent">{i18n.t('置顶')}</Badge>
               <span className="font-medium truncate flex-1 min-w-0 text-sm">
                 {pinned.title}
               </span>
@@ -476,7 +474,7 @@ function FeedLog({
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted py-2">
-        关注其他选手后，这里会出现他们的解题与题解动态。
+        {i18n.t('关注其他选手后，这里会出现他们的解题与题解动态。')}
       </p>
     );
   }
@@ -494,7 +492,7 @@ function FeedLog({
                 {it.username}
               </Link>
               <span className="text-muted">
-                {it.kind === 'solve' ? ' 解出了 ' : ' 发布了题解 '}
+                {it.kind === 'solve' ? i18n.t(' 解出了 ') : i18n.t(' 发布了题解 ')}
               </span>
               <Link
                 to={`/challenges/${it.challengeId}`}

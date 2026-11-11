@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -29,11 +30,9 @@ export function ScoreboardPage() {
       <header className="border-t-2 border-ink pt-6 mb-8">
         <p className="font-mono text-2xs text-ink-3 mb-3">$ cat /var/scoreboard</p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          榜单
+          {i18n.t('榜单')}
         </h1>
-        <p className="mt-2 text-ink-2 max-w-prose">
-          按当前积分排序。每周一凌晨 4:00 重置数据缓存。
-        </p>
+        <p className="mt-2 text-ink-2 max-w-prose">{i18n.t('按当前积分排序。每周一凌晨 4:00 重置数据缓存。')}</p>
       </header>
 
       {isLoading ? (
@@ -43,10 +42,8 @@ export function ScoreboardPage() {
       ) : data?.items?.length ? (
         <Table users={data.items} />
       ) : (
-        <div className="border-t border-rule py-16 text-center text-sm text-ink-3">
-          还没有选手参赛 ——{' '}
-          <Link to="/challenges" className="text-amber">
-            看看题目
+        <div className="border-t border-rule py-16 text-center text-sm text-ink-3">{i18n.t('还没有选手参赛 ——{{v0}}', { v0: ' ' })}<Link to="/challenges" className="text-amber">
+            {i18n.t('看看题目')}
           </Link>
         </div>
       )}

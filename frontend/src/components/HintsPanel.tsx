@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Lock } from 'lucide-react';
@@ -38,13 +39,13 @@ export function HintsPanel({
   const unlockMut = useMutation({
     mutationFn: (hintId: number) => unlockHint(challengeId, hintId, competitionId),
     onSuccess: () => {
-      toast.success('已解锁');
+      toast.success(i18n.t('已解锁'));
       qc.invalidateQueries({
         queryKey: ['challenge-hints', challengeId, competitionId ?? 0],
       });
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '解锁失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('解锁失败')),
   });
 
   if (hintsQ.isLoading) {
@@ -59,7 +60,7 @@ export function HintsPanel({
 
   return (
     <div className="border-t border-rule pt-4 mt-6">
-      <SectionLabel>提示（解锁会扣减本题奖励分）</SectionLabel>
+      <SectionLabel>{i18n.t('提示（解锁会扣减本题奖励分）')}</SectionLabel>
       <ul className="space-y-2">
         {hints.map((h, idx) => (
           <li key={h.id} className="border border-rule rounded-sm">
@@ -98,9 +99,7 @@ function HintRow({
     return (
       <div className="p-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-mono text-2xs text-ink-3 tabular-nums">
-            hint #{String(index).padStart(2, '0')} · 已解锁
-          </span>
+          <span className="font-mono text-2xs text-ink-3 tabular-nums">{i18n.t('hint #{{v0}} · 已解锁', { v0: String(index).padStart(2, '0') })}</span>
           <span
             className={cn(
               'font-mono text-2xs tabular-nums',
@@ -111,7 +110,7 @@ function HintRow({
           </span>
         </div>
         <div className="text-sm text-ink-2 max-w-prose">
-          <Markdown>{hint.content || '（空内容）'}</Markdown>
+          <Markdown>{hint.content || i18n.t('（空内容）')}</Markdown>
         </div>
       </div>
     );
@@ -129,8 +128,8 @@ function HintRow({
           </div>
           <div className="text-2xs text-ink-3 mt-0.5">
             {cost > 0
-              ? `解锁后该题奖励分将减少 ${cost}%`
-              : '免费解锁'}
+              ? i18n.t('解锁后该题奖励分将减少 {{v0}}%', { v0: cost })
+              : i18n.t('免费解锁')}
           </div>
         </div>
       </div>
@@ -140,7 +139,7 @@ function HintRow({
         loading={unlocking}
         onClick={onUnlock}
       >
-        解锁
+        {i18n.t('解锁')}
         {cost > 0 && (
           <span className="ml-1 text-2xs text-amber font-mono tabular-nums">
             -{cost}%

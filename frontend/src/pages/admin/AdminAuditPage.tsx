@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Filter } from 'lucide-react';
@@ -42,10 +43,10 @@ export function AdminAuditPage() {
           $ tail -f /var/log/admin.audit
         </p>
         <h2 className="text-2xl font-semibold tracking-tight text-ink">
-          审计日志
+          {i18n.t('审计日志')}
         </h2>
         <p className="mt-1 text-sm text-ink-3 max-w-prose">
-          管理员关键操作记录 —— 按时间倒序排列。
+          {i18n.t('管理员关键操作记录 —— 按时间倒序排列。')}
         </p>
       </header>
 
@@ -99,11 +100,11 @@ export function AdminAuditPage() {
         </div>
       ) : q.isError ? (
         <div className="py-10 text-center text-sm text-ink-3">
-          无法加载审计日志。
+          {i18n.t('无法加载审计日志。')}
         </div>
       ) : (data?.items?.length ?? 0) === 0 ? (
         <div className="py-10 text-center text-sm text-ink-3">
-          无匹配记录。
+          {i18n.t('无匹配记录。')}
         </div>
       ) : (
         <div className="border-t border-ink">
@@ -159,7 +160,7 @@ function AuditRow({ entry }: { entry: AuditLogEntry }) {
           </span>
           {delegated && (
             <span className="border border-rule bg-paper-2 px-1.5 py-0.5 font-mono text-2xs text-oxblood">
-              授权操作
+              {i18n.t('授权操作')}
             </span>
           )}
         </div>

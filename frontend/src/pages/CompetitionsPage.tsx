@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, Flame, Clock } from 'lucide-react';
@@ -32,10 +33,10 @@ export function CompetitionsPage() {
       <header className="border-t-2 border-ink pt-6 mb-8">
         <p className="font-mono text-2xs text-ink-3 mb-3">$ competitions --list</p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          赛事
+          {i18n.t('赛事')}
         </h1>
         <p className="mt-2 text-ink-2 max-w-prose">
-          比赛窗口与记分板冻结时间。进行中的赛事会在首页显示倒计时。
+          {i18n.t('比赛窗口与记分板冻结时间。进行中的赛事会在首页显示倒计时。')}
         </p>
       </header>
 
@@ -45,11 +46,11 @@ export function CompetitionsPage() {
         </div>
       ) : q.isError ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          无法加载赛事列表，请稍后重试。
+          {i18n.t('无法加载赛事列表，请稍后重试。')}
         </div>
       ) : items.length === 0 ? (
         <div className="border-t border-rule py-10 text-center text-sm text-ink-3">
-          暂无赛事。
+          {i18n.t('暂无赛事。')}
         </div>
       ) : (
         <>
@@ -71,7 +72,7 @@ function ActiveSummary({ competition }: { competition: Competition }) {
     <div className="mb-8 border border-amber/30 bg-amber-soft rounded-sm px-4 py-3">
       <div className="flex items-center gap-2 flex-wrap">
         <Flame className="h-3.5 w-3.5 text-amber" />
-        <span className="font-mono text-2xs text-amber">当前赛事</span>
+        <span className="font-mono text-2xs text-amber">{i18n.t('当前赛事')}</span>
         <Link
           to={`/competitions/${competition.id}`}
           className="font-medium text-ink hover:text-amber hover:no-underline"
@@ -106,9 +107,9 @@ function CompetitionRow({ competition: c }: { competition: Competition }) {
             >
               {c.name}
             </span>
-            {c.isActive && <Badge tone="accent">当前</Badge>}
+            {c.isActive && <Badge tone="accent">{i18n.t('当前')}</Badge>}
             <Badge tone={COMPETITION_PHASE_TONE[phase]}>{COMPETITION_PHASE_LABEL[phase]}</Badge>
-            {c.scoreboardFrozen && <Badge tone="accent">封榜中</Badge>}
+            {c.scoreboardFrozen && <Badge tone="accent">{i18n.t('封榜中')}</Badge>}
           </div>
           {c.description && (
             <p className="text-sm text-ink-2 mt-1 line-clamp-2 max-w-prose">
@@ -127,9 +128,7 @@ function CompetitionRow({ competition: c }: { competition: Competition }) {
               </span>
             )}
             {typeof c.registrationCount === 'number' && (
-              <span className="inline-flex items-center gap-1">
-                {c.registrationCount} 人报名
-              </span>
+              <span className="inline-flex items-center gap-1">{i18n.t('{{v0}} 人报名', { v0: c.registrationCount })}</span>
             )}
           </div>
         </div>

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useDeferredValue, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -55,10 +56,10 @@ export function ChallengesPage() {
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-              题目
+              {i18n.t('题目')}
             </h1>
             <p className="mt-2 text-ink-2 max-w-prose">
-              选择分类开始练习 —— 提交 flag、启动容器实例、登上榜单。
+              {i18n.t('选择分类开始练习 —— 提交 flag、启动容器实例、登上榜单。')}
             </p>
           </div>
           <div className="relative">
@@ -69,7 +70,7 @@ export function ChallengesPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜索标题 / 标签"
+              placeholder={i18n.t('搜索标题 / 标签')}
               className="h-9 w-56 pl-8 pr-3 bg-paper border border-rule rounded-sm text-sm focus:outline-none focus:border-amber transition-colors"
             />
           </div>
@@ -78,11 +79,11 @@ export function ChallengesPage() {
 
       <div
         role="tablist"
-        aria-label="分类"
+        aria-label={i18n.t('分类')}
         className="flex items-center gap-1 mb-2 flex-wrap"
       >
         <FilterChip active={!catId} onClick={() => setCatId(undefined)}>
-          全部
+          {i18n.t('全部')}
         </FilterChip>
         {categories.isLoading ? (
           <Spinner className="h-4 w-4 text-ink-3" />
@@ -105,30 +106,30 @@ export function ChallengesPage() {
           onChange={(e) => setDifficulty(Number(e.target.value))}
           className="h-8 px-2 bg-paper border border-rule rounded-sm text-sm"
         >
-          <option value={0}>全部难度</option>
-          <option value={1}>难度 1</option>
-          <option value={2}>难度 2</option>
-          <option value={3}>难度 3</option>
-          <option value={4}>难度 4</option>
-          <option value={5}>难度 5</option>
+          <option value={0}>{i18n.t('全部难度')}</option>
+          <option value={1}>{i18n.t('难度 1')}</option>
+          <option value={2}>{i18n.t('难度 2')}</option>
+          <option value={3}>{i18n.t('难度 3')}</option>
+          <option value={4}>{i18n.t('难度 4')}</option>
+          <option value={5}>{i18n.t('难度 5')}</option>
         </select>
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
           className="h-8 px-2 bg-paper border border-rule rounded-sm text-sm"
         >
-          <option value="">全部类型</option>
-          <option value="static">静态附件题</option>
-          <option value="container">容器题</option>
+          <option value="">{i18n.t('全部类型')}</option>
+          <option value="static">{i18n.t('静态附件题')}</option>
+          <option value="container">{i18n.t('容器题')}</option>
         </select>
         <select
           value={solved}
           onChange={(e) => setSolved(e.target.value)}
           className="h-8 px-2 bg-paper border border-rule rounded-sm text-sm"
         >
-          <option value="">全部状态</option>
-          <option value="true">已解出</option>
-          <option value="false">未解出</option>
+          <option value="">{i18n.t('全部状态')}</option>
+          <option value="true">{i18n.t('已解出')}</option>
+          <option value="false">{i18n.t('未解出')}</option>
         </select>
       </div>
 
@@ -182,7 +183,7 @@ function ChallengeTable({ items }: { items: ChallengeView[] }) {
                     {c.solved && (
                       <Badge tone="success">
                         <CheckCircle2 className="h-3 w-3" />
-                        已通过
+                        {i18n.t('已通过')}
                       </Badge>
                     )}
                     {c.isDynamic && (
@@ -251,7 +252,7 @@ function Loading() {
 function Empty() {
   return (
     <div className="border-t border-rule py-16 text-center text-sm text-ink-3">
-      该分类下暂无题目。
+      {i18n.t('该分类下暂无题目。')}
     </div>
   );
 }

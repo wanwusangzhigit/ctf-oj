@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -57,10 +58,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 function ToastItemView({ item, onClose }: { item: ToastItem; onClose: () => void }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setOpen(false), 3600);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setOpen(false), 3600);
+    return () => clearTimeout(timer);
   }, []);
 
   const Icon =
@@ -86,7 +88,7 @@ function ToastItemView({ item, onClose }: { item: ToastItem; onClose: () => void
       <button
         onClick={onClose}
         className="text-ink-3 hover:text-ink transition-colors"
-        aria-label="close"
+        aria-label={t('a11y.close')}
       >
         <X className="h-3.5 w-3.5" />
       </button>

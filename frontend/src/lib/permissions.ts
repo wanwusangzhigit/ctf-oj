@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import type { AccessPermission, Delegation, Role, User } from '@/types';
 
 export type Permission =
@@ -17,12 +18,13 @@ export type Permission =
   | 'broadcast.send'
   | 'server.manage';
 
+// Getters resolve the active language at read time so call sites stay unchanged.
 export const ROLE_LABEL: Record<Role, string> = {
-  user: '普通用户',
-  challenge_admin: '题目管理员',
-  competition_admin: '比赛管理员',
-  moderator: '内容版主',
-  admin: '管理员',
+  get user() { return i18n.t('enums.role.user'); },
+  get challenge_admin() { return i18n.t('enums.role.challengeAdmin'); },
+  get competition_admin() { return i18n.t('enums.role.competitionAdmin'); },
+  get moderator() { return i18n.t('enums.role.moderator'); },
+  get admin() { return i18n.t('enums.role.admin'); },
 };
 
 const ROLE_FALLBACK: Record<string, Permission[]> = {

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Lightbulb, Plus, Save, Trash2 } from 'lucide-react';
@@ -34,33 +35,33 @@ export function HintManager({ challengeId }: { challengeId: number }) {
   const createMut = useMutation({
     mutationFn: (input: HintInput) => adminCreateHint(challengeId, input),
     onSuccess: () => {
-      toast.success('提示已添加');
+      toast.success(i18n.t('提示已添加'));
       setAdding(false);
       qc.invalidateQueries({ queryKey: ['admin-hints', challengeId] });
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '添加失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('添加失败')),
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, input }: { id: number; input: HintInput }) =>
       adminUpdateHint(id, input),
     onSuccess: () => {
-      toast.success('已保存');
+      toast.success(i18n.t('已保存'));
       qc.invalidateQueries({ queryKey: ['admin-hints', challengeId] });
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '保存失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('保存失败')),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => adminDeleteHint(id),
     onSuccess: () => {
-      toast.success('已删除');
+      toast.success(i18n.t('已删除'));
       qc.invalidateQueries({ queryKey: ['admin-hints', challengeId] });
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
   });
 
   const hints = listQ.data ?? [];
@@ -71,7 +72,7 @@ export function HintManager({ challengeId }: { challengeId: number }) {
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium inline-flex items-center gap-1.5">
           <Lightbulb className="h-3.5 w-3.5 text-amber" />
-          提示
+          {i18n.t('提示')}
         </span>
         {!adding && (
           <Button
@@ -81,13 +82,13 @@ export function HintManager({ challengeId }: { challengeId: number }) {
             onClick={() => setAdding(true)}
           >
             <Plus className="h-3 w-3" />
-            添加提示
+            {i18n.t('添加提示')}
           </Button>
         )}
       </div>
 
       <p className="text-2xs text-ink-3 leading-relaxed">
-        每个提示设置扣分比例（0–1）。用户解锁提示后，解题得分按所有已解锁提示的比例之和扣减。
+        {i18n.t('每个提示设置扣分比例（0–1）。用户解锁提示后，解题得分按所有已解锁提示的比例之和扣减。')}
       </p>
 
       {listQ.isLoading ? (
@@ -95,7 +96,7 @@ export function HintManager({ challengeId }: { challengeId: number }) {
           <Spinner className="h-4 w-4 text-ink-3" />
         </div>
       ) : hints.length === 0 && !adding ? (
-        <p className="text-2xs text-ink-3">暂无提示。</p>
+        <p className="text-2xs text-ink-3">{i18n.t('暂无提示。')}</p>
       ) : (
         <ul className="space-y-2">
           {hints.map((h, idx) => (
@@ -108,9 +109,9 @@ export function HintManager({ challengeId }: { challengeId: number }) {
                 onSave={(input) => updateMut.mutate({ id: h.id, input })}
                 onDelete={async () => {
                   const ok = await confirm({
-                    title: '删除提示',
-                    description: `第 ${idx + 1} 条提示将被删除，无法恢复。`,
-                    confirmText: '删除',
+                    title: i18n.t('删除提示'),
+                    description: i18n.t('第 {{v0}} 条提示将被删除，无法恢复。', { v0: idx + 1 }),
+                    confirmText: i18n.t('删除'),
                   });
                   if (ok) deleteMut.mutate(h.id);
                 }}
@@ -167,7 +168,7 @@ function HintEditor({
         </span>
         <div className="flex-1" />
         <label className="inline-flex items-center gap-1 text-2xs text-ink-3">
-          扣分
+          {i18n.t('扣分')}
           <Input
             type="number"
             min={0}
@@ -184,14 +185,14 @@ function HintEditor({
       <Textarea
         rows={2}
         value={content}
-        placeholder="提示内容（支持 Markdown）"
+        placeholder={i18n.t('提示内容（支持 Markdown）')}
         onChange={(e) => setContent(e.target.value)}
         className="text-2xs"
       />
       <div className="flex items-center justify-end gap-2">
         {onCancel && (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-            取消
+            {i18n.t('取消')}
           </Button>
         )}
         {onDelete && (
@@ -201,7 +202,7 @@ function HintEditor({
             size="sm"
             loading={deleting}
             onClick={onDelete}
-            aria-label="删除提示"
+            aria-label={i18n.t('删除提示')}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -217,7 +218,7 @@ function HintEditor({
           }
         >
           <Save className="h-3 w-3" />
-          {hint ? '保存' : '添加'}
+          {hint ? i18n.t('保存') : i18n.t('添加')}
         </Button>
       </div>
     </div>

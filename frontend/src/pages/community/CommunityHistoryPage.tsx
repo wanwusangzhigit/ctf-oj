@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -37,7 +38,7 @@ export function CommunityHistoryPage() {
             {copy.history_title}
           </h1>
           <Link to={`/community/${topicId}`} className="text-sm text-amber">
-            返回主题
+            {i18n.t('返回主题')}
           </Link>
         </div>
       </header>
@@ -53,17 +54,17 @@ export function CommunityHistoryPage() {
       ) : revisionsQ.isError ? (
         <p className="py-12 text-sm text-ink-3">{copy.load_failed}</p>
       ) : total === 0 ? (
-        <p className="py-12 text-sm text-ink-3">该主题还没有修改记录。</p>
+        <p className="py-12 text-sm text-ink-3">{i18n.t('该主题还没有修改记录。')}</p>
       ) : (
         <>
           {(revisionsQ.data?.items ?? []).map((rev) => (
             <article key={rev.id} className="border-b border-rule py-5">
               <div className="flex flex-wrap items-center gap-2 font-mono text-2xs text-ink-3">
-                <span className="text-ink">版本 {rev.revision}</span>
+                <span className="text-ink">{i18n.t('版本 {{v0}}', { v0: rev.revision })}</span>
                 <span aria-hidden>·</span>
                 <span>{relativeTime(rev.createdAt)}</span>
                 <span aria-hidden>·</span>
-                <span>由 {rev.actor?.username ?? `#${rev.actorId ?? 0}`} 修改</span>
+                <span>{i18n.t('由 {{v0}} 修改', { v0: rev.actor?.username ?? `#${rev.actorId ?? 0}` })}</span>
               </div>
               {rev.title && (
                 <h2 className="mt-2 text-sm font-medium text-ink break-words">{rev.title}</h2>
@@ -81,7 +82,7 @@ export function CommunityHistoryPage() {
                 onClick={() => setPage((p) => p - 1)}
                 className="px-2 py-1 border border-rule rounded-sm hover:border-rule-strong disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                ← 上一页
+                {i18n.t('← 上一页')}
               </button>
               <span className="tabular-nums">
                 {page} / {totalPages}
@@ -92,7 +93,7 @@ export function CommunityHistoryPage() {
                 onClick={() => setPage((p) => p + 1)}
                 className="px-2 py-1 border border-rule rounded-sm hover:border-rule-strong disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                下一页 →
+                {i18n.t('下一页 →')}
               </button>
             </nav>
           )}

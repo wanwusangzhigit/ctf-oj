@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { overview, byCategory, solveTrend, recentSolves, firstBloods } from '@/api/stats';
@@ -42,51 +43,51 @@ export function StatsPage() {
       <header className="border-t-2 border-ink pt-6 mb-8">
         <p className="font-mono text-2xs text-ink-3 mb-3">$ stats --range=all</p>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tightest text-ink leading-[1.1]">
-          统计
+          {i18n.t('统计')}
         </h1>
         <p className="mt-2 text-ink-2 max-w-prose">
-          站点活动概览 —— 解题趋势、分类分布与最近的提交。
+          {i18n.t('站点活动概览 —— 解题趋势、分类分布与最近的提交。')}
         </p>
       </header>
 
       {/* Numeric strip — 4 ruled columns, no icon-in-circles */}
       <section
         className="grid grid-cols-2 md:grid-cols-4 border-t border-b border-rule-strong divide-x divide-rule"
-        aria-label="概览"
+        aria-label={i18n.t('概览')}
       >
         <StatCell
-          label="注册用户"
+          label={i18n.t('注册用户')}
           value={ov.data?.totalUsers}
-          hint={`活跃 ${ov.data?.activeUsers ?? 0}`}
+          hint={i18n.t('活跃 {{v0}}', { v0: ov.data?.activeUsers ?? 0 })}
           loading={ov.isLoading}
         />
         <StatCell
-          label="题目总数"
+          label={i18n.t('题目总数')}
           value={ov.data?.totalChallenges}
-          hint={`已发布 ${ov.data?.publishedCount ?? 0}`}
+          hint={i18n.t('已发布 {{v0}}', { v0: ov.data?.publishedCount ?? 0 })}
           loading={ov.isLoading}
         />
         <StatCell
-          label="解题总数"
+          label={i18n.t('解题总数')}
           value={ov.data?.totalSolves}
-          hint={`提交 ${ov.data?.totalSubmissions ?? 0}`}
+          hint={i18n.t('提交 {{v0}}', { v0: ov.data?.totalSubmissions ?? 0 })}
           loading={ov.isLoading}
         />
         <StatCell
-          label="运行实例"
+          label={i18n.t('运行实例')}
           value={ov.data?.runningInstances}
-          hint={`团队 ${ov.data?.totalTeams ?? 0}`}
+          hint={i18n.t('团队 {{v0}}', { v0: ov.data?.totalTeams ?? 0 })}
           loading={ov.isLoading}
         />
       </section>
 
       <div className="grid gap-10 lg:grid-cols-2 mt-12">
         <section>
-          <SectionLabel>分类分布</SectionLabel>
+          <SectionLabel>{i18n.t('分类分布')}</SectionLabel>
           {cats.isLoading ? (
             <Loading />
           ) : (cats.data?.length ?? 0) === 0 ? (
-            <Empty label="暂无分类" />
+            <Empty label={i18n.t('暂无分类')} />
           ) : (
             <div className="border-t border-rule">
               {cats.data!.map((c) => {
@@ -101,9 +102,7 @@ export function StatsPage() {
                       <span className="text-sm font-medium truncate">
                         {c.categoryName}
                       </span>
-                      <span className="font-mono text-2xs text-ink-3 tabular-nums shrink-0">
-                        {c.count} 题 · {c.solves} 解
-                      </span>
+                      <span className="font-mono text-2xs text-ink-3 tabular-nums shrink-0">{i18n.t('{{v0}} 题 · {{v1}} 解', { v0: c.count, v1: c.solves })}</span>
                     </div>
                     <div className="h-1.5 bg-paper-2 rounded-sm overflow-hidden">
                       <div
@@ -119,11 +118,11 @@ export function StatsPage() {
         </section>
 
         <section>
-          <SectionLabel>解题趋势（14 天）</SectionLabel>
+          <SectionLabel>{i18n.t('解题趋势（14 天）')}</SectionLabel>
           {trend.isLoading ? (
             <Loading />
           ) : (trend.data?.length ?? 0) === 0 ? (
-            <Empty label="最近没有解题记录" />
+            <Empty label={i18n.t('最近没有解题记录')} />
           ) : (
             <TrendBars points={trend.data!} />
           )}
@@ -131,11 +130,11 @@ export function StatsPage() {
       </div>
 
       <section className="mt-12">
-        <SectionLabel>最近的解题</SectionLabel>
+        <SectionLabel>{i18n.t('最近的解题')}</SectionLabel>
         {recent.isLoading ? (
           <Loading />
         ) : (recent.data?.length ?? 0) === 0 ? (
-          <Empty label="暂无解题" />
+          <Empty label={i18n.t('暂无解题')} />
         ) : (
           <ul className="border-t border-rule">
             {recent.data!.map((r, idx) => (
@@ -150,14 +149,14 @@ export function StatsPage() {
                   <span className="font-medium truncate text-sm">
                     {r.username}
                   </span>
-                  <span className="text-ink-3 text-2xs font-mono">解出</span>
+                  <span className="text-ink-3 text-2xs font-mono">{i18n.t('解出')}</span>
                   <Link
                     to="/challenges"
                     className="text-amber text-sm truncate hover:no-underline"
                   >
                     {r.challengeName}
                   </Link>
-                  {r.isFirstBlood && <Badge tone="accent">首杀</Badge>}
+                  {r.isFirstBlood && <Badge tone="accent">{i18n.t('首杀')}</Badge>}
                 </div>
                 <span className="font-mono text-sm tabular-nums text-ink text-right">
                   +{formatNumber(r.score)}
@@ -169,11 +168,11 @@ export function StatsPage() {
       </section>
 
       <section className="mt-12">
-        <SectionLabel>首解记录</SectionLabel>
+        <SectionLabel>{i18n.t('首解记录')}</SectionLabel>
         {bloods.isLoading ? (
           <Loading />
         ) : (bloods.data?.length ?? 0) === 0 ? (
-          <Empty label="暂无首解记录" />
+          <Empty label={i18n.t('暂无首解记录')} />
         ) : (
           <ul className="border-t border-rule">
             {bloods.data!.map((r, idx) => (
@@ -188,7 +187,7 @@ export function StatsPage() {
                   <span className="font-medium truncate text-sm">
                     {r.username}
                   </span>
-                  <span className="text-ink-3 text-2xs font-mono">首解</span>
+                  <span className="text-ink-3 text-2xs font-mono">{i18n.t('首解')}</span>
                   <span className="text-sm truncate">{r.challengeName}</span>
                 </div>
                 <span className="font-mono text-2xs text-ink-3 tabular-nums">
@@ -242,7 +241,7 @@ function TrendBars({ points }: { points: { date: string; solves: number }[] }) {
             <div
               key={p.date}
               className="flex-1 group relative flex flex-col items-center justify-end"
-              title={`${p.date}: ${p.solves} 次`}
+              title={i18n.t('{{v0}}: {{v1}} 次', { v0: p.date, v1: p.solves })}
             >
               <div
                 className="w-full bg-amber/80 group-hover:bg-amber transition-colors"

@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { Heart, Lock, Pin, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui';
@@ -37,15 +38,13 @@ export function DiscussionFloor({
           <Link to={`/users/${post.userId}`} className="text-sm font-medium hover:text-amber">
             {post.user?.username ?? `#${post.userId}`}
           </Link>
-          {isOp && <Badge tone="warning">楼主</Badge>}
+          {isOp && <Badge tone="warning">{i18n.t('楼主')}</Badge>}
           <span className="font-mono text-2xs text-ink-3">{relativeTime(post.createdAt)}</span>
           {post.editCount > 0 && (
-            <span className="font-mono text-2xs text-ink-3">
-              已编辑 · 修改于 {relativeTime(post.editedAt ?? post.updatedAt)}
-            </span>
+            <span className="font-mono text-2xs text-ink-3">{i18n.t('已编辑 · 修改于 {{v0}}', { v0: relativeTime(post.editedAt ?? post.updatedAt) })}</span>
           )}
-          {isTopic && post.isPinned && <Pin className="h-3 w-3 text-amber" aria-label="置顶" />}
-          {isTopic && post.isLocked && <Lock className="h-3 w-3 text-ink-3" aria-label="已锁定" />}
+          {isTopic && post.isPinned && <Pin className="h-3 w-3 text-amber" aria-label={i18n.t('置顶')} />}
+          {isTopic && post.isLocked && <Lock className="h-3 w-3 text-ink-3" aria-label={i18n.t('已锁定')} />}
         </header>
         <Markdown>{post.contentMd}</Markdown>
         <footer className="mt-3 flex items-center gap-1">
@@ -58,7 +57,7 @@ export function DiscussionFloor({
             )}
           >
             <Heart className={cn('h-3 w-3', post.liked && 'fill-current')} />
-            {post.likeCount > 0 ? post.likeCount : '赞'}
+            {post.likeCount > 0 ? post.likeCount : i18n.t('赞')}
           </button>
           {canReply && (
             <button
@@ -66,7 +65,7 @@ export function DiscussionFloor({
               onClick={onReply}
               className="inline-flex items-center gap-1 h-7 px-2 text-2xs rounded-sm text-ink-3 hover:bg-paper-2 transition-colors"
             >
-              回复
+              {i18n.t('回复')}
             </button>
           )}
           {canDelete && (
@@ -76,7 +75,7 @@ export function DiscussionFloor({
               className="inline-flex items-center gap-1 h-7 px-2 text-2xs rounded-sm text-ink-3 hover:bg-paper-2 hover:text-oxblood transition-colors"
             >
               <Trash2 className="h-3 w-3" />
-              删除
+              {i18n.t('删除')}
             </button>
           )}
         </footer>

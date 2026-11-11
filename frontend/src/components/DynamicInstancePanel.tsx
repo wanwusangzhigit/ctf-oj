@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -62,42 +63,42 @@ export function DynamicInstancePanel({
   const startMut = useMutation({
     mutationFn: () => startInstance(challengeId, competitionId),
     onSuccess: (res) => {
-      toast.success('实例已启动');
+      toast.success(i18n.t('实例已启动'));
       qc.setQueryData(instanceKey, res.instance);
       onSolvedRefresh?.();
     },
     onError: (err) => {
-      toast.error(err instanceof ApiClientError ? err.message : '启动失败');
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('启动失败'));
     },
   });
 
   const restartMut = useMutation({
     mutationFn: () => restartInstance(challengeId, competitionId),
     onSuccess: (res) => {
-      toast.success('实例已重启，新 Flag 已生成');
+      toast.success(i18n.t('实例已重启，新 Flag 已生成'));
       qc.setQueryData(instanceKey, res.instance);
       onSolvedRefresh?.();
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '重启失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('重启失败')),
   });
 
   const extendMut = useMutation({
     mutationFn: (id: number) => extendInstance(challengeId, id, 3600),
     onSuccess: (inst) => {
-      toast.success('已延长 1 小时');
+      toast.success(i18n.t('已延长 1 小时'));
       qc.setQueryData(instanceKey, inst);
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '延长失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('延长失败')),
   });
 
   const stopMut = useMutation({
     mutationFn: (id: number) => stopInstance(challengeId, id),
     onSuccess: () => {
-      toast.success('实例已销毁');
+      toast.success(i18n.t('实例已销毁'));
       qc.setQueryData(instanceKey, null);
       qc.invalidateQueries({ queryKey: instanceKey });
     },
-    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : '销毁失败'),
+    onError: (err) => toast.error(err instanceof ApiClientError ? err.message : i18n.t('销毁失败')),
   });
 
   useEffect(() => {
@@ -113,8 +114,8 @@ export function DynamicInstancePanel({
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <CardTitle>实例</CardTitle>
-        {inst?.status === 'running' && <Badge tone="success">运行中</Badge>}
+        <CardTitle>{i18n.t('实例')}</CardTitle>
+        {inst?.status === 'running' && <Badge tone="success">{i18n.t('运行中')}</Badge>}
       </CardHeader>
       <CardBody className="space-y-3">
         {isLoading ? (
@@ -124,7 +125,7 @@ export function DynamicInstancePanel({
         ) : notRunning ? (
           <div className="space-y-3">
             <p className="text-sm text-muted">
-              这是一道容器化题目。启动后将获得专属实例并分配独立端口；运行时限默认 2 小时，到期自动销毁。
+              {i18n.t('这是一道容器化题目。启动后将获得专属实例并分配独立端口；运行时限默认 2 小时，到期自动销毁。')}
             </p>
             <Button
               className="w-full"
@@ -132,11 +133,11 @@ export function DynamicInstancePanel({
               loading={startMut.isPending}
             >
               <Play className="h-3.5 w-3.5" />
-              {solved ? '重新启动实例' : '启动实例'}
+              {solved ? i18n.t('重新启动实例') : i18n.t('启动实例')}
             </Button>
             {solved && (
               <p className="text-2xs text-muted">
-                本题已通过。重新启动会生成新的专属 Flag，可继续练习或重做。
+                {i18n.t('本题已通过。重新启动会生成新的专属 Flag，可继续练习或重做。')}
               </p>
             )}
           </div>
@@ -149,18 +150,18 @@ export function DynamicInstancePanel({
             onExtend={() => extendMut.mutate(inst!.id)}
             onRestart={async () => {
               const ok = await confirm({
-                title: '重启实例',
-                description: '旧 Flag 将失效，新 Flag 会自动注入。',
-                confirmText: '重启',
+                title: i18n.t('重启实例'),
+                description: i18n.t('旧 Flag 将失效，新 Flag 会自动注入。'),
+                confirmText: i18n.t('重启'),
                 danger: false,
               });
               if (ok) restartMut.mutate();
             }}
             onStop={async () => {
               const ok = await confirm({
-                title: '销毁实例',
-                description: '容器会立即停止，未提交的 Flag 将丢失。',
-                confirmText: '销毁',
+                title: i18n.t('销毁实例'),
+                description: i18n.t('容器会立即停止，未提交的 Flag 将丢失。'),
+                confirmText: i18n.t('销毁'),
               });
               if (ok) stopMut.mutate(inst!.id);
             }}
@@ -213,8 +214,8 @@ function RunningView({
     if (!navigator.clipboard) return;
     navigator.clipboard
       .writeText(displayCmd)
-      .then(() => toast.success('已复制连接信息'))
-      .catch(() => toast.error('复制失败'));
+      .then(() => toast.success(i18n.t('已复制连接信息')))
+      .catch(() => toast.error(i18n.t('复制失败')));
   };
 
   return (
@@ -231,8 +232,8 @@ function RunningView({
                 href={openURL}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="打开实例"
-                title="在新标签页打开"
+                aria-label={i18n.t('打开实例')}
+                title={i18n.t('在新标签页打开')}
                 className="inline-flex items-center justify-center h-7 w-7 rounded text-muted hover:text-accent hover:bg-surface transition-colors"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -240,8 +241,8 @@ function RunningView({
             )}
             <button
               type="button"
-              aria-label="复制连接信息"
-              title="复制"
+              aria-label={i18n.t('复制连接信息')}
+              title={i18n.t('复制')}
               onClick={copyConnection}
               className="inline-flex items-center justify-center h-7 w-7 rounded text-muted hover:text-fg hover:bg-surface transition-colors"
             >
@@ -250,15 +251,15 @@ function RunningView({
           </div>
         </div>
         <dl className="grid grid-cols-2 gap-1 text-2xs text-muted">
-          <dt>协议</dt>
+          <dt>{i18n.t('协议')}</dt>
           <dd className="font-mono">{isHTTP ? 'HTTP' : 'TCP'}</dd>
-          <dt>镜像</dt>
+          <dt>{i18n.t('镜像')}</dt>
           <dd className="font-mono truncate">{inst.image}</dd>
-          <dt>剩余时长</dt>
+          <dt>{i18n.t('剩余时长')}</dt>
           <dd className={expired ? 'text-danger font-medium' : 'font-medium'}>
-            {expired ? '已过期' : formatDuration(remainingMs)}
+            {expired ? i18n.t('已过期') : formatDuration(remainingMs)}
           </dd>
-          <dt>启动</dt>
+          <dt>{i18n.t('启动')}</dt>
           <dd>{relativeTime(inst.startedAt)}</dd>
         </dl>
       </div>
@@ -271,28 +272,28 @@ function RunningView({
           className="inline-flex items-center justify-center gap-1.5 h-9 px-4 w-full rounded-md bg-accent text-white text-sm font-medium hover:opacity-90 transition-opacity"
         >
           <ExternalLink className="h-3.5 w-3.5" />
-          打开实例页面
+          {i18n.t('打开实例页面')}
         </a>
       )}
 
       {!solved && (
         <p className="text-2xs text-muted">
-          提交专属动态 Flag 即可解题。Flag 已生成并通过环境变量注入到你的实例中。
+          {i18n.t('提交专属动态 Flag 即可解题。Flag 已生成并通过环境变量注入到你的实例中。')}
         </p>
       )}
 
       <div className="grid grid-cols-3 gap-2">
         <Button variant="outline" onClick={onExtend} loading={extending} disabled={expired}>
           <RefreshCw className="h-3.5 w-3.5" />
-          延长
+          {i18n.t('延长')}
         </Button>
         <Button variant="outline" onClick={onRestart} loading={restarting}>
           <RotateCw className="h-3.5 w-3.5" />
-          重启
+          {i18n.t('重启')}
         </Button>
         <Button variant="danger" onClick={onStop} loading={stopping}>
           <Trash2 className="h-3.5 w-3.5" />
-          销毁
+          {i18n.t('销毁')}
         </Button>
       </div>
     </div>

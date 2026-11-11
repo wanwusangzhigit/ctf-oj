@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link, Outlet, useLocation, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Lock, Plus } from 'lucide-react';
 import { Spinner } from '@/components/ui';
@@ -44,7 +45,7 @@ export function CommunityLayout() {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
         <div className="border-t-2 border-ink pt-6">
-          <h1 className="text-2xl font-semibold tracking-tight">社区暂不可用</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{i18n.t('社区暂不可用')}</h1>
           <p className="mt-2 text-ink-3">{copy.load_failed}</p>
         </div>
       </div>
@@ -72,7 +73,7 @@ export function CommunityLayout() {
           </p>
           {!user && (
             <Link to="/auth/login?redirect=%2Fcommunity" className="mt-4 inline-block text-sm text-amber">
-              登录
+              {i18n.t('登录')}
             </Link>
           )}
         </div>
@@ -95,11 +96,11 @@ export function CommunityLayout() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <nav
-        aria-label="社区导航"
+        aria-label={i18n.t('社区导航')}
         className="flex items-center gap-1 flex-wrap border-b border-rule pb-2 mb-6"
       >
         <Link to="/community" className={tabClass(onIndex && activeSection === 0)}>
-          全部
+          {i18n.t('全部')}
         </Link>
         {sections.map((section) => (
           <Link

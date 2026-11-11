@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { Link } from 'react-router-dom';
 import { Lock, Pin } from 'lucide-react';
 import { cn, formatNumber, relativeTime } from '@/lib/utils';
@@ -27,14 +28,14 @@ export function TopicRow({
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2 min-w-0">
-          {d.isPinned && <Pin className="h-3 w-3 shrink-0 text-amber" aria-label="置顶" />}
+          {d.isPinned && <Pin className="h-3 w-3 shrink-0 text-amber" aria-label={i18n.t('置顶')} />}
           <Link
             to={href}
             className="truncate text-sm font-medium text-ink group-hover:text-amber hover:no-underline"
           >
-            {d.title || '(无标题)'}
+            {d.title || i18n.t('(无标题)')}
           </Link>
-          {d.isLocked && <Lock className="h-3 w-3 shrink-0 text-ink-3" aria-label="已锁定" />}
+          {d.isLocked && <Lock className="h-3 w-3 shrink-0 text-ink-3" aria-label={i18n.t('已锁定')} />}
           {sectionName && d.sectionId && (
             <Link
               to={`/community?section=${d.sectionId}`}
@@ -59,13 +60,13 @@ export function TopicRow({
             {d.user?.username ?? `#${d.userId}`}
           </Link>
           <span aria-hidden>·</span>
-          <span>发布于 {relativeTime(d.createdAt)}</span>
+          <span>{i18n.t('发布于 {{v0}}', { v0: relativeTime(d.createdAt) })}</span>
           <span aria-hidden>·</span>
-          <span>最后回复 {relativeTime(d.lastReplyAt ?? d.createdAt)}</span>
+          <span>{i18n.t('最后回复 {{v0}}', { v0: relativeTime(d.lastReplyAt ?? d.createdAt) })}</span>
           {d.editCount > 0 && (
             <>
               <span aria-hidden>·</span>
-              <span>已编辑 {d.editCount} 次</span>
+              <span>{i18n.t('已编辑 {{v0}} 次', { v0: d.editCount })}</span>
             </>
           )}
         </div>
@@ -74,9 +75,9 @@ export function TopicRow({
         to={href}
         className="flex sm:block items-center gap-3 font-mono text-2xs text-ink-3 tabular-nums sm:text-right hover:no-underline hover:text-ink"
       >
-        <span className="sm:hidden">回复 {d.replyCount}</span>
+        <span className="sm:hidden">{i18n.t('回复 {{v0}}', { v0: d.replyCount })}</span>
         <span className="hidden sm:block">{formatNumber(d.replyCount)}</span>
-        <span className="sm:hidden">浏览 {d.viewCount}</span>
+        <span className="sm:hidden">{i18n.t('浏览 {{v0}}', { v0: d.viewCount })}</span>
         <span className="hidden sm:block">{formatNumber(d.viewCount)}</span>
       </Link>
     </div>

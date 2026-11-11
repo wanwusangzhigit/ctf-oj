@@ -1,3 +1,4 @@
+import i18n from '@/locales/i18n';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, Trash2 } from 'lucide-react';
@@ -44,10 +45,10 @@ export function WriteupsPanel({
       setTitle('');
       setContent('');
       qc.invalidateQueries({ queryKey: ['writeups', challengeId, competitionId ?? 0] });
-      toast.success('Writeup 已发布');
+      toast.success(i18n.t('Writeup 已发布'));
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '发布失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('发布失败')),
   });
 
   const toggleMut = useMutation({
@@ -55,17 +56,17 @@ export function WriteupsPanel({
       updateWriteup(w.id, { isPublished: !w.isPublished }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['writeups', challengeId, competitionId ?? 0] }),
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '操作失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('操作失败')),
   });
 
   const delMut = useMutation({
     mutationFn: (id: number) => deleteWriteup(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['writeups', challengeId, competitionId ?? 0] });
-      toast.success('已删除');
+      toast.success(i18n.t('已删除'));
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : '删除失败'),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
   });
 
   if (!user) return null;
@@ -76,7 +77,7 @@ export function WriteupsPanel({
         <div>
           <h3 className="text-base font-semibold">Writeup</h3>
           <p className="text-2xs text-ink-3 mt-0.5">
-            解题后可发布题解，其他解题者可见。
+            {i18n.t('解题后可发布题解，其他解题者可见。')}
           </p>
         </div>
 
@@ -92,13 +93,13 @@ export function WriteupsPanel({
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="标题"
+              placeholder={i18n.t('标题')}
             />
             <Textarea
               rows={4}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="解题思路（Markdown）"
+              placeholder={i18n.t('解题思路（Markdown）')}
             />
             <div className="flex justify-end">
               <Button
@@ -107,7 +108,7 @@ export function WriteupsPanel({
                 loading={createMut.isPending}
                 disabled={!title.trim() || !content.trim()}
               >
-                发布
+                {i18n.t('发布')}
               </Button>
             </div>
           </form>
@@ -117,7 +118,7 @@ export function WriteupsPanel({
           <Spinner className="h-4 w-4 text-ink-3" />
         ) : (list.data?.length ?? 0) === 0 ? (
           <p className="text-sm text-ink-3">
-            {solved ? '还没有 Writeup。' : '解出题目后可查看 Writeup。'}
+            {solved ? i18n.t('还没有 Writeup。') : i18n.t('解出题目后可查看 Writeup。')}
           </p>
         ) : (
           <ul className="border-t border-rule">
@@ -127,7 +128,7 @@ export function WriteupsPanel({
                 <li key={w.id} className="py-4 border-b border-rule space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-sm">{w.title}</span>
-                    {!w.isPublished && <span className="font-mono text-2xs text-ink-3">未发布</span>}
+                    {!w.isPublished && <span className="font-mono text-2xs text-ink-3">{i18n.t('未发布')}</span>}
                     <span className="font-mono text-2xs text-ink-3">
                       {w.author.username} · {relativeTime(w.createdAt)}
                     </span>
@@ -139,15 +140,15 @@ export function WriteupsPanel({
                           className="inline-flex items-center gap-1 h-7 px-2 text-2xs text-ink-3 hover:bg-paper-2 rounded-sm"
                         >
                           {w.isPublished ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                          {w.isPublished ? '隐藏' : '公开'}
+                          {w.isPublished ? i18n.t('隐藏') : i18n.t('公开')}
                         </button>
                         <button
                           type="button"
                           onClick={async () => {
                             const ok = await confirm({
-                              title: '删除 Writeup',
-                              description: '这篇 Writeup 将被删除，无法恢复。',
-                              confirmText: '删除',
+                              title: i18n.t('删除 Writeup'),
+                              description: i18n.t('这篇 Writeup 将被删除，无法恢复。'),
+                              confirmText: i18n.t('删除'),
                             });
                             if (ok) delMut.mutate(w.id);
                           }}
