@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Badge, Spinner } from '@/components/ui';
 import { getChallenge } from '@/api/challenge';
-import { getCompetition } from '@/api/competition';
+import { getActiveCompetition, getCompetition } from '@/api/competition';
 import { competitionCoversChallenge, competitionPhase } from '@/lib/competition';
 import { cn } from '@/lib/utils';
 import type { ChallengeView, Competition } from '@/types';
@@ -44,8 +44,18 @@ export function ChallengeLayout() {
     enabled: hasRequestedCompetition,
     staleTime: 30_000,
   });
-  const competition = hasRequestedCompetition ? requestedQ.data : undefined;
-  const contextLoading = hasRequestedCompetition && requestedQ.isLoading;
+  const activeQ = useQuery({
+    queryKey: ['competition', 'active'],
+    queryFn: getActiveCompetition,
+    enabled: !hasRequestedCompetition,
+    staleTime: 30_000,
+  });
+  const competition = hasRequestedCompetition
+    ? requestedQ.data
+    : (activeQ.data ?? undefined);
+  const contextLoading =
+    (hasRequestedCompetition && requestedQ.isLoading) ||
+    (!hasRequestedCompetition && activeQ.isLoading);
   const contest =
     competition &&
     competitionPhase(competition) === 'live' &&

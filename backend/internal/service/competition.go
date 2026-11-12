@@ -503,6 +503,28 @@ func (s *CompetitionService) decorate(ctx context.Context, c *domain.Competition
 	}
 }
 
+// registrationOpen reports whether signing up or withdrawing is still allowed.
+// Both close as soon as the competition starts, so a running contest cannot
+// gain new entrants while existing ones are locked in.
+func registrationOpen(c *domain.Competition, now time.Time) bool {
+	if c == nil || c.ArchivedAt != nil {
+		return false
+	}
+	if c.StartAt != nil && !now.Before(*c.StartAt) {
+		return false
+	}
+	if c.EndAt != nil && !now.Before(*c.EndAt) {
+		return false
+	}
+	return true
+}
+
+// registrationCodeRequired reports whether a sign-up code must be presented.
+// A code on an optional-registration contest has no gate to guard.
+func registrationCodeRequired(c *domain.Competition) bool {
+	return c != nil && c.RegistrationRequired && c.RegistrationCode != ""
+}
+
 func (s *CompetitionService) Register(ctx context.Context, competitionID, userID uint, code string) (*domain.CompetitionRegistration, error) {
 	c, err := s.repo.FindByID(ctx, competitionID)
 	if err != nil {
@@ -511,13 +533,10 @@ func (s *CompetitionService) Register(ctx context.Context, competitionID, userID
 	if !s.canViewForRegistration(ctx, c, userID) {
 		return nil, domain.ErrNotFound
 	}
-	if c.ArchivedAt != nil {
-		return nil, fmt.Errorf("%w: competition archived", domain.ErrInvalidArgument)
+	if !registrationOpen(c, time.Now()) {
+		return nil, fmt.Errorf("%w: registration closed", domain.ErrInvalidArgument)
 	}
-	if c.EndAt != nil && time.Now().After(*c.EndAt) {
-		return nil, fmt.Errorf("%w: competition ended", domain.ErrInvalidArgument)
-	}
-	if c.RegistrationCode != "" {
+	if registrationCodeRequired(c) {
 		got := []byte(strings.TrimSpace(code))
 		want := []byte(c.RegistrationCode)
 		if len(got) != len(want) || subtle.ConstantTimeCompare(got, want) != 1 {
@@ -547,8 +566,8 @@ func (s *CompetitionService) Unregister(ctx context.Context, competitionID, user
 	if !s.canViewForRegistration(ctx, c, userID) {
 		return domain.ErrNotFound
 	}
-	if c.StartAt != nil && time.Now().After(*c.StartAt) {
-		return fmt.Errorf("%w: competition started", domain.ErrInvalidArgument)
+	if !registrationOpen(c, time.Now()) {
+		return fmt.Errorf("%w: registration closed", domain.ErrInvalidArgument)
 	}
 	if s.registrations == nil {
 		return fmt.Errorf("%w: registration unavailable", domain.ErrUnavailable)

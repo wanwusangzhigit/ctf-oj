@@ -281,17 +281,8 @@ func (s *DiscussionService) ensureVisible(ctx context.Context, target Discussion
 }
 
 func (s *DiscussionService) blockedByCompetition(ctx context.Context, target DiscussionTarget) error {
-	if target.Scope != domain.DiscussionScopeChallenge || target.CompetitionID == 0 || s.competitions == nil {
-		return nil
-	}
-	c, err := s.competitions.FindByID(ctx, target.CompetitionID)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return nil
-		}
-		return err
-	}
-	if competitionIsLive(c) && competitionCoversChallenge(c, target.ID) {
+	if target.Scope == domain.DiscussionScopeChallenge &&
+		liveCompetitionForChallenge(ctx, s.competitions, target.CompetitionID, target.ID) {
 		return fmt.Errorf("%w: challenge discussions unavailable during competition", domain.ErrForbidden)
 	}
 	return nil

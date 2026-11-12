@@ -72,6 +72,56 @@ func TestScoreboardCutoff(t *testing.T) {
 	}
 }
 
+func TestRegistrationOpen(t *testing.T) {
+	start := time.Date(2026, 1, 1, 8, 0, 0, 0, time.UTC)
+	end := start.Add(2 * time.Hour)
+	archived := start.Add(-time.Hour)
+	tests := []struct {
+		name string
+		c    *domain.Competition
+		now  time.Time
+		want bool
+	}{
+		{name: "nil competition", c: nil, now: start, want: false},
+		{name: "before start", c: &domain.Competition{StartAt: &start, EndAt: &end}, now: start.Add(-time.Minute), want: true},
+		{name: "exactly at start closes", c: &domain.Competition{StartAt: &start, EndAt: &end}, now: start, want: false},
+		{name: "live closes", c: &domain.Competition{StartAt: &start, EndAt: &end}, now: start.Add(time.Hour), want: false},
+		{name: "at end closes", c: &domain.Competition{StartAt: &start, EndAt: &end}, now: end, want: false},
+		{name: "no schedule stays open", c: &domain.Competition{}, now: start, want: true},
+		{name: "archived closes", c: &domain.Competition{StartAt: &start, EndAt: &end, ArchivedAt: &archived}, now: start.Add(-time.Minute), want: false},
+		{name: "open ended before start", c: &domain.Competition{StartAt: &start}, now: start.Add(-time.Hour), want: true},
+		{name: "open ended after start closes", c: &domain.Competition{StartAt: &start}, now: start.Add(time.Hour), want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := registrationOpen(tt.c, tt.now); got != tt.want {
+				t.Fatalf("registrationOpen() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRegistrationCodeRequired(t *testing.T) {
+	tests := []struct {
+		name string
+		c    *domain.Competition
+		want bool
+	}{
+		{name: "required with code", c: &domain.Competition{RegistrationRequired: true, RegistrationCode: "abc"}, want: true},
+		{name: "required without code", c: &domain.Competition{RegistrationRequired: true}, want: false},
+		{name: "optional with code ignored", c: &domain.Competition{RegistrationCode: "abc"}, want: false},
+		{name: "optional without code", c: &domain.Competition{}, want: false},
+		{name: "nil competition", c: nil, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := registrationCodeRequired(tt.c); got != tt.want {
+				t.Fatalf("registrationCodeRequired() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRawScoreForMode(t *testing.T) {
 	c := &domain.Challenge{BaseScore: 500, MinScore: 100, Decay: 10}
 	tests := []struct {
