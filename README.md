@@ -52,7 +52,11 @@ one `docker compose` file.
 - Dynamic flag injection per instance; container logs readable from the admin console.
 
 ### Competitions
-- Registration with optional join code, live / upcoming / finished phases, archiving.
+- Registration and withdrawal both close when the contest starts; a join code is
+  only required when registration is mandatory.
+- During a live contest a challenge is scored for the contest automatically,
+  whichever page it is opened from, and its writeups and discussions stay locked
+  even without a `competition_id` query parameter.
 - Scoring modes: `fixed`, `three_blood` (110% / 105% / 102%) and `dynamic`.
 - Board freeze (`freeze_at`) with a frozen public board and a live board for organizers.
 - Per-competition announcements, per-competition Q&A threads, per-competition solves

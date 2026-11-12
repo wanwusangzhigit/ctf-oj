@@ -402,22 +402,27 @@ func (s *ChallengeService) GetForUser(ctx context.Context, id, userID uint, incl
 	view.Attachments, _ = s.attachments.ListByChallengeID(ctx, c.ID)
 	view.SolveCount, _ = s.solves.CountByChallenge(ctx, c.ID)
 
-	inCompetition := false
+	var activeComp *domain.Competition
 	if competitionID > 0 && s.competitions != nil {
 		if comp, err := s.competitions.FindByID(ctx, competitionID); err == nil &&
 			competitionIsLive(comp) && competitionCoversChallenge(comp, c.ID) {
-			inCompetition = true
-			cid := competitionID
-			view.CompetitionID = &cid
+			activeComp = comp
 		}
+	}
+	if activeComp == nil {
+		activeComp = s.activeCompetitionFor(ctx, c.ID, userID)
+	}
+	if activeComp != nil {
+		cid := activeComp.ID
+		view.CompetitionID = &cid
 	}
 	if userID > 0 {
 		if sol, err := s.solves.FindByUserAndChallenge(ctx, userID, c.ID); err == nil && sol != nil {
 			view.Solved = true
 			view.UserScore = sol.Score
 		}
-		if inCompetition && s.competitionSolves != nil {
-			if sol, err := s.competitionSolves.FindByUserAndChallenge(ctx, competitionID, userID, c.ID); err == nil && sol != nil {
+		if activeComp != nil && s.competitionSolves != nil {
+			if sol, err := s.competitionSolves.FindByUserAndChallenge(ctx, activeComp.ID, userID, c.ID); err == nil && sol != nil {
 				view.CompetitionSolved = true
 				view.CompetitionScore = sol.Score
 			}
@@ -447,6 +452,15 @@ func (s *ChallengeService) ListForUser(ctx context.Context, filter domain.Challe
 			comp = c
 		}
 	}
+	if comp == nil && s.competitions != nil {
+		if c, err := s.competitions.FindActive(ctx); err == nil && c != nil && c.IsActive && competitionIsLive(c) {
+			if s.access == nil {
+				comp = c
+			} else if ok, err := s.access.CanViewCompetition(ctx, c, userID, false); err == nil && ok {
+				comp = c
+			}
+		}
+	}
 	for _, c := range cs {
 		v := &ChallengeView{Challenge: c}
 		v.SolveCount, _ = s.solves.CountByChallenge(ctx, c.ID)
@@ -457,10 +471,10 @@ func (s *ChallengeService) ListForUser(ctx context.Context, filter domain.Challe
 			}
 		}
 		if comp != nil && competitionCoversChallenge(comp, c.ID) {
-			cid := competitionID
+			cid := comp.ID
 			v.CompetitionID = &cid
 			if userID > 0 && s.competitionSolves != nil {
-				if sol, err := s.competitionSolves.FindByUserAndChallenge(ctx, competitionID, userID, c.ID); err == nil && sol != nil {
+				if sol, err := s.competitionSolves.FindByUserAndChallenge(ctx, comp.ID, userID, c.ID); err == nil && sol != nil {
 					v.CompetitionSolved = true
 					v.CompetitionScore = sol.Score
 				}
@@ -670,6 +684,49 @@ func (s *ChallengeService) SubmitFlag(ctx context.Context, userID, challengeID u
 	return &SubmissionResult{Correct: true, Score: score, CompetitionID: compID, Message: "correct"}, nil
 }
 
+// activeCompetitionFor returns the live competition a challenge currently
+// belongs to. The backend owns the contest context, so a challenge opened
+// from the catalogue during a live contest still scores for that contest
+// without the client having to pass a competition id.
+func (s *ChallengeService) activeCompetitionFor(ctx context.Context, challengeID, userID uint) *domain.Competition {
+	if s.competitions == nil {
+		return nil
+	}
+	c, err := s.competitions.FindActive(ctx)
+	if err != nil || c == nil || !c.IsActive {
+		return nil
+	}
+	if !competitionIsLive(c) || !competitionCoversChallenge(c, challengeID) {
+		return nil
+	}
+	if s.access != nil {
+		ok, err := s.access.CanViewCompetition(ctx, c, userID, false)
+		if err != nil || !ok {
+			return nil
+		}
+	}
+	return c
+}
+
+// liveCompetitionForChallenge reports whether a challenge is bound to a live
+// competition. An explicit id is honoured first; the active competition is
+// always checked as a fallback, so omitting the query parameter cannot slip
+// past the writeup / discussion gate.
+func liveCompetitionForChallenge(ctx context.Context, comps domain.CompetitionRepository, hintedID, challengeID uint) bool {
+	if comps == nil {
+		return false
+	}
+	if hintedID > 0 {
+		if c, err := comps.FindByID(ctx, hintedID); err == nil &&
+			c.IsActive && competitionIsLive(c) && competitionCoversChallenge(c, challengeID) {
+			return true
+		}
+	}
+	c, err := comps.FindActive(ctx)
+	return err == nil && c != nil && c.IsActive && competitionIsLive(c) &&
+		competitionCoversChallenge(c, challengeID)
+}
+
 func (s *ChallengeService) resolveCompetition(ctx context.Context, requestedID uint, c *domain.Challenge, userID uint) (*domain.Competition, error) {
 	if s.competitions == nil {
 		if requestedID > 0 {
@@ -678,7 +735,7 @@ func (s *ChallengeService) resolveCompetition(ctx context.Context, requestedID u
 		return nil, nil
 	}
 	if requestedID == 0 {
-		return nil, nil
+		return s.activeCompetitionFor(ctx, c.ID, userID), nil
 	}
 
 	comp, err := s.competitions.FindByID(ctx, requestedID)

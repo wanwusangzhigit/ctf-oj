@@ -87,7 +87,7 @@ export function CompetitionOverviewPage() {
                   </Button>
                 )}
               </>
-            ) : phase === 'ended' || c.archivedAt ? (
+            ) : phase === 'live' || phase === 'ended' || c.archivedAt ? (
               <span className="text-2xs text-ink-3">{i18n.t('报名已结束')}</span>
             ) : !user ? (
               <Link
@@ -98,7 +98,7 @@ export function CompetitionOverviewPage() {
               </Link>
             ) : (
               <>
-                {c.hasRegistrationCode && (
+                {c.hasRegistrationCode && c.registrationRequired && (
                   <Input
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
@@ -112,7 +112,7 @@ export function CompetitionOverviewPage() {
                   size="sm"
                   variant="primary"
                   loading={registerMut.isPending}
-                  disabled={!!c.hasRegistrationCode && !code.trim()}
+                  disabled={!!c.hasRegistrationCode && c.registrationRequired && !code.trim()}
                   onClick={() => registerMut.mutate()}
                 >
                   {i18n.t('报名')}

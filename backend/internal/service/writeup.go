@@ -157,17 +157,7 @@ func (s *WriteupService) Create(ctx context.Context, userID, challengeID uint, i
 }
 
 func (s *WriteupService) blockedByCompetition(ctx context.Context, competitionID, challengeID uint) error {
-	if competitionID == 0 || s.competitions == nil {
-		return nil
-	}
-	c, err := s.competitions.FindByID(ctx, competitionID)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return nil
-		}
-		return err
-	}
-	if competitionIsLive(c) && competitionCoversChallenge(c, challengeID) {
+	if liveCompetitionForChallenge(ctx, s.competitions, competitionID, challengeID) {
 		return fmt.Errorf("%w: writeups unavailable during competition", domain.ErrForbidden)
 	}
 	return nil
