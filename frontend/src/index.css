@@ -1,5 +1,7 @@
 @import './styles/fonts.css';
+@import './styles/katex.css';
 @import './styles/tokens.css';
+@import './styles/markdown-syntax.css';
 
 @tailwind base;
 @tailwind components;

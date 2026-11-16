@@ -124,7 +124,12 @@ frontend/src/
 - Fonts are bundled (`frontend/public/fonts`, Inter + JetBrains Mono, OFL licensed).
   No CDN, no Google Fonts, no remote scripts or images.
 - Rich text renders through the `Markdown` component (react-markdown +
-  rehype-sanitize). `dangerouslySetInnerHTML` is not acceptable.
+  rehype-sanitize). `dangerouslySetInnerHTML` is not acceptable. The plugin
+  order is intentional: `rehype-sanitize` runs **before** `rehype-highlight`
+  and `rehype-katex`; running it last strips their class names and MathML.
+  KaTeX fonts live in `public/fonts/katex/` and are referenced by the local
+  `src/styles/katex.css` — never a CDN. Keep the `katex` override in
+  `package.json` (the plugin's `^0.16.0` range carries a known advisory).
 - UI copy goes through `i18n.t(...)`; dictionaries live in
   `src/locales/{zh,en}/` and use the Chinese source text as the key. Never
   hardcode Chinese in components. Dictionaries are bundled locally, so the
