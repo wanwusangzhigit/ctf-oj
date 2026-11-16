@@ -162,6 +162,9 @@ frontend/src/
   is not obvious.
 - Table-driven tests are the default in Go. There is no frontend test framework;
   page-level regressions are performed against a running instance.
+- CI runs `make vet`, `make test`, `npm run typecheck` and `npm run build` on every
+  push and pull request, and image publishing waits for those checks. Run the same
+  commands locally before opening a pull request.
 - Run `make fmt` before committing Go changes.
 
 ## Commits and pull requests

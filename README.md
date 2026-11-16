@@ -353,7 +353,8 @@ cd frontend && npm run typecheck && npm run build
 
 There is no frontend test runner in this repository. Page-level regressions are run
 against a local instance with browser automation scripts that are deliberately not
-committed.
+committed. CI runs `make vet`, `make test`, `npm run typecheck` and `npm run build` on
+every push and pull request before the images are published.
 
 ## Deployment and images
 
@@ -416,7 +417,6 @@ Known gaps, stated plainly:
 - No frontend unit test framework.
 - No OpenAPI or generated contract documentation; the handlers are the specification.
 - Runtime translation covers UI chrome only; site-authored content and built-in community copy defaults stay in the language they were written in.
-- CI builds images but does not run the test suites.
 - `local` is the only storage driver; there is no S3-compatible backend.
 - Deleting a community board with topics in it is refused rather than archived.
 
