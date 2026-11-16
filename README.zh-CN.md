@@ -317,7 +317,7 @@ make test               # go test ./...   （表驱动，不需要连数据库�
 cd frontend && npm run typecheck && npm run build
 ```
 
-前端没有单测框架。页面级回归在本机实例上用浏览器脚本执行，这些脚本刻意不进仓库。
+前端没有单测框架。页面级回归在本机实例上用浏览器脚本执行，这些脚本刻意不进仓库。CI 在每次 push 与 PR 上先跑 `make vet`、`make test`、`npm run typecheck` 与 `npm run build`，通过后才发布镜像。
 
 ## 部署与镜像
 
@@ -375,7 +375,6 @@ make restore FILE=backups/ctfoj-20260101T120000Z.dump
 - 没有前端单测框架。
 - 没有 OpenAPI 或契约文档，handler 就是规格。
 - 运行时翻译仅覆盖界面文案；站点内容与社区文案内置默认值保持撰写时的语言。
-- CI 只构建镜像，不跑测试。
 - 存储只有 `local` driver，没有 S3 兼容后端。
 - 板块下仍有主题时删除会被拒绝，没有归档状态。
 

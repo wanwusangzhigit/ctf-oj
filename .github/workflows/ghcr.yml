@@ -17,7 +17,46 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify:
+    name: Vet and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Go vet
+        run: make vet
+
+      - name: Go tests
+        run: make test
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: frontend
+
+      - name: Frontend typecheck
+        run: npm run typecheck
+        working-directory: frontend
+
+      - name: Frontend build
+        run: npm run build
+        working-directory: frontend
+
   publish:
+    needs: verify
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
