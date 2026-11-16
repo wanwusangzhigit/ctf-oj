@@ -100,6 +100,10 @@ implementation, and cross-service wiring happens in `cmd/server/main.go`.
 - Community boards (`community_sections`) carry their own copy and may override the
   site-wide visibility/posting policy with `''` meaning "inherit". Board grants live in
   `community_section_grants` and are deliberately **not** part of `delegations`.
+  Deleting a board means archiving it (`archived_at`, via the existing `DELETE`
+  route); topics keep their `section_id` because the FK is `ON DELETE RESTRICT`.
+  An archived board is hidden from `Views` and rejected by `accessFor`; restore
+  with `POST /admin/community/sections/:id/restore`. Both operations are idempotent.
 
 ## Frontend conventions
 

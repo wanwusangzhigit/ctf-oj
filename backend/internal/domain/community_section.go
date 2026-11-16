@@ -12,11 +12,12 @@ type CommunitySection struct {
 	Blurb        string `gorm:"size:255;not null;default:''" json:"blurb"`
 	GuidelinesMD string `gorm:"type:text;column:guidelines_md;not null;default:''" json:"guidelinesMd"`
 	// Empty means "inherit the station-wide policy"; any stored value overrides it.
-	Visibility string    `gorm:"size:16;not null;default:''" json:"visibility"`
-	Posting    string    `gorm:"size:16;not null;default:''" json:"posting"`
-	SortOrder  int       `gorm:"not null;default:0" json:"sortOrder"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	Visibility string     `gorm:"size:16;not null;default:''" json:"visibility"`
+	Posting    string     `gorm:"size:16;not null;default:''" json:"posting"`
+	SortOrder  int        `gorm:"not null;default:0" json:"sortOrder"`
+	ArchivedAt *time.Time `json:"archivedAt,omitempty"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
 }
 
 func (CommunitySection) TableName() string { return "community_sections" }

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/ctf-oj/backend/internal/domain"
@@ -180,6 +181,11 @@ func (s *CommunitySectionService) Views(ctx context.Context, userID uint, global
 		return nil, err
 	}
 	for _, section := range sections {
+		// Archived boards are hidden from the public list but kept in the
+		// database with all their topics until an admin restores them.
+		if section.ArchivedAt != nil {
+			continue
+		}
 		visibility, posting := resolveSectionPolicy(stationVisibility, stationPosting, section)
 		decision := decideAccess(globalModerate, userID, stationLevel, levels[section.ID], visibility, posting)
 		view := CommunitySectionView{ID: section.ID, Name: section.Name, CanView: decision.canView, CanPost: decision.canPost, CanManage: decision.canManage}
@@ -224,6 +230,9 @@ func (s *CommunitySectionService) accessFor(ctx context.Context, sectionID, user
 	section, err := s.repo.FindByID(ctx, sectionID)
 	if err != nil {
 		return sectionAccess{}, err
+	}
+	if section.ArchivedAt != nil {
+		return sectionAccess{}, domain.ErrNotFound
 	}
 	visibility, posting := s.effectivePolicy(ctx, section)
 	teamID := s.community.TeamIDForUser(ctx, userID)
@@ -325,13 +334,41 @@ func (s *CommunitySectionService) UpdateCopy(ctx context.Context, id uint, in Co
 	return section, nil
 }
 
-// Delete is refused while the board still holds topics: the foreign key is
-// RESTRICT, and mapErr turns that into a 409.
+// Delete archives a board instead of removing it. Topics keep their section
+// reference (the FK is RESTRICT), stay in the database, and become invisible
+// until Restore brings the board back. Re-archiving an already archived board
+// is a no-op.
 func (s *CommunitySectionService) Delete(ctx context.Context, id uint) error {
 	if s.repo == nil {
 		return domain.ErrInvalidArgument
 	}
-	return s.repo.Delete(ctx, id)
+	section, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if section.ArchivedAt != nil {
+		return nil
+	}
+	now := time.Now()
+	section.ArchivedAt = &now
+	return s.repo.Update(ctx, section)
+}
+
+// Restore clears the archive marker, making the board and its existing topics
+// visible again. Restoring a board that was never archived is a no-op.
+func (s *CommunitySectionService) Restore(ctx context.Context, id uint) error {
+	if s.repo == nil {
+		return domain.ErrInvalidArgument
+	}
+	section, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if section.ArchivedAt == nil {
+		return nil
+	}
+	section.ArchivedAt = nil
+	return s.repo.Update(ctx, section)
 }
 
 func (s *CommunitySectionService) ListGrants(ctx context.Context, sectionID uint) ([]domain.AccessSubject, error) {

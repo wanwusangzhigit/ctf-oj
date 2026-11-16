@@ -966,6 +966,15 @@ const natural = {
   '（无日志输出 —— 容器可能在日志采集前已终止）': '(no log output — the container may have stopped before logs were collected)',
   '（无）': '(none)',
   '（空内容）': '(empty)',
+  '板块已归档，主题已保留': 'Board archived; topics were kept',
+  '归档失败': 'Archive failed',
+  '板块已恢复': 'Board restored',
+  '恢复失败': 'Restore failed',
+  '恢复{{v0}}': 'Restore {{v0}}',
+  '恢复板块': 'Restore board',
+  '归档{{v0}}': 'Archive {{v0}}',
+  '归档板块': 'Archive board',
+  '归档板块「{{v0}}」？主题会保留，板块将从公开列表隐藏，可随时恢复。': 'Archive board "{{v0}}"? Its topics are kept; the board disappears from the public list and can be restored at any time.',
 } as const;
 
 export default natural;

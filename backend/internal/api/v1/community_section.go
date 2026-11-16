@@ -138,7 +138,21 @@ func (h *CommunitySectionHandler) Delete(c *gin.Context) {
 		response.Err(c, err)
 		return
 	}
-	recordAudit(c, h.audit, "community_section.delete", "community_section", id, nil)
+	recordAudit(c, h.audit, "community_section.archive", "community_section", id, nil)
+	response.NoContent(c)
+}
+
+// Restore brings an archived board (and its topics) back into view.
+func (h *CommunitySectionHandler) Restore(c *gin.Context) {
+	id, ok := sectionIDParam(c)
+	if !ok {
+		return
+	}
+	if err := h.svc.Restore(c.Request.Context(), id); err != nil {
+		response.Err(c, err)
+		return
+	}
+	recordAudit(c, h.audit, "community_section.restore", "community_section", id, nil)
 	response.NoContent(c)
 }
 

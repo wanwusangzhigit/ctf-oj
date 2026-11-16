@@ -1,9 +1,11 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/ctf-oj/backend/internal/domain"
@@ -311,5 +313,86 @@ func TestSectionInputUpdateCopyIgnoresAdminFields(t *testing.T) {
 	}
 	if copyOnly.Visibility != "" || copyOnly.Posting != "" || copyOnly.SortOrder != 0 {
 		t.Fatalf("copy-only payload must not carry policy or order, got %+v", copyOnly)
+	}
+}
+
+// fakeSectionRepo records the archive marker written by Delete/Restore without
+// needing a database. Only the methods those two paths touch are meaningful.
+type fakeSectionRepo struct {
+	sections map[uint]*domain.CommunitySection
+	updates  int
+}
+
+func (f *fakeSectionRepo) Create(_ context.Context, s *domain.CommunitySection) error {
+	if f.sections == nil {
+		f.sections = map[uint]*domain.CommunitySection{}
+	}
+	f.sections[s.ID] = s
+	return nil
+}
+func (f *fakeSectionRepo) FindByID(_ context.Context, id uint) (*domain.CommunitySection, error) {
+	s, ok := f.sections[id]
+	if !ok {
+		return nil, domain.ErrNotFound
+	}
+	return s, nil
+}
+func (f *fakeSectionRepo) List(context.Context) ([]*domain.CommunitySection, error) { return nil, nil }
+func (f *fakeSectionRepo) Update(_ context.Context, s *domain.CommunitySection) error {
+	f.updates++
+	f.sections[s.ID] = s
+	return nil
+}
+func (f *fakeSectionRepo) Delete(_ context.Context, id uint) error {
+	delete(f.sections, id)
+	return nil
+}
+
+func TestSectionArchiveRestore(t *testing.T) {
+	repo := &fakeSectionRepo{sections: map[uint]*domain.CommunitySection{
+		1: {ID: 1, Name: "站务版"},
+	}}
+	svc := &CommunitySectionService{repo: repo}
+
+	archivedAt := func() *time.Time {
+		return repo.sections[1].ArchivedAt
+	}
+
+	if err := svc.Delete(context.Background(), 1); err != nil {
+		t.Fatalf("archive: %v", err)
+	}
+	if archivedAt() == nil {
+		t.Fatal("archive did not set archived_at")
+	}
+	first := *archivedAt()
+	if _, ok := repo.sections[1]; !ok {
+		t.Fatal("archive removed the board row; it must keep it")
+	}
+
+	// Re-archiving is a no-op: no second Update, marker unchanged.
+	if err := svc.Delete(context.Background(), 1); err != nil {
+		t.Fatalf("re-archive: %v", err)
+	}
+	if repo.updates != 1 || *archivedAt() != first {
+		t.Fatalf("re-archive wrote again: updates=%d marker=%v", repo.updates, archivedAt())
+	}
+
+	if err := svc.Restore(context.Background(), 1); err != nil {
+		t.Fatalf("restore: %v", err)
+	}
+	if archivedAt() != nil {
+		t.Fatal("restore did not clear archived_at")
+	}
+
+	// Restoring a live board is a no-op too.
+	if err := svc.Restore(context.Background(), 1); err != nil {
+		t.Fatalf("re-restore: %v", err)
+	}
+	if repo.updates != 2 {
+		t.Fatalf("re-restore wrote again: updates=%d", repo.updates)
+	}
+
+	if err := svc.Delete(context.Background(), 999); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("archive missing board: want ErrNotFound, got %v", err)
 	}
 }
