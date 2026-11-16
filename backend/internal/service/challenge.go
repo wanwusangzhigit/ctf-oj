@@ -684,6 +684,19 @@ func (s *ChallengeService) SubmitFlag(ctx context.Context, userID, challengeID u
 	return &SubmissionResult{Correct: true, Score: score, CompetitionID: compID, Message: "correct"}, nil
 }
 
+// competitionLiveForChallenge is the shared definition of "this challenge is
+// inside a running, active contest", used by scoring and by the writeup /
+// discussion locks so those cannot drift apart.
+//
+// GetForUser's explicit competition_id check deliberately omits IsActive: an
+// administrator may open a challenge from a contest that is live by time but
+// no longer the active one. Do not fold that check into this predicate unless
+// the visibility rule changes too.
+func competitionLiveForChallenge(c *domain.Competition, challengeID uint) bool {
+	return c != nil && c.IsActive && competitionIsLive(c) &&
+		competitionCoversChallenge(c, challengeID)
+}
+
 // activeCompetitionFor returns the live competition a challenge currently
 // belongs to. The backend owns the contest context, so a challenge opened
 // from the catalogue during a live contest still scores for that contest
@@ -693,10 +706,7 @@ func (s *ChallengeService) activeCompetitionFor(ctx context.Context, challengeID
 		return nil
 	}
 	c, err := s.competitions.FindActive(ctx)
-	if err != nil || c == nil || !c.IsActive {
-		return nil
-	}
-	if !competitionIsLive(c) || !competitionCoversChallenge(c, challengeID) {
+	if err != nil || !competitionLiveForChallenge(c, challengeID) {
 		return nil
 	}
 	if s.access != nil {
@@ -718,13 +728,12 @@ func liveCompetitionForChallenge(ctx context.Context, comps domain.CompetitionRe
 	}
 	if hintedID > 0 {
 		if c, err := comps.FindByID(ctx, hintedID); err == nil &&
-			c.IsActive && competitionIsLive(c) && competitionCoversChallenge(c, challengeID) {
+			competitionLiveForChallenge(c, challengeID) {
 			return true
 		}
 	}
 	c, err := comps.FindActive(ctx)
-	return err == nil && c != nil && c.IsActive && competitionIsLive(c) &&
-		competitionCoversChallenge(c, challengeID)
+	return err == nil && competitionLiveForChallenge(c, challengeID)
 }
 
 func (s *ChallengeService) resolveCompetition(ctx context.Context, requestedID uint, c *domain.Challenge, userID uint) (*domain.Competition, error) {
