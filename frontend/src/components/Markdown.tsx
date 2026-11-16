@@ -1,6 +1,9 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import rehypeSanitize from 'rehype-sanitize';
+import rehypeKatex from 'rehype-katex';
+import rehypeHighlight from 'rehype-highlight';
 import { cn } from '@/lib/utils';
 
 interface MarkdownProps {
@@ -35,7 +38,16 @@ export function Markdown({ children, className }: MarkdownProps) {
         className,
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+      {/*
+        rehypeSanitize runs FIRST, before highlight/formula plugins add their
+        class names and MathML nodes. Running it last would strip all of them
+        (verified against the real plugin chain). Sanitizing the source first
+        still blocks script tags and javascript: URLs.
+      */}
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeSanitize, rehypeHighlight, rehypeKatex]}
+      >
         {children}
       </ReactMarkdown>
     </div>

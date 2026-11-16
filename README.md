@@ -72,6 +72,8 @@ one `docker compose` file.
   posting policy overrides that fall back to the site-wide policy.
 - Site-wide and per-board access grants for users, teams and groups.
 - Nested replies, likes, tags, pinning, locking, Markdown body with revision history.
+- Markdown supports `$inline$` / `$$display$$` math (KaTeX) and fenced code with
+  syntax highlighting; all assets are bundled locally.
 - Teams with invite codes, team roster management, ownership transfer and a team board.
 - Notification centre, activity feed, follows, achievements, avatar upload, optional 2FA.
 
@@ -110,7 +112,7 @@ one `docker compose` file.
 | Data | PostgreSQL 16, Redis 7 |
 | Frontend | React 18, TypeScript 5.6 (strict), Vite 5, Tailwind CSS, TanStack Query, Zustand, react-router 6, i18next / react-i18next |
 | Infra | Docker Compose, Caddy reverse proxy, GHCR images (`linux/amd64` + `linux/arm64`) |
-| Rich text | react-markdown + rehype-sanitize (no `dangerouslySetInnerHTML`) |
+| Rich text | react-markdown + rehype-sanitize, with KaTeX math and Prism-style code highlighting; no `dangerouslySetInnerHTML` |
 
 ## Quick start
 

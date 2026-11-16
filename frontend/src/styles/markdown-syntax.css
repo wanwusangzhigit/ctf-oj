@@ -1,0 +1,57 @@
+/* Syntax colours for rehype-highlight's hljs-* classes.
+   Every colour comes from the design tokens in tokens.css — no hex literals. */
+.hljs-comment,
+.hljs-quote {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type,
+.hljs-name {
+  color: var(--amber);
+}
+
+.hljs-string,
+.hljs-attr,
+.hljs-template-tag,
+.hljs-addition {
+  color: var(--moss);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable,
+.hljs-attribute {
+  color: var(--oxblood);
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-section,
+.hljs-built_in {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.hljs-deletion {
+  color: var(--oxblood);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 600;
+}
+
+/* KaTeX display math can overflow long formulae; keep it scrollable. */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}

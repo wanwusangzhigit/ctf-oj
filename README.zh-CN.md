@@ -61,6 +61,7 @@
 - 每个板块有自己的文案（名称、简介、Markdown 版规）与可见性 / 发帖策略覆盖，未设置时沿用全站策略。
 - 全站与板块两级授权，主体可以是用户、团队或权限组。
 - 嵌套回复、点赞、标签、置顶、锁定、Markdown 正文与历史版本。
+- Markdown 支持 `$行内$` / `$$块级$$` 数学公式（KaTeX）与围栏代码语法高亮，所有资源本地打包。
 - 团队邀请码、成员管理、队长转让、团队榜。
 - 通知中心、活动流、关注、成就、头像上传、可选两步验证。
 
@@ -90,7 +91,7 @@
 | 数据 | PostgreSQL 16、Redis 7 |
 | 前端 | React 18、TypeScript 5.6（strict）、Vite 5、Tailwind CSS、TanStack Query、Zustand、react-router 6、i18next / react-i18next |
 | 基础设施 | Docker Compose、Caddy 反向代理、GHCR 镜像（`linux/amd64` + `linux/arm64`） |
-| 富文本 | react-markdown + rehype-sanitize（不使用 `dangerouslySetInnerHTML`） |
+| 富文本 | react-markdown + rehype-sanitize，支持 KaTeX 数学公式与代码语法高亮；不使用 `dangerouslySetInnerHTML` |
 
 ## 快速开始
 
