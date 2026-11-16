@@ -383,6 +383,7 @@ func Mount(parent *gin.RouterGroup, d *Deps) {
 			adminGroup.POST("/community/sections", middleware.RequirePermission(domain.PermCommunityManage), sectionH.Create)
 			adminGroup.PUT("/community/sections/:id", middleware.RequirePermission(domain.PermCommunityManage), sectionH.Update)
 			adminGroup.DELETE("/community/sections/:id", middleware.RequirePermission(domain.PermCommunityManage), sectionH.Delete)
+			adminGroup.POST("/community/sections/:id/restore", middleware.RequirePermission(domain.PermCommunityManage), sectionH.Restore)
 			adminGroup.GET("/community/sections/:id/access", middleware.RequirePermission(domain.PermCommunityManage), sectionH.ListGrants)
 			adminGroup.PUT("/community/sections/:id/access", middleware.RequirePermission(domain.PermCommunityManage), sectionH.SetGrants)
 		}

@@ -66,7 +66,8 @@ one `docker compose` file.
 
 ### Community and teams
 - Forum organised into sections (boards). Four boards ship by default — 站务版 / 求助版 /
-  灌水版 / 讨论交流版 — and boards can be added, renamed or removed.
+  灌水版 / 讨论交流版 — and boards can be added, renamed, archived or restored.
+  Archiving hides a board and its topics without deleting them.
 - Every community topic belongs to a board; replies inherit their topic's board.
 - Per-board copy (name, blurb, guidelines in Markdown) and per-board visibility and
   posting policy overrides that fall back to the site-wide policy.
@@ -420,7 +421,6 @@ Known gaps, stated plainly:
 - No OpenAPI or generated contract documentation; the handlers are the specification.
 - Runtime translation covers UI chrome only; site-authored content and built-in community copy defaults stay in the language they were written in.
 - `local` is the only storage driver; there is no S3-compatible backend.
-- Deleting a community board with topics in it is refused rather than archived.
 
 ## Contributing
 

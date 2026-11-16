@@ -322,6 +322,7 @@ export interface CommunitySectionAdmin {
   visibility: CommunityVisibility | '';
   posting: CommunityPosting | '';
   sortOrder: number;
+  archivedAt?: string;
   createdAt: string;
   updatedAt: string;
   topicCount: number;

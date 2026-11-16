@@ -48,8 +48,13 @@ export function updateSection(
   return apiPut<CommunitySectionRow>(`/admin/community/sections/${id}`, input);
 }
 
+// Delete archives the board; it keeps its topics. Restore makes them visible again.
 export function deleteSection(id: number): Promise<void> {
   return apiDelete<void>(`/admin/community/sections/${id}`);
+}
+
+export function restoreSection(id: number): Promise<void> {
+  return apiPost<void>(`/admin/community/sections/${id}/restore`);
 }
 
 // The board manager's own route: same row, but it cannot reach policy or order.

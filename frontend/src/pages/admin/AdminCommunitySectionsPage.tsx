@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { Pencil, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -21,6 +21,7 @@ import {
   createSection,
   deleteSection,
   listSectionGrants,
+  restoreSection,
   setSectionGrants,
   updateSection,
 } from '@/api/community';
@@ -113,12 +114,22 @@ export function AdminCommunitySectionsPage() {
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteSection(id),
     onSuccess: (_data, id) => {
-      toast.success(i18n.t('板块已删除'));
+      toast.success(i18n.t('板块已归档，主题已保留'));
       invalidate();
       if (editing?.id === id) cancelEdit();
     },
     onError: (err) =>
-      toast.error(err instanceof ApiClientError ? err.message : i18n.t('删除失败')),
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('归档失败')),
+  });
+
+  const restoreMut = useMutation({
+    mutationFn: (id: number) => restoreSection(id),
+    onSuccess: () => {
+      toast.success(i18n.t('板块已恢复'));
+      invalidate();
+    },
+    onError: (err) =>
+      toast.error(err instanceof ApiClientError ? err.message : i18n.t('恢复失败')),
   });
 
   function startEdit(section: CommunitySectionAdmin) {
@@ -263,6 +274,9 @@ export function AdminCommunitySectionsPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium text-ink">{section.name}</span>
+                    {section.archivedAt && (
+                      <Badge tone="warning">{i18n.t('已归档')}</Badge>
+                    )}
                     <Badge tone={section.visibility === 'restricted' ? 'warning' : 'neutral'}>
                       {section.visibility || i18n.t('沿用全站')}
                     </Badge>
@@ -276,30 +290,44 @@ export function AdminCommunitySectionsPage() {
                   )}
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={i18n.t('编辑{{v0}}', { v0: section.name })}
-                    onClick={() => startEdit(section)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={i18n.t('删除{{v0}}', { v0: section.name })}
-                    onClick={async () => {
-                      const ok = await confirm({
-                        title: i18n.t('删除板块'),
-                        description: i18n.t('删除板块「{{v0}}」？板块下仍有主题时删除会被拒绝。', { v0: section.name }),
-                        confirmText: i18n.t('删除'),
-                      });
-                      if (!ok) return;
-                      deleteMut.mutate(section.id);
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {section.archivedAt ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={i18n.t('恢复{{v0}}', { v0: section.name })}
+                      title={i18n.t('恢复板块')}
+                      onClick={() => restoreMut.mutate(section.id)}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={i18n.t('编辑{{v0}}', { v0: section.name })}
+                        onClick={() => startEdit(section)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={i18n.t('归档{{v0}}', { v0: section.name })}
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: i18n.t('归档板块'),
+                            description: i18n.t('归档板块「{{v0}}」？主题会保留，板块将从公开列表隐藏，可随时恢复。', { v0: section.name }),
+                            confirmText: i18n.t('归档'),
+                          });
+                          if (!ok) return;
+                          deleteMut.mutate(section.id);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}
