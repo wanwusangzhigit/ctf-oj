@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 
-FROM golang:1.22-alpine AS build
+FROM golang:1.26-alpine AS build
 ENV GOPROXY=https://goproxy.cn,direct
 RUN echo "https://mirrors.aliyun.com/alpine/v3.20/main" > /etc/apk/repositories && \
     echo "https://mirrors.aliyun.com/alpine/v3.20/community" >> /etc/apk/repositories
