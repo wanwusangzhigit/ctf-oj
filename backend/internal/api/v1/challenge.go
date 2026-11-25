@@ -46,6 +46,7 @@ func (h *ChallengeHandler) List(c *gin.Context) {
 		}
 	}
 	filter.Query = c.Query("q")
+	filter.Sort = c.Query("sort")
 	filter.Status = c.Query("status")
 	if v := c.Query("difficulty"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {

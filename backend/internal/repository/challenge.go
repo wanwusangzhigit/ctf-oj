@@ -116,10 +116,24 @@ func (r *challengeRepo) List(ctx context.Context, filter domain.ChallengeFilter)
 		return nil, 0, err
 	}
 
+	order := "created_at DESC"
+	switch filter.Sort {
+	case "oldest":
+		order = "created_at ASC"
+	case "score_desc":
+		order = "base_score DESC, id ASC"
+	case "score_asc":
+		order = "base_score ASC, id ASC"
+	case "difficulty_asc":
+		order = "difficulty ASC, id ASC"
+	case "difficulty_desc":
+		order = "difficulty DESC, id ASC"
+	}
+
 	var cs []*domain.Challenge
 	if err := q.
 		Preload("Category").
-		Order("created_at DESC").
+		Order(order).
 		Offset((filter.Page - 1) * filter.PageSize).
 		Limit(filter.PageSize).
 		Find(&cs).Error; err != nil {

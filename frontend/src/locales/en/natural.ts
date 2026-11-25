@@ -975,6 +975,11 @@ const natural = {
   '归档{{v0}}': 'Archive {{v0}}',
   '归档板块': 'Archive board',
   '归档板块「{{v0}}」？主题会保留，板块将从公开列表隐藏，可随时恢复。': 'Archive board "{{v0}}"? Its topics are kept; the board disappears from the public list and can be restored at any time.',
+  '排序': 'Sort',
+  '分值从高到低': 'Score: high to low',
+  '分值从低到高': 'Score: low to high',
+  '难度从低到高': 'Difficulty: low to high',
+  '难度从高到低': 'Difficulty: high to low',
 } as const;
 
 export default natural;
