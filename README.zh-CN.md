@@ -33,13 +33,13 @@
 ## 功能
 
 ### 题目与判题
-- 分类与难度目录，支持按标题、标签、描述搜索。
+- 分类与难度目录，支持按标题、标签、描述搜索，并可按最新、最早、分值或难度排序。
 - static 与 regex 两类 flag，单题可配多个 flag，可选大小写敏感。
 - 动态计分（`基础分 / 最低分 / 衰减`，按解题人数衰减）或固定分值。
 - 题目状态：草稿、已发布、隐藏、归档。隐藏题只有被进行中的赛事显式绑定后才能访问。
 - 题目附件、独立 writeup 及各自的讨论区。
 - 单题领奖台与一血列表。
-- 题库 CSV 导入导出。
+- 题库 JSON 导入导出：分类、题目、flag、提示与附件元数据。
 
 ### 动态（容器化）题目
 - 题目可用 image、Dockerfile 或 Compose 三种来源，源码上传到隔离目录后按需构建。
@@ -198,6 +198,23 @@ docker compose exec -T postgres sh -c \
 
 `scripts/deploy.sh` 收尾会把这一步打印出来，env 文件、库名、用户名都已填好（把用户名换成
 自己的，或直接用 `--admin NAME`）。它只打印，绝不代跑。
+
+## 可选的演示数据
+
+全新安装是空的——迁移只建表，不写数据。若想先看看界面，可导入仓库自带的演示题库
+（4 个分类、8 道题，含 flag、提示与题解；其中 1 道草稿题用于演示仅管理员可见的状态）：
+
+```bash
+make seed-demo ARGS="--account 你的用户名"
+# 或：./scripts/seed-demo.sh --url http://localhost:8080 --account 你的用户名
+```
+
+脚本用该管理员账号登录，把 `deploy/demo/challenges.json` 通过
+`POST /api/v1/admin/import/challenges` 上传并打印汇总。重复执行是安全的：题目按标题
+去重，已存在的会跳过。密码从 `CTFOJ_ADMIN_PASSWORD`（推荐）或 `--password` 读取，
+绝不落盘。
+
+演示 flag 是公开示例。正式比赛前请修改或删除。
 
 ## 配置
 

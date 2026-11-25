@@ -24,6 +24,7 @@ export function ChallengesPage() {
   const [difficulty, setDifficulty] = useState(0);
   const [type, setType] = useState('');
   const [solved, setSolved] = useState('');
+  const [sort, setSort] = useState('newest');
   const deferredQuery = useDeferredValue(query);
 
   const categories = useQuery({
@@ -32,7 +33,7 @@ export function ChallengesPage() {
     staleTime: 5 * 60_000,
   });
   const challenges = useQuery({
-    queryKey: ['challenges', catId, deferredQuery, difficulty, type, solved],
+    queryKey: ['challenges', catId, deferredQuery, difficulty, type, solved, sort],
     queryFn: () =>
       listChallenges({
         categoryId: catId,
@@ -40,6 +41,7 @@ export function ChallengesPage() {
         difficulty: difficulty || undefined,
         type: (type as 'static' | 'container') || undefined,
         solved: solved === '' ? undefined : solved === 'true',
+        sort: sort as 'newest' | 'oldest' | 'score_desc' | 'score_asc' | 'difficulty_asc' | 'difficulty_desc',
         pageSize: 100,
       }),
     staleTime: 30_000,
@@ -130,6 +132,19 @@ export function ChallengesPage() {
           <option value="">{i18n.t('全部状态')}</option>
           <option value="true">{i18n.t('已解出')}</option>
           <option value="false">{i18n.t('未解出')}</option>
+        </select>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          aria-label={i18n.t('排序')}
+          className="h-8 px-2 bg-paper border border-rule rounded-sm text-sm"
+        >
+          <option value="newest">{i18n.t('最新发布')}</option>
+          <option value="oldest">{i18n.t('最早发布')}</option>
+          <option value="score_desc">{i18n.t('分值从高到低')}</option>
+          <option value="score_asc">{i18n.t('分值从低到高')}</option>
+          <option value="difficulty_asc">{i18n.t('难度从低到高')}</option>
+          <option value="difficulty_desc">{i18n.t('难度从高到低')}</option>
         </select>
       </div>
 

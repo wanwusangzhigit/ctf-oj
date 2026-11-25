@@ -16,6 +16,7 @@ type ExportService struct {
 	categories  domain.CategoryRepository
 	flags       domain.FlagRepository
 	attachments domain.AttachmentRepository
+	hints       domain.HintRepository
 	storage     domain.Storage
 }
 
@@ -24,6 +25,7 @@ func NewExportService(
 	cat domain.CategoryRepository,
 	f domain.FlagRepository,
 	a domain.AttachmentRepository,
+	h domain.HintRepository,
 	s domain.Storage,
 ) *ExportService {
 	return &ExportService{
@@ -31,6 +33,7 @@ func NewExportService(
 		categories:  cat,
 		flags:       f,
 		attachments: a,
+		hints:       h,
 		storage:     s,
 	}
 }
@@ -48,6 +51,13 @@ type ExportFlag struct {
 	Type          string `json:"type"`
 	Content       string `json:"content"`
 	CaseSensitive bool   `json:"caseSensitive"`
+}
+
+// ExportHint is a paid hint. Unlock state is per-user and is not exported.
+type ExportHint struct {
+	SortOrder int     `json:"sortOrder"`
+	CostRatio float32 `json:"costRatio"`
+	Content   string  `json:"content"`
 }
 
 // ExportAttachment is metadata only (filename/size); file contents are not embedded to keep the bundle small.
@@ -80,7 +90,32 @@ type ExportChallenge struct {
 	CPULimit       int                `json:"cpuLimit"`
 	PidsLimit      int                `json:"pidsLimit"`
 	Flags          []ExportFlag       `json:"flags"`
+	Hints          []ExportHint       `json:"hints"`
 	Attachments    []ExportAttachment `json:"attachments"`
+}
+
+// toExportHints converts stored hints to the bundle shape. Kept pure so the
+// mapping is unit-tested without a database.
+func toExportHints(hints []*domain.ChallengeHint) []ExportHint {
+	out := make([]ExportHint, 0, len(hints))
+	for _, h := range hints {
+		out = append(out, ExportHint{SortOrder: h.SortOrder, CostRatio: h.CostRatio, Content: h.Content})
+	}
+	return out
+}
+
+// toDomainHints converts bundle hints to rows for one challenge.
+func toDomainHints(challengeID uint, hints []ExportHint) []*domain.ChallengeHint {
+	out := make([]*domain.ChallengeHint, 0, len(hints))
+	for _, h := range hints {
+		out = append(out, &domain.ChallengeHint{
+			ChallengeID: challengeID,
+			SortOrder:   h.SortOrder,
+			CostRatio:   h.CostRatio,
+			Content:     h.Content,
+		})
+	}
+	return out
 }
 
 // ExportBundle is the top-level export format.
@@ -111,6 +146,10 @@ func (s *ExportService) Export(ctx context.Context, w io.Writer) error {
 	for _, c := range chals {
 		flags, _ := s.flags.FindByChallengeID(ctx, c.ID)
 		atts, _ := s.attachments.ListByChallengeID(ctx, c.ID)
+		var hints []*domain.ChallengeHint
+		if s.hints != nil {
+			hints, _ = s.hints.FindByChallenge(ctx, c.ID)
+		}
 		categorySlug := ""
 		if c.Category != nil {
 			categorySlug = c.Category.Slug
@@ -152,6 +191,7 @@ func (s *ExportService) Export(ctx context.Context, w io.Writer) error {
 				Filename: a.Filename, MimeType: a.MimeType, Size: a.Size, StorageKey: a.StorageKey,
 			})
 		}
+		ec.Hints = toExportHints(hints)
 		bundle.Challenges = append(bundle.Challenges, ec)
 	}
 
@@ -268,6 +308,13 @@ func (s *ExportService) Import(ctx context.Context, r io.Reader, actorID uint) (
 				// ok
 			}
 		}
+		if s.hints != nil {
+			for _, h := range toDomainHints(ch.ID, ec.Hints) {
+				if err := s.hints.Create(ctx, h); err == nil {
+					summary.HintsCreated++
+				}
+			}
+		}
 		// Best-effort attachment re-link (only StorageKey copied; same volume required)
 		for _, ea := range ec.Attachments {
 			if ea.StorageKey == "" {
@@ -296,6 +343,7 @@ type ImportSummary struct {
 	ChallengesSkipped int `json:"challengesSkipped"`
 	ChallengesFailed  int `json:"challengesFailed"`
 	AttachmentsLinked int `json:"attachmentsLinked"`
+	HintsCreated      int `json:"hintsCreated"`
 }
 
 // utility used internally when copying attachment metadata only

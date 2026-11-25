@@ -144,7 +144,7 @@ func main() {
 	searchSvc := service.NewSearchService(searchRepo)
 	teamSvc := service.NewTeamService(teamRepo, userRepo)
 	statsSvc := service.NewStatsService(gormDB)
-	exportSvc := service.NewExportService(chalRepo, catRepo, flagRepo, attRepo, storageBackend)
+	exportSvc := service.NewExportService(chalRepo, catRepo, flagRepo, attRepo, hintRepo, storageBackend)
 	compSvc := service.NewCompetitionService(compRepo, settingSvc)
 	compSvc.SetAccessService(accessSvc)
 	compSvc.SetRegistrationRepository(compRegRepo)

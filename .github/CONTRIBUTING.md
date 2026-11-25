@@ -51,6 +51,9 @@ be one.
   teams.** The single exception is a structural default for a new catalog table — the
   four default community boards in `000031_community_sections.up.sql` are the only such
   case, and they exist because the feature's shape is defined by those rows.
+- Demo content is opt-in, never migrated: `make seed-demo` imports
+  `deploy/demo/challenges.json` through the admin API. Keep it that way — do not move
+  sample challenges into a migration.
 - Nothing migrates on application start. `make migrate` (i.e. `scripts/migrate.sh`) is
   the only path, and it runs each file in its own transaction: a failing file rolls
   back completely and later files are not applied.

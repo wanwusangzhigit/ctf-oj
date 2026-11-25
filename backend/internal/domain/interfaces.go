@@ -60,14 +60,18 @@ type ChallengeRepository interface {
 }
 
 type ChallengeFilter struct {
-	CategoryID      uint
-	OnlyPublished   bool
-	AccessUserID    uint
-	AccessTeamID    uint
-	Query           string
-	Status          string
-	Difficulty      int
-	IsDynamic       *bool
+	CategoryID    uint
+	OnlyPublished bool
+	AccessUserID  uint
+	AccessTeamID  uint
+	Query         string
+	Status        string
+	Difficulty    int
+	IsDynamic     *bool
+	// Sort is a whitelisted order key ("newest", "oldest", "score_desc",
+	// "score_asc", "difficulty_asc", "difficulty_desc"); anything else falls
+	// back to newest first.
+	Sort            string
 	SolvedBy        uint
 	Solved          *bool
 	CompetitionID   uint

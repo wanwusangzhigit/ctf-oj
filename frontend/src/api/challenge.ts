@@ -23,6 +23,7 @@ export interface ChallengeListFilter {
   type?: 'static' | 'container';
   solved?: boolean;
   competitionId?: number;
+  sort?: 'newest' | 'oldest' | 'score_desc' | 'score_asc' | 'difficulty_asc' | 'difficulty_desc';
 }
 
 export function listChallenges(filter: ChallengeListFilter = {}): Promise<Paginated<ChallengeView>> {
@@ -38,6 +39,7 @@ export function listChallenges(filter: ChallengeListFilter = {}): Promise<Pagina
   if (filter.type) params.type = filter.type;
   if (filter.solved !== undefined) params.solved = filter.solved;
   if (filter.competitionId) params.competition_id = filter.competitionId;
+  if (filter.sort) params.sort = filter.sort;
   return apiGet<Paginated<ChallengeView>>('/challenges', params);
 }
 

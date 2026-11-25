@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "exportedAt": "2026-11-19T00:00:00Z",
+  "categories": [
+    {
+      "name": "Web",
+      "slug": "web",
+      "description": "Web 方向：注入、XSS、SSRF、反序列化。",
+      "sortOrder": 10
+    },
+    {
+      "name": "Pwn",
+      "slug": "pwn",
+      "description": "二进制利用：栈与堆的内存错误、ROP、格式化字符串。",
+      "sortOrder": 20
+    },
+    {
+      "name": "Crypto",
+      "slug": "crypto",
+      "description": "密码学：古典密码、RSA、分组密码攻击。",
+      "sortOrder": 30
+    },
+    {
+      "name": "Misc",
+      "slug": "misc",
+      "description": "杂项：编码、取证、脚本与脑洞。",
+      "sortOrder": 40
+    }
+  ],
+  "challenges": [
+    {
+      "categorySlug": "web",
+      "title": "easy-sqli",
+      "baseScore": 300,
+      "minScore": 150,
+      "decay": 8,
+      "difficulty": 1,
+      "status": "published",
+      "isPublished": true,
+      "tags": "sqli,web,easy",
+      "connectionInfo": "http://challenges.internal:8000",
+      "description": "登录框后面是一台 MySQL。\n\n把 `notes` 表里的东西读出来：\n\n```http\nPOST /login\n{\"user\": \"admin\", \"pass\": \"?' OR 1=1-- -\"}\n```",
+      "editorial": "`' UNION SELECT 1,note,3 FROM notes-- -` 可以直接回显；过滤了 `union` 时用大小写交错绕过。",
+      "flags": [
+        {
+          "type": "static",
+          "content": "flag{un1on_sel3ct_w0rks}",
+          "caseSensitive": true
+        }
+      ],
+      "hints": [
+        {
+          "sortOrder": 10,
+          "costRatio": 0.2,
+          "content": "注意后端拼接 SQL 的位置，`pass` 字段没有做转义。"
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "categorySlug": "web",
+      "title": "xss-chain",
+      "baseScore": 400,
+      "minScore": 200,
+      "decay": 8,
+      "difficulty": 2,
+      "status": "published",
+      "isPublished": true,
+      "tags": "xss,web",
+      "connectionInfo": "",
+      "description": "评论区把用户名直接拼进了 DOM，CSP 只限制了 `script-src 'self'`。\n\n拿到 `admin` 的 cookie 即可，提交形如 `flag{xss_……}` 的串。",
+      "editorial": "",
+      "flags": [
+        {
+          "type": "regex",
+          "content": "flag\\{xss_[a-z0-9]{6}\\}",
+          "caseSensitive": true
+        }
+      ],
+      "hints": [
+        {
+          "sortOrder": 10,
+          "costRatio": 0.25,
+          "content": "CSP 只限制脚本来源，没有限制外链图片的 `onerror`。"
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "categorySlug": "pwn",
+      "title": "heap-basics",
+      "baseScore": 500,
+      "minScore": 250,
+      "decay": 8,
+      "difficulty": 3,
+      "status": "published",
+      "isPublished": true,
+      "tags": "pwn,heap,tcache",
+      "connectionInfo": "",
+      "description": "一个开了 full RELRO 的 64 位程序，`add / edit / delete` 三件套。\n\n`delete` 之后指针没有置空，可以二次写入。\n\n目标：改写 `__free_hook` 前面那个 chunk 的 `fd`。",
+      "editorial": "两次 `delete(0)` 之间插入一次 `edit(0)` 就能污染 tcache 链。",
+      "flags": [
+        {
+          "type": "static",
+          "content": "flag{tcache_poison_done}",
+          "caseSensitive": true
+        }
+      ],
+      "hints": [
+        {
+          "sortOrder": 10,
+          "costRatio": 0.2,
+          "content": "`UAF` 出现在 `delete_note()` 里，不是 `edit_note()`。"
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "categorySlug": "pwn",
+      "title": "rogue-stack",
+      "baseScore": 450,
+      "minScore": 225,
+      "decay": 8,
+      "difficulty": 3,
+      "status": "published",
+      "isPublished": true,
+      "tags": "pwn,rop,ret2csu",
+      "connectionInfo": "",
+      "description": "没有 `system`，也没有 one gadget。`__libc_csu_init` 帮你把所有东西都摆好了。",
+      "editorial": "",
+      "flags": [
+        {
+          "type": "static",
+          "content": "flag{ret2csu_got_here}",
+          "caseSensitive": true
+        }
+      ],
+      "hints": [],
+      "attachments": []
+    },
+    {
+      "categorySlug": "crypto",
+      "title": "rsa-warmup",
+      "baseScore": 350,
+      "minScore": 175,
+      "decay": 8,
+      "difficulty": 2,
+      "status": "published",
+      "isPublished": true,
+      "tags": "crypto,rsa",
+      "connectionInfo": "",
+      "description": "`e = 3`，消息很短，满足 $m^3 < n$。\n\n$$\nn = 143480635797809662366997605560666046124810367491016257382263426739649129366544\\\\\ne = 3\\\\\nc = 86948303638545248798927983656994699106408025698452780188102432947105626204016\n$$",
+      "editorial": "直接对密文开三次方根即可，不需要分解 $n$。",
+      "flags": [
+        {
+          "type": "static",
+          "content": "flag{small_e_needs_padding}",
+          "caseSensitive": true
+        }
+      ],
+      "hints": [
+        {
+          "sortOrder": 10,
+          "costRatio": 0.15,
+          "content": "先算 $c$ 的立方根是不是整数。"
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "categorySlug": "crypto",
+      "title": "xor-oracle",
+      "baseScore": 250,
+      "minScore": 125,
+      "decay": 8,
+      "difficulty": 1,
+      "status": "published",
+      "isPublished": true,
+      "tags": "crypto,xor,scripting",
+      "connectionInfo": "",
+      "description": "服务器会对任意明文做异或，但偷偷屏蔽了最后 8 位。",
+      "editorial": "",
+      "flags": [
+        {
+          "type": "static",
+          "content": "flag{four_bytes_are_enough}",
+          "caseSensitive": true
+        }
+      ],
+      "hints": [],
+      "attachments": []
+    },
+    {
+      "categorySlug": "misc",
+      "title": "magic-numbers",
+      "baseScore": 200,
+      "minScore": 100,
+      "decay": 8,
+      "difficulty": 1,
+      "status": "published",
+      "isPublished": true,
+      "tags": "misc,forensics,carving",
+      "connectionInfo": "",
+      "description": "一个打不开的压缩包。`binwalk` 说得比谁都清楚，但它什么都没解出来。",
+      "editorial": "",
+      "flags": [
+        {
+          "type": "static",
+          "content": "flag{png_after_png_after_png}",
+          "caseSensitive": true
+        }
+      ],
+      "hints": [
+        {
+          "sortOrder": 10,
+          "costRatio": 0.3,
+          "content": "文件头可能被改过；先看前 16 个字节。"
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "categorySlug": "misc",
+      "title": "pickle-re",
+      "baseScore": 450,
+      "minScore": 225,
+      "decay": 8,
+      "difficulty": 3,
+      "status": "draft",
+      "isPublished": false,
+      "tags": "misc,python,deserialization",
+      "connectionInfo": "",
+      "description": "`__reduce__` 里塞了什么，取决于你敢不敢按回车。（草稿：仅管理员可见，用于演示状态）",
+      "editorial": "",
+      "flags": [
+        {
+          "type": "regex",
+          "content": "flag\\{pl4y_[a-z]+\\}",
+          "caseSensitive": true
+        }
+      ],
+      "hints": [],
+      "attachments": []
+    }
+  ]
+}
