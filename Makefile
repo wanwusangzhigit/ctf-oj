@@ -1,4 +1,4 @@
-.PHONY: help deploy deploy-custom up down backend-dev frontend-dev build build-backend build-frontend up-prod migrate migrate-all logs psql redis-cli clean fmt vet test backup restore
+.PHONY: help deploy deploy-custom up down backend-dev frontend-dev build build-backend build-frontend up-prod migrate migrate-all logs psql redis-cli clean fmt vet test backup restore seed-demo
 
 help:
 	@echo "Available targets:"
@@ -18,6 +18,7 @@ help:
 	@echo "  fmt           Format Go code"
 	@echo "  vet           Run go vet"
 	@echo "  test          Run Go tests"
+	@echo "  seed-demo     Import the sample challenge bundle (opt-in; needs an admin account)"
 
 deploy:
 	@./scripts/deploy.sh $(ARGS)
@@ -93,3 +94,9 @@ restore:
 	if [ "$$DB" != "$${POSTGRES_DB:-ctfoj}" ]; then echo "Aborted."; exit 1; fi
 	docker compose exec -T postgres pg_restore -U "$${POSTGRES_USER:-ctfoj}" -d "$${POSTGRES_DB:-ctfoj}" --clean --if-exists < $(FILE)
 	@echo "Restore complete."
+
+## seed-demo imports deploy/demo/challenges.json through the admin API.
+## Opt-in: a fresh install stays empty until you run this. Needs an admin account.
+## Usage: make seed-demo ARGS="--url http://localhost:8080 --account admin"
+seed-demo:
+	@bash scripts/seed-demo.sh $(ARGS)

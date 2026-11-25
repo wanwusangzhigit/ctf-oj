@@ -35,14 +35,16 @@ one `docker compose` file.
 ## Features
 
 ### Challenges and judging
-- Category and difficulty catalog with search over titles, tags and descriptions.
+- Category and difficulty catalog with search over titles, tags and descriptions,
+  plus sorting by newest, oldest, score or difficulty.
 - Static and regex flag matching, per-challenge flag lists, case sensitivity switch.
 - Dynamic scoring (`base / min / decay` by solver count) or fixed scores.
 - Challenge states: draft, published, hidden, archived. Hidden challenges are only
   reachable through a live competition that binds them.
 - Attachment uploads, per-challenge writeups with their own discussion threads.
 - Solution podium and first-blood list per challenge.
-- CSV import and export of the challenge catalog.
+- JSON import and export of the challenge catalog: categories, challenges, flags,
+  hints and attachment metadata.
 
 ### Dynamic (containerized) challenges
 - Per-challenge image, Dockerfile or Compose source, uploaded into an isolated source
@@ -232,6 +234,25 @@ console.
 `scripts/deploy.sh` prints this as its last step, with the env file, database name and
 user already filled in (substitute your username, or pass `--admin NAME`). It prints the
 command and never runs it.
+
+## Optional demo data
+
+A fresh install starts empty — migrations only create schema. To try the UI with
+sample content, import the bundled catalog (4 categories, 8 challenges with flags,
+hints and editorials; one draft challenge demonstrates the admin-only state):
+
+```bash
+make seed-demo ARGS="--account YOUR_NAME"
+# or: ./scripts/seed-demo.sh --url http://localhost:8080 --account YOUR_NAME
+```
+
+The script signs in with that admin account, uploads `deploy/demo/challenges.json`
+through `POST /api/v1/admin/import/challenges` and prints a summary. Re-running is
+safe because challenges are matched by title and skipped. The password is read from
+`CTFOJ_ADMIN_PASSWORD` (preferred) or `--password`, and is never written to disk.
+
+The flags in the bundle are public examples. Change or delete them before running a
+real contest.
 
 ## Configuration
 
